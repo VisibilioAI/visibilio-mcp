@@ -64,9 +64,9 @@ export async function buildServer(options: BuildServerOptions = {}): Promise<{
       throw new Error(`Unknown tool: ${request.params.name}`);
     }
     const args = (request.params.arguments ?? {}) as Record<string, unknown>;
-    const result = await tool.handler(args, session);
+    const text = await tool.handler(args, session);
     return {
-      content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
+      content: [{ type: 'text', text }],
     };
   });
 

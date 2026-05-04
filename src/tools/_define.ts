@@ -8,7 +8,7 @@ export interface JsonSchema {
   additionalProperties?: boolean;
 }
 
-export type ToolHandler = (args: Record<string, unknown>, session: McpSession) => Promise<unknown>;
+export type ToolHandler = (args: Record<string, unknown>, session: McpSession) => Promise<string>;
 
 export interface ToolDescriptor {
   name: string;
