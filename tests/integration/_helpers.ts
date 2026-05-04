@@ -7,25 +7,32 @@ export interface MockResponse {
   match: (url: string, init?: RequestInit) => boolean;
   status?: number;
   body: unknown;
+  headers?: Record<string, string>;
 }
 
 export function buildSession(responses: MockResponse[], authOverrides?: Partial<AuthContext>) {
   const calls: Array<{ url: string; init?: RequestInit }> = [];
+  let cursor = 0;
   const fetchImpl = vi.fn(async (url: string, init?: RequestInit) => {
     calls.push({ url, init });
-    const matched = responses.find((r) => r.match(url, init));
-    if (!matched) {
+    const matched = responses[cursor] ?? responses.find((r) => r.match(url, init));
+    if (matched && responses[cursor] === matched) cursor += 1;
+    if (!matched || !matched.match(url, init)) {
       throw new Error(`No mock matched ${init?.method ?? 'GET'} ${url}`);
     }
     const status = matched.status ?? 200;
     const ok = status >= 200 && status < 300;
     const text = matched.body === undefined ? '' : JSON.stringify(matched.body);
+    const headerMap = matched.headers ?? {};
     return {
       ok,
       status,
+      headers: {
+        get: (name: string) => headerMap[name] ?? headerMap[name.toLowerCase()] ?? null,
+      },
       text: async () => text,
       json: async () => matched.body,
-    } as Response;
+    } as unknown as Response;
   });
 
   const auth: AuthContext = {

@@ -25,6 +25,9 @@ export class HttpError extends Error {
 }
 
 const RETRYABLE_STATUSES = new Set([429, 502, 503, 504]);
+const MAX_RETRY_ATTEMPTS = 3;
+const BASE_DELAY_MS = 1000;
+const BREAKER_BASE_DELAY_MS = 2000;
 
 export class VisibilioClient {
   private readonly backendUrl: string;
@@ -119,25 +122,50 @@ export class VisibilioClient {
       serializedBody = JSON.stringify(body);
       allHeaders['Content-Type'] = 'application/json';
     }
+    return this.fetchWithBackoff(method, url, allHeaders, serializedBody, 0);
+  }
+
+  private async fetchWithBackoff(
+    method: string,
+    url: string,
+    headers: Record<string, string>,
+    body: string | undefined,
+    attempt: number
+  ): Promise<unknown> {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), this.timeoutMs);
+    let response: Response;
     try {
-      const response = await this.fetchImpl(url, {
-        method,
-        headers: allHeaders,
-        body: serializedBody,
-        signal: controller.signal,
-      });
-      const text = await response.text();
-      const parsed = text ? safeJson(text) : null;
-      if (!response.ok) {
-        throw new HttpError(`${method} ${url} → ${response.status}`, response.status, parsed);
-      }
-      return parsed;
+      response = await this.fetchImpl(url, { method, headers, body, signal: controller.signal });
     } finally {
       clearTimeout(timer);
     }
+
+    if (RETRYABLE_STATUSES.has(response.status) && attempt < MAX_RETRY_ATTEMPTS) {
+      const delay = computeBackoffDelay(response, attempt);
+      await sleep(delay);
+      return this.fetchWithBackoff(method, url, headers, body, attempt + 1);
+    }
+
+    const text = await response.text();
+    const parsed = text ? safeJson(text) : null;
+    if (!response.ok) {
+      throw new HttpError(`${method} ${url} → ${response.status}`, response.status, parsed);
+    }
+    return parsed;
   }
+}
+
+function computeBackoffDelay(response: Response, attempt: number): number {
+  const retryAfterRaw = response.headers.get('Retry-After');
+  const retryAfterMs = retryAfterRaw ? Number.parseInt(retryAfterRaw, 10) * 1000 : 0;
+  const baseDelay = response.status === 503 ? BREAKER_BASE_DELAY_MS : BASE_DELAY_MS;
+  const expBackoff = baseDelay * Math.pow(2, attempt);
+  return Math.max(retryAfterMs, expBackoff);
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 function safeJson(text: string): unknown {
