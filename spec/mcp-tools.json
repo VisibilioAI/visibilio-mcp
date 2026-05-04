@@ -1,0 +1,1250 @@
+{
+  "schemaVersion": "1",
+  "extractedFrom": "/Users/alekseylazarov/Documents/Visibilio Product 2/visibilio-mcp-server/src/visibilio_mcp",
+  "totalToolsExtracted": 43,
+  "totalResourcesExtracted": 9,
+  "tools": [
+    {
+      "name": "list_audiences",
+      "module": "audience",
+      "args": [],
+      "docstring": "List all audience personas for your project.\n\nShows persona names, IDs, and brief descriptions. Use get_audience\nfor full details on a specific persona.\n"
+    },
+    {
+      "name": "get_audience",
+      "module": "audience",
+      "args": [
+        "audience_id"
+      ],
+      "docstring": "Get full details of a specific audience persona.\n\nReturns demographics, pain points, motivations, content preferences,\nand platform behavior for the persona.\n\nArgs:\n    audience_id: The audience persona ID or name.\n"
+    },
+    {
+      "name": "write_linkedin_post",
+      "module": "content",
+      "args": [
+        "topic",
+        "audience_id",
+        "tone",
+        "key_points",
+        "include_image"
+      ],
+      "docstring": "Write a LinkedIn post. Optimized for professional engagement: hook-driven opening, 1300 char limit, relevant hashtags.\n\nArgs:\n    topic: What the post should be about.\n    audience_id: Target audience persona ID (from list_audiences).\n    tone: Desired tone (e.g., professional, conversational, bold).\n    key_points: Specific points to include.\n    include_image: Whether to generate an accompanying image.\n"
+    },
+    {
+      "name": "write_blog_article",
+      "module": "content",
+      "args": [
+        "topic",
+        "audience_id",
+        "tone",
+        "key_points",
+        "include_image"
+      ],
+      "docstring": "Write a blog article. SEO-optimized long-form content with headings, subheadings, and a clear structure.\n\nArgs:\n    topic: What the article should be about.\n    audience_id: Target audience persona ID (from list_audiences).\n    tone: Desired tone.\n    key_points: Specific points to include.\n    include_image: Whether to generate a hero image.\n"
+    },
+    {
+      "name": "write_tweet",
+      "module": "content",
+      "args": [
+        "topic",
+        "audience_id",
+        "tone",
+        "key_points"
+      ],
+      "docstring": "Write a tweet (X post). Concise, punchy, 280 char limit.\n\nArgs:\n    topic: What the tweet should be about.\n    audience_id: Target audience persona ID.\n    tone: Desired tone.\n    key_points: Specific points to include.\n"
+    },
+    {
+      "name": "write_facebook_post",
+      "module": "content",
+      "args": [
+        "topic",
+        "audience_id",
+        "tone",
+        "key_points",
+        "include_image"
+      ],
+      "docstring": "Write a Facebook post. Conversational tone, engagement-focused.\n\nArgs:\n    topic: What the post should be about.\n    audience_id: Target audience persona ID.\n    tone: Desired tone.\n    key_points: Specific points to include.\n    include_image: Whether to generate an accompanying image.\n"
+    },
+    {
+      "name": "write_newsletter",
+      "module": "content",
+      "args": [
+        "topic",
+        "audience_id",
+        "tone",
+        "key_points"
+      ],
+      "docstring": "Write a newsletter edition. Structured with sections, personal tone, clear CTAs.\n\nArgs:\n    topic: Newsletter theme or topic.\n    audience_id: Target audience persona ID.\n    tone: Desired tone.\n    key_points: Specific sections or topics to cover.\n"
+    },
+    {
+      "name": "write_press_release",
+      "module": "content",
+      "args": [
+        "topic",
+        "audience_id",
+        "key_points"
+      ],
+      "docstring": "Write a press release. Formal tone, inverted pyramid structure, includes quotes and boilerplate.\n\nArgs:\n    topic: What the press release announces.\n    audience_id: Target audience persona ID.\n    key_points: Key facts and quotes to include.\n"
+    },
+    {
+      "name": "write_email_campaign",
+      "module": "content",
+      "args": [
+        "topic",
+        "audience_id",
+        "tone",
+        "key_points"
+      ],
+      "docstring": "Write a marketing email. Subject line, preview text, body, and CTA optimized for conversions.\n\nArgs:\n    topic: Email campaign topic or offer.\n    audience_id: Target audience persona ID.\n    tone: Desired tone.\n    key_points: Key selling points.\n"
+    },
+    {
+      "name": "write_instagram_caption",
+      "module": "content",
+      "args": [
+        "topic",
+        "audience_id",
+        "tone",
+        "key_points"
+      ],
+      "docstring": "Write an Instagram caption. Emoji-friendly, hashtag-rich, with engaging hook and CTA.\n\nArgs:\n    topic: What the caption is about.\n    audience_id: Target audience persona ID.\n    tone: Desired tone.\n    key_points: Key messages.\n"
+    },
+    {
+      "name": "write_youtube_description",
+      "module": "content",
+      "args": [
+        "topic",
+        "audience_id",
+        "key_points"
+      ],
+      "docstring": "Write a YouTube video description. SEO keywords, timestamps, links section, and subscribe CTA.\n\nArgs:\n    topic: Video topic.\n    audience_id: Target audience persona ID.\n    key_points: Key timestamps or sections.\n"
+    },
+    {
+      "name": "write_tiktok_script",
+      "module": "content",
+      "args": [
+        "topic",
+        "audience_id",
+        "tone",
+        "key_points"
+      ],
+      "docstring": "Write a TikTok video script. Hook in first 3 seconds, short punchy format, trending style.\n\nArgs:\n    topic: Video topic.\n    audience_id: Target audience persona ID.\n    tone: Desired tone.\n    key_points: Key moments or talking points.\n"
+    },
+    {
+      "name": "write_website_copy",
+      "module": "content",
+      "args": [
+        "topic",
+        "audience_id",
+        "tone",
+        "key_points"
+      ],
+      "docstring": "Write website copy. Clear value proposition, scannable layout, conversion-oriented.\n\nArgs:\n    topic: Page or section topic.\n    audience_id: Target audience persona ID.\n    tone: Desired tone.\n    key_points: Key benefits or features.\n"
+    },
+    {
+      "name": "write_ad_copy",
+      "module": "content",
+      "args": [
+        "topic",
+        "audience_id",
+        "tone",
+        "key_points"
+      ],
+      "docstring": "Write advertising copy. Headline + body + CTA, A/B test variants.\n\nArgs:\n    topic: Product, service, or campaign to advertise.\n    audience_id: Target audience persona ID.\n    tone: Desired tone.\n    key_points: Key selling propositions.\n"
+    },
+    {
+      "name": "list_content_plans",
+      "module": "content_plans",
+      "args": [],
+      "docstring": "List all content plans for the active project.\n\nRequires an active project (use set_active_project first).\n"
+    },
+    {
+      "name": "create_content_plan",
+      "module": "content_plans",
+      "args": [
+        "name",
+        "description",
+        "user_input",
+        "audience_ids"
+      ],
+      "docstring": "Create a new content plan for the active project.\n\nArgs:\n    name: Plan name (e.g., \"Q1 2026 LinkedIn Strategy\").\n    description: Brief description of the plan.\n    user_input: Additional context or preferences (max 500 chars).\n    audience_ids: Target audience IDs to include.\n"
+    },
+    {
+      "name": "get_content_plan",
+      "module": "content_plans",
+      "args": [
+        "plan_id"
+      ],
+      "docstring": "Get details of a specific content plan.\n\nArgs:\n    plan_id: The content plan ID.\n"
+    },
+    {
+      "name": "generate_content_plan",
+      "module": "content_plans",
+      "args": [
+        "plan_id",
+        "start_date",
+        "end_date",
+        "platforms",
+        "persona_id"
+      ],
+      "docstring": "Generate content for a content plan using AI.\n\nThis fills the plan with scheduled content pieces. Takes 1-3 minutes.\n\nArgs:\n    plan_id: The content plan ID to generate for.\n    start_date: Start date (YYYY-MM-DD).\n    end_date: End date (YYYY-MM-DD).\n    platforms: Target platforms (e.g., ['linkedin', 'blog']).\n    persona_id: Target audience persona ID.\n"
+    },
+    {
+      "name": "get_content_plan_status",
+      "module": "content_plans",
+      "args": [
+        "execution_id"
+      ],
+      "docstring": "Check the status of content plan generation.\n\nArgs:\n    execution_id: The generation execution ID.\n"
+    },
+    {
+      "name": "generate_image",
+      "module": "image",
+      "args": [
+        "subject",
+        "style",
+        "size",
+        "mood"
+      ],
+      "docstring": "Generate an image using AI.\n\nCreates a professional image based on your description,\nstyled to match your brand.\n\nArgs:\n    subject: What the image should depict.\n    style: Visual style (e.g., professional, minimalist, bold, artistic).\n    size: Image dimensions (e.g., 1024x1024, 1024x1792, 1792x1024).\n    mood: Desired mood (e.g., warm, energetic, calm, corporate).\n"
+    },
+    {
+      "name": "analyze_content",
+      "module": "intelligence",
+      "args": [
+        "content",
+        "source_url",
+        "source_type"
+      ],
+      "docstring": "Analyze a piece of content for insights, quality, and key themes.\n\nArgs:\n    content: The content text to analyze (min 50 characters).\n    source_url: Original URL of the content.\n    source_type: Type of content (article, social_post, video_transcript).\n"
+    },
+    {
+      "name": "score_relevance",
+      "module": "intelligence",
+      "args": [
+        "items"
+      ],
+      "docstring": "Score the relevance of content items to your brand and audience.\n\nEach item should have 'content' (text) and optionally 'title', 'source_url'.\n\nArgs:\n    items: List of content items to score. Each must have a 'content' key.\n"
+    },
+    {
+      "name": "validate_voice",
+      "module": "intelligence",
+      "args": [
+        "content",
+        "platform",
+        "intended_tone"
+      ],
+      "docstring": "Validate that content matches your brand voice and tone guidelines.\n\nChecks against your content_strategy knowledge for tone compliance.\n\nArgs:\n    content: The content text to validate.\n    platform: Target platform (e.g., linkedin, blog).\n    intended_tone: The intended tone of the content.\n"
+    },
+    {
+      "name": "crawl_urls",
+      "module": "intelligence",
+      "args": [
+        "urls",
+        "extract_metadata"
+      ],
+      "docstring": "Crawl web URLs and extract content.\n\nUseful for analyzing competitor content, gathering research,\nor importing content for analysis.\n\nArgs:\n    urls: List of URLs to crawl (max 20).\n    extract_metadata: Whether to extract page metadata.\n"
+    },
+    {
+      "name": "discover_sources",
+      "module": "intelligence",
+      "args": [
+        "sources",
+        "max_items",
+        "score_threshold"
+      ],
+      "docstring": "Discover and orchestrate content from multiple sources.\n\nFinds relevant content from RSS feeds, websites, and other sources,\nscores them for relevance, and returns the best matches.\n\nArgs:\n    sources: List of source configs. Each needs 'url' and 'type' (rss, website, api).\n    max_items: Maximum items to return.\n    score_threshold: Minimum relevance score (0-1).\n"
+    },
+    {
+      "name": "get_source_status",
+      "module": "intelligence",
+      "args": [
+        "source_id"
+      ],
+      "docstring": "Check the status of a source discovery operation.\n\nArgs:\n    source_id: The source operation ID.\n"
+    },
+    {
+      "name": "get_knowledge",
+      "module": "knowledge",
+      "args": [
+        "domain"
+      ],
+      "docstring": "Read a knowledge domain from your project's knowledge base.\n\nAvailable domains:\n- company_profile: Company info, website, industry\n- market_intelligence: Competitors, trends, market data\n- audience_data: Audience personas, segments, preferences\n- content_strategy: Strategy, pillars, tone, goals\n- historical_outputs: Previously generated content\n\nArgs:\n    domain: The knowledge domain to read.\n"
+    },
+    {
+      "name": "update_knowledge",
+      "module": "knowledge",
+      "args": [
+        "domain",
+        "data"
+      ],
+      "docstring": "Update a knowledge domain in your project's knowledge base.\n\nUse this to manually update or correct knowledge that was\nauto-generated during onboarding.\n\nArgs:\n    domain: The knowledge domain to update (e.g., 'company_profile').\n    data: The updated knowledge data as a dictionary.\n"
+    },
+    {
+      "name": "search_knowledge",
+      "module": "knowledge",
+      "args": [
+        "query",
+        "domains"
+      ],
+      "docstring": "Search across knowledge domains.\n\nPerforms semantic search across your project's knowledge base.\n\nArgs:\n    query: Search query text.\n    domains: Optional list of domains to search in. If None, searches all.\n"
+    },
+    {
+      "name": "start_onboarding",
+      "module": "onboarding",
+      "args": [
+        "company_name",
+        "website_url",
+        "competitors",
+        "industry",
+        "target_audience_description",
+        "platforms"
+      ],
+      "docstring": "Start onboarding for a new company.\n\nThis crawls the company website, analyzes competitors, generates\naudience personas, and builds a content strategy. Takes 2-5 minutes.\n\nArgs:\n    company_name: Company name (required).\n    website_url: Company website URL to crawl.\n    competitors: Comma-separated competitor names.\n    industry: Industry/sector description.\n    target_audience_description: Who the company targets.\n    platforms: Content platforms (e.g., ['LinkedIn Posts', 'Blog Posts']).\n"
+    },
+    {
+      "name": "get_onboarding_status",
+      "module": "onboarding",
+      "args": [
+        "execution_id"
+      ],
+      "docstring": "Check the status of an onboarding process.\n\nArgs:\n    execution_id: The onboarding execution ID.\n"
+    },
+    {
+      "name": "validate_onboarding",
+      "module": "onboarding",
+      "args": [
+        "company_name",
+        "website_url",
+        "competitors"
+      ],
+      "docstring": "Validate onboarding input without executing.\n\nChecks if the provided data is sufficient for onboarding.\n\nArgs:\n    company_name: Company name.\n    website_url: Company website URL.\n    competitors: Comma-separated competitor names.\n"
+    },
+    {
+      "name": "list_projects",
+      "module": "organization",
+      "args": [],
+      "docstring": "List all projects in your Visibilio organization.\n\nReturns project names, IDs, and statuses. Use set_active_project\nto select which project to work with.\n"
+    },
+    {
+      "name": "get_project",
+      "module": "organization",
+      "args": [
+        "project_id"
+      ],
+      "docstring": "Get details of a specific project.\n\nArgs:\n    project_id: The project ID to look up.\n"
+    },
+    {
+      "name": "set_active_project",
+      "module": "organization",
+      "args": [
+        "project_id"
+      ],
+      "docstring": "Set the active project for this session.\n\nAll subsequent content generation, knowledge queries, and other\noperations will be scoped to this project.\n\nArgs:\n    project_id: The project ID to activate.\n"
+    },
+    {
+      "name": "generate_strategy",
+      "module": "strategy",
+      "args": [
+        "platforms",
+        "goals",
+        "preferred_tone"
+      ],
+      "docstring": "Generate a content strategy for your project.\n\nCreates content pillars, tone guidelines, and platform-specific\nrecommendations based on your company profile and market data.\n\nArgs:\n    platforms: Target platforms (e.g., ['linkedin', 'blog']). Defaults to all.\n    goals: Strategic goals (e.g., ['thought_leadership', 'lead_generation']).\n    preferred_tone: Overall tone preference (e.g., 'professional', 'casual').\n"
+    },
+    {
+      "name": "generate_personas",
+      "module": "strategy",
+      "args": [
+        "num_personas",
+        "target_audience",
+        "platform_focus"
+      ],
+      "docstring": "Generate audience personas for your project.\n\nCreates detailed audience profiles with demographics, pain points,\nmotivations, and content preferences.\n\nArgs:\n    num_personas: Number of personas to generate (1-5).\n    target_audience: Description of your target audience.\n    platform_focus: Platforms to optimize personas for.\n"
+    },
+    {
+      "name": "research_market",
+      "module": "strategy",
+      "args": [
+        "company_name",
+        "focus_areas",
+        "competitor_names"
+      ],
+      "docstring": "Research market, competitors, and industry trends.\n\nAnalyzes competitors, identifies market opportunities, and\ngathers industry intelligence.\n\nArgs:\n    company_name: Company to research (defaults to project company).\n    focus_areas: Areas to focus on (e.g., ['competitors', 'trends', 'opportunities']).\n    competitor_names: Specific competitors to analyze.\n"
+    },
+    {
+      "name": "start_workflow",
+      "module": "workflow",
+      "args": [
+        "request",
+        "auto_confirm"
+      ],
+      "docstring": "Start a Visibilio AI workflow from a natural language request.\n\nThe workflow planner analyzes your request, creates a plan with\nestimated costs, and (if auto_confirm=False) waits for confirmation\nbefore executing.\n\nExamples:\n- \"Write 3 LinkedIn posts about AI in healthcare\"\n- \"Research competitors in the fintech space\"\n- \"Generate a content strategy for Q2\"\n\nArgs:\n    request: Natural language description of what you want to do.\n    auto_confirm: If True, skip confirmation and execute immediately.\n"
+    },
+    {
+      "name": "confirm_workflow",
+      "module": "workflow",
+      "args": [
+        "execution_id",
+        "confirmed"
+      ],
+      "docstring": "Confirm or reject a workflow plan.\n\nAfter starting a workflow, if it's in 'awaiting_confirmation' state,\nuse this to confirm and execute it, or reject it.\n\nArgs:\n    execution_id: The workflow execution ID from start_workflow.\n    confirmed: True to confirm and execute, False to reject.\n"
+    },
+    {
+      "name": "get_workflow_status",
+      "module": "workflow",
+      "args": [
+        "execution_id"
+      ],
+      "docstring": "Check the status of a running or completed workflow.\n\nArgs:\n    execution_id: The workflow execution ID.\n"
+    },
+    {
+      "name": "cancel_workflow",
+      "module": "workflow",
+      "args": [
+        "execution_id",
+        "reason"
+      ],
+      "docstring": "Cancel a running workflow.\n\nArgs:\n    execution_id: The workflow execution ID.\n    reason: Optional reason for cancellation.\n"
+    },
+    {
+      "name": "get_briefing",
+      "module": "briefing",
+      "args": [
+        "briefing_id"
+      ],
+      "docstring": "Get a daily briefing for the active project. Wraps BriefingAgent which generates an LLM-powered executive overview plus 3 key developments from the most recent content.\n\nArgs:\n    briefing_id: Optional briefing ID. If omitted, returns today's briefing.",
+      "added": "phase-1-rewrite",
+      "wraps": "BriefingAgent"
+    }
+  ],
+  "resources": [
+    {
+      "name": "current_organization",
+      "module": "context",
+      "args": [],
+      "docstring": "Current organization info — name, ID, subscription tier."
+    },
+    {
+      "name": "current_project",
+      "module": "context",
+      "args": [],
+      "docstring": "Current active project info."
+    },
+    {
+      "name": "company_profile",
+      "module": "knowledge",
+      "args": [],
+      "docstring": "Company profile — info, website, industry, products."
+    },
+    {
+      "name": "market_intelligence",
+      "module": "knowledge",
+      "args": [],
+      "docstring": "Market intelligence — competitors, trends, market data."
+    },
+    {
+      "name": "audience_data",
+      "module": "knowledge",
+      "args": [],
+      "docstring": "Audience data — personas, segments, preferences."
+    },
+    {
+      "name": "content_strategy",
+      "module": "knowledge",
+      "args": [],
+      "docstring": "Content strategy — pillars, themes, tone, goals."
+    },
+    {
+      "name": "historical_outputs",
+      "module": "knowledge",
+      "args": [],
+      "docstring": "Historical outputs — previously generated content."
+    },
+    {
+      "name": "scoring_profile",
+      "module": "knowledge",
+      "args": [],
+      "docstring": "Scoring profile — content scoring weights and quality thresholds for this project.",
+      "added": "phase-1-rewrite",
+      "knowledgeDomain": "scoring_profile"
+    },
+    {
+      "name": "hub_config",
+      "module": "knowledge",
+      "args": [],
+      "docstring": "Hub configuration — publishing destinations, channel mappings, and routing rules for the active project.",
+      "added": "phase-1-rewrite",
+      "knowledgeDomain": "hub_config"
+    }
+  ],
+  "modules": [
+    {
+      "module": "__init__",
+      "docstring": "Visibilio MCP Server — MCP integration for Visibilio AI content platform.",
+      "functions": [],
+      "classes": []
+    },
+    {
+      "module": "auth",
+      "docstring": "API key authentication and user context resolution.",
+      "functions": [],
+      "classes": [
+        {
+          "name": "UserContext",
+          "module": "auth",
+          "methods": []
+        },
+        {
+          "name": "McpAuth",
+          "module": "auth",
+          "methods": [
+            {
+              "name": "__init__",
+              "args": [
+                "api_key",
+                "client"
+              ],
+              "docstring": ""
+            },
+            {
+              "name": "cached_context",
+              "args": [],
+              "docstring": "Return cached context. Raises if not yet resolved."
+            },
+            {
+              "name": "is_resolved",
+              "args": [],
+              "docstring": ""
+            },
+            {
+              "name": "resolve",
+              "args": [],
+              "docstring": "Resolve API key to user context via backend endpoint.\n\nCalls GET /api/v2/auth/resolve-key with the user's API key.\nCaches the result for the lifetime of the MCP session.\n"
+            }
+          ]
+        },
+        {
+          "name": "AuthenticationError",
+          "module": "auth",
+          "methods": []
+        }
+      ]
+    },
+    {
+      "module": "client",
+      "docstring": "HTTP client for Visibilio backend and gateway APIs.",
+      "functions": [],
+      "classes": [
+        {
+          "name": "VisibilioClient",
+          "module": "client",
+          "methods": [
+            {
+              "name": "__init__",
+              "args": [
+                "backend_url",
+                "gateway_url",
+                "internal_api_key",
+                "user_api_key",
+                "timeout"
+              ],
+              "docstring": ""
+            },
+            {
+              "name": "close",
+              "args": [],
+              "docstring": "Close the HTTP client."
+            },
+            {
+              "name": "backend_get",
+              "args": [
+                "path",
+                "tenant_headers",
+                "params"
+              ],
+              "docstring": "GET request to backend API."
+            },
+            {
+              "name": "backend_post",
+              "args": [
+                "path",
+                "json",
+                "tenant_headers"
+              ],
+              "docstring": "POST request to backend API."
+            },
+            {
+              "name": "backend_put",
+              "args": [
+                "path",
+                "json",
+                "tenant_headers"
+              ],
+              "docstring": "PUT request to backend API."
+            },
+            {
+              "name": "gateway_get",
+              "args": [
+                "path",
+                "params"
+              ],
+              "docstring": "GET request to gateway API."
+            },
+            {
+              "name": "gateway_post",
+              "args": [
+                "path",
+                "json"
+              ],
+              "docstring": "POST request to gateway API."
+            },
+            {
+              "name": "gateway_delete",
+              "args": [
+                "path"
+              ],
+              "docstring": "DELETE request to gateway API."
+            },
+            {
+              "name": "_backend_headers",
+              "args": [
+                "tenant_headers"
+              ],
+              "docstring": "Build headers for backend requests."
+            },
+            {
+              "name": "_gateway_headers",
+              "args": [],
+              "docstring": "Build headers for gateway requests (uses user's vsk_* key)."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "module": "config",
+      "docstring": "Configuration for Visibilio MCP Server.",
+      "functions": [
+        {
+          "name": "get_settings",
+          "module": "config",
+          "args": [],
+          "docstring": "Get or create settings singleton."
+        }
+      ],
+      "classes": [
+        {
+          "name": "Settings",
+          "module": "config",
+          "methods": []
+        }
+      ]
+    },
+    {
+      "module": "server",
+      "docstring": "Visibilio MCP Server — entry point.",
+      "functions": [
+        {
+          "name": "get_session",
+          "module": "server",
+          "args": [],
+          "docstring": "Get the current MCP session. Raises if not initialized."
+        },
+        {
+          "name": "run_server",
+          "module": "server",
+          "args": [],
+          "docstring": "Start the MCP server with stdio transport."
+        },
+        {
+          "name": "main_sync",
+          "module": "server",
+          "args": [],
+          "docstring": "Synchronous entry point for console_scripts."
+        }
+      ],
+      "classes": []
+    },
+    {
+      "module": "session",
+      "docstring": "MCP session state management.",
+      "functions": [],
+      "classes": [
+        {
+          "name": "McpSession",
+          "module": "session",
+          "methods": [
+            {
+              "name": "organization_id",
+              "args": [],
+              "docstring": ""
+            },
+            {
+              "name": "user_id",
+              "args": [],
+              "docstring": ""
+            },
+            {
+              "name": "project_id",
+              "args": [],
+              "docstring": "Returns active project or default from API key."
+            },
+            {
+              "name": "build_tenant_headers",
+              "args": [],
+              "docstring": "Build tenant headers for backend requests."
+            },
+            {
+              "name": "set_active_project",
+              "args": [
+                "project_id",
+                "project_name"
+              ],
+              "docstring": "Set the active project for this session."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "module": "__init__",
+      "docstring": "MCP resource modules — each module registers resources on the global mcp server.",
+      "functions": [],
+      "classes": []
+    },
+    {
+      "module": "context",
+      "docstring": "Context MCP resources — current org and project info.",
+      "functions": [
+        {
+          "name": "current_organization",
+          "module": "context",
+          "args": [],
+          "docstring": "Current organization info — name, ID, subscription tier."
+        },
+        {
+          "name": "current_project",
+          "module": "context",
+          "args": [],
+          "docstring": "Current active project info."
+        }
+      ],
+      "classes": []
+    },
+    {
+      "module": "knowledge",
+      "docstring": "Knowledge domain MCP resources — expose knowledge base as readable resources.",
+      "functions": [
+        {
+          "name": "company_profile",
+          "module": "knowledge",
+          "args": [],
+          "docstring": "Company profile — info, website, industry, products."
+        },
+        {
+          "name": "market_intelligence",
+          "module": "knowledge",
+          "args": [],
+          "docstring": "Market intelligence — competitors, trends, market data."
+        },
+        {
+          "name": "audience_data",
+          "module": "knowledge",
+          "args": [],
+          "docstring": "Audience data — personas, segments, preferences."
+        },
+        {
+          "name": "content_strategy",
+          "module": "knowledge",
+          "args": [],
+          "docstring": "Content strategy — pillars, themes, tone, goals."
+        },
+        {
+          "name": "historical_outputs",
+          "module": "knowledge",
+          "args": [],
+          "docstring": "Historical outputs — previously generated content."
+        }
+      ],
+      "classes": []
+    },
+    {
+      "module": "__init__",
+      "docstring": "MCP tool modules — each module registers tools on the global mcp server.",
+      "functions": [],
+      "classes": []
+    },
+    {
+      "module": "audience",
+      "docstring": "Audience management tools — list and inspect audience personas.",
+      "functions": [
+        {
+          "name": "list_audiences",
+          "module": "audience",
+          "args": [],
+          "docstring": "List all audience personas for your project.\n\nShows persona names, IDs, and brief descriptions. Use get_audience\nfor full details on a specific persona.\n"
+        },
+        {
+          "name": "get_audience",
+          "module": "audience",
+          "args": [
+            "audience_id"
+          ],
+          "docstring": "Get full details of a specific audience persona.\n\nReturns demographics, pain points, motivations, content preferences,\nand platform behavior for the persona.\n\nArgs:\n    audience_id: The audience persona ID or name.\n"
+        }
+      ],
+      "classes": []
+    },
+    {
+      "module": "content",
+      "docstring": "Content writing tools — 12 specialized tools sharing a common handler.",
+      "functions": [
+        {
+          "name": "write_linkedin_post",
+          "module": "content",
+          "args": [
+            "topic",
+            "audience_id",
+            "tone",
+            "key_points",
+            "include_image"
+          ],
+          "docstring": "Write a LinkedIn post. Optimized for professional engagement: hook-driven opening, 1300 char limit, relevant hashtags.\n\nArgs:\n    topic: What the post should be about.\n    audience_id: Target audience persona ID (from list_audiences).\n    tone: Desired tone (e.g., professional, conversational, bold).\n    key_points: Specific points to include.\n    include_image: Whether to generate an accompanying image.\n"
+        },
+        {
+          "name": "write_blog_article",
+          "module": "content",
+          "args": [
+            "topic",
+            "audience_id",
+            "tone",
+            "key_points",
+            "include_image"
+          ],
+          "docstring": "Write a blog article. SEO-optimized long-form content with headings, subheadings, and a clear structure.\n\nArgs:\n    topic: What the article should be about.\n    audience_id: Target audience persona ID (from list_audiences).\n    tone: Desired tone.\n    key_points: Specific points to include.\n    include_image: Whether to generate a hero image.\n"
+        },
+        {
+          "name": "write_tweet",
+          "module": "content",
+          "args": [
+            "topic",
+            "audience_id",
+            "tone",
+            "key_points"
+          ],
+          "docstring": "Write a tweet (X post). Concise, punchy, 280 char limit.\n\nArgs:\n    topic: What the tweet should be about.\n    audience_id: Target audience persona ID.\n    tone: Desired tone.\n    key_points: Specific points to include.\n"
+        },
+        {
+          "name": "write_facebook_post",
+          "module": "content",
+          "args": [
+            "topic",
+            "audience_id",
+            "tone",
+            "key_points",
+            "include_image"
+          ],
+          "docstring": "Write a Facebook post. Conversational tone, engagement-focused.\n\nArgs:\n    topic: What the post should be about.\n    audience_id: Target audience persona ID.\n    tone: Desired tone.\n    key_points: Specific points to include.\n    include_image: Whether to generate an accompanying image.\n"
+        },
+        {
+          "name": "write_newsletter",
+          "module": "content",
+          "args": [
+            "topic",
+            "audience_id",
+            "tone",
+            "key_points"
+          ],
+          "docstring": "Write a newsletter edition. Structured with sections, personal tone, clear CTAs.\n\nArgs:\n    topic: Newsletter theme or topic.\n    audience_id: Target audience persona ID.\n    tone: Desired tone.\n    key_points: Specific sections or topics to cover.\n"
+        },
+        {
+          "name": "write_press_release",
+          "module": "content",
+          "args": [
+            "topic",
+            "audience_id",
+            "key_points"
+          ],
+          "docstring": "Write a press release. Formal tone, inverted pyramid structure, includes quotes and boilerplate.\n\nArgs:\n    topic: What the press release announces.\n    audience_id: Target audience persona ID.\n    key_points: Key facts and quotes to include.\n"
+        },
+        {
+          "name": "write_email_campaign",
+          "module": "content",
+          "args": [
+            "topic",
+            "audience_id",
+            "tone",
+            "key_points"
+          ],
+          "docstring": "Write a marketing email. Subject line, preview text, body, and CTA optimized for conversions.\n\nArgs:\n    topic: Email campaign topic or offer.\n    audience_id: Target audience persona ID.\n    tone: Desired tone.\n    key_points: Key selling points.\n"
+        },
+        {
+          "name": "write_instagram_caption",
+          "module": "content",
+          "args": [
+            "topic",
+            "audience_id",
+            "tone",
+            "key_points"
+          ],
+          "docstring": "Write an Instagram caption. Emoji-friendly, hashtag-rich, with engaging hook and CTA.\n\nArgs:\n    topic: What the caption is about.\n    audience_id: Target audience persona ID.\n    tone: Desired tone.\n    key_points: Key messages.\n"
+        },
+        {
+          "name": "write_youtube_description",
+          "module": "content",
+          "args": [
+            "topic",
+            "audience_id",
+            "key_points"
+          ],
+          "docstring": "Write a YouTube video description. SEO keywords, timestamps, links section, and subscribe CTA.\n\nArgs:\n    topic: Video topic.\n    audience_id: Target audience persona ID.\n    key_points: Key timestamps or sections.\n"
+        },
+        {
+          "name": "write_tiktok_script",
+          "module": "content",
+          "args": [
+            "topic",
+            "audience_id",
+            "tone",
+            "key_points"
+          ],
+          "docstring": "Write a TikTok video script. Hook in first 3 seconds, short punchy format, trending style.\n\nArgs:\n    topic: Video topic.\n    audience_id: Target audience persona ID.\n    tone: Desired tone.\n    key_points: Key moments or talking points.\n"
+        },
+        {
+          "name": "write_website_copy",
+          "module": "content",
+          "args": [
+            "topic",
+            "audience_id",
+            "tone",
+            "key_points"
+          ],
+          "docstring": "Write website copy. Clear value proposition, scannable layout, conversion-oriented.\n\nArgs:\n    topic: Page or section topic.\n    audience_id: Target audience persona ID.\n    tone: Desired tone.\n    key_points: Key benefits or features.\n"
+        },
+        {
+          "name": "write_ad_copy",
+          "module": "content",
+          "args": [
+            "topic",
+            "audience_id",
+            "tone",
+            "key_points"
+          ],
+          "docstring": "Write advertising copy. Headline + body + CTA, A/B test variants.\n\nArgs:\n    topic: Product, service, or campaign to advertise.\n    audience_id: Target audience persona ID.\n    tone: Desired tone.\n    key_points: Key selling propositions.\n"
+        }
+      ],
+      "classes": []
+    },
+    {
+      "module": "content_plans",
+      "docstring": "Content plan management tools.",
+      "functions": [
+        {
+          "name": "list_content_plans",
+          "module": "content_plans",
+          "args": [],
+          "docstring": "List all content plans for the active project.\n\nRequires an active project (use set_active_project first).\n"
+        },
+        {
+          "name": "create_content_plan",
+          "module": "content_plans",
+          "args": [
+            "name",
+            "description",
+            "user_input",
+            "audience_ids"
+          ],
+          "docstring": "Create a new content plan for the active project.\n\nArgs:\n    name: Plan name (e.g., \"Q1 2026 LinkedIn Strategy\").\n    description: Brief description of the plan.\n    user_input: Additional context or preferences (max 500 chars).\n    audience_ids: Target audience IDs to include.\n"
+        },
+        {
+          "name": "get_content_plan",
+          "module": "content_plans",
+          "args": [
+            "plan_id"
+          ],
+          "docstring": "Get details of a specific content plan.\n\nArgs:\n    plan_id: The content plan ID.\n"
+        },
+        {
+          "name": "generate_content_plan",
+          "module": "content_plans",
+          "args": [
+            "plan_id",
+            "start_date",
+            "end_date",
+            "platforms",
+            "persona_id"
+          ],
+          "docstring": "Generate content for a content plan using AI.\n\nThis fills the plan with scheduled content pieces. Takes 1-3 minutes.\n\nArgs:\n    plan_id: The content plan ID to generate for.\n    start_date: Start date (YYYY-MM-DD).\n    end_date: End date (YYYY-MM-DD).\n    platforms: Target platforms (e.g., ['linkedin', 'blog']).\n    persona_id: Target audience persona ID.\n"
+        },
+        {
+          "name": "get_content_plan_status",
+          "module": "content_plans",
+          "args": [
+            "execution_id"
+          ],
+          "docstring": "Check the status of content plan generation.\n\nArgs:\n    execution_id: The generation execution ID.\n"
+        }
+      ],
+      "classes": []
+    },
+    {
+      "module": "image",
+      "docstring": "Image generation tool.",
+      "functions": [
+        {
+          "name": "generate_image",
+          "module": "image",
+          "args": [
+            "subject",
+            "style",
+            "size",
+            "mood"
+          ],
+          "docstring": "Generate an image using AI.\n\nCreates a professional image based on your description,\nstyled to match your brand.\n\nArgs:\n    subject: What the image should depict.\n    style: Visual style (e.g., professional, minimalist, bold, artistic).\n    size: Image dimensions (e.g., 1024x1024, 1024x1792, 1792x1024).\n    mood: Desired mood (e.g., warm, energetic, calm, corporate).\n"
+        }
+      ],
+      "classes": []
+    },
+    {
+      "module": "intelligence",
+      "docstring": "Intelligence layer tools — content analysis, scoring, voice validation, crawling.",
+      "functions": [
+        {
+          "name": "analyze_content",
+          "module": "intelligence",
+          "args": [
+            "content",
+            "source_url",
+            "source_type"
+          ],
+          "docstring": "Analyze a piece of content for insights, quality, and key themes.\n\nArgs:\n    content: The content text to analyze (min 50 characters).\n    source_url: Original URL of the content.\n    source_type: Type of content (article, social_post, video_transcript).\n"
+        },
+        {
+          "name": "score_relevance",
+          "module": "intelligence",
+          "args": [
+            "items"
+          ],
+          "docstring": "Score the relevance of content items to your brand and audience.\n\nEach item should have 'content' (text) and optionally 'title', 'source_url'.\n\nArgs:\n    items: List of content items to score. Each must have a 'content' key.\n"
+        },
+        {
+          "name": "validate_voice",
+          "module": "intelligence",
+          "args": [
+            "content",
+            "platform",
+            "intended_tone"
+          ],
+          "docstring": "Validate that content matches your brand voice and tone guidelines.\n\nChecks against your content_strategy knowledge for tone compliance.\n\nArgs:\n    content: The content text to validate.\n    platform: Target platform (e.g., linkedin, blog).\n    intended_tone: The intended tone of the content.\n"
+        },
+        {
+          "name": "crawl_urls",
+          "module": "intelligence",
+          "args": [
+            "urls",
+            "extract_metadata"
+          ],
+          "docstring": "Crawl web URLs and extract content.\n\nUseful for analyzing competitor content, gathering research,\nor importing content for analysis.\n\nArgs:\n    urls: List of URLs to crawl (max 20).\n    extract_metadata: Whether to extract page metadata.\n"
+        },
+        {
+          "name": "discover_sources",
+          "module": "intelligence",
+          "args": [
+            "sources",
+            "max_items",
+            "score_threshold"
+          ],
+          "docstring": "Discover and orchestrate content from multiple sources.\n\nFinds relevant content from RSS feeds, websites, and other sources,\nscores them for relevance, and returns the best matches.\n\nArgs:\n    sources: List of source configs. Each needs 'url' and 'type' (rss, website, api).\n    max_items: Maximum items to return.\n    score_threshold: Minimum relevance score (0-1).\n"
+        },
+        {
+          "name": "get_source_status",
+          "module": "intelligence",
+          "args": [
+            "source_id"
+          ],
+          "docstring": "Check the status of a source discovery operation.\n\nArgs:\n    source_id: The source operation ID.\n"
+        }
+      ],
+      "classes": []
+    },
+    {
+      "module": "knowledge",
+      "docstring": "Knowledge base management tools.",
+      "functions": [
+        {
+          "name": "get_knowledge",
+          "module": "knowledge",
+          "args": [
+            "domain"
+          ],
+          "docstring": "Read a knowledge domain from your project's knowledge base.\n\nAvailable domains:\n- company_profile: Company info, website, industry\n- market_intelligence: Competitors, trends, market data\n- audience_data: Audience personas, segments, preferences\n- content_strategy: Strategy, pillars, tone, goals\n- historical_outputs: Previously generated content\n\nArgs:\n    domain: The knowledge domain to read.\n"
+        },
+        {
+          "name": "update_knowledge",
+          "module": "knowledge",
+          "args": [
+            "domain",
+            "data"
+          ],
+          "docstring": "Update a knowledge domain in your project's knowledge base.\n\nUse this to manually update or correct knowledge that was\nauto-generated during onboarding.\n\nArgs:\n    domain: The knowledge domain to update (e.g., 'company_profile').\n    data: The updated knowledge data as a dictionary.\n"
+        },
+        {
+          "name": "search_knowledge",
+          "module": "knowledge",
+          "args": [
+            "query",
+            "domains"
+          ],
+          "docstring": "Search across knowledge domains.\n\nPerforms semantic search across your project's knowledge base.\n\nArgs:\n    query: Search query text.\n    domains: Optional list of domains to search in. If None, searches all.\n"
+        }
+      ],
+      "classes": []
+    },
+    {
+      "module": "onboarding",
+      "docstring": "Onboarding tools — set up a new company in Visibilio.",
+      "functions": [
+        {
+          "name": "start_onboarding",
+          "module": "onboarding",
+          "args": [
+            "company_name",
+            "website_url",
+            "competitors",
+            "industry",
+            "target_audience_description",
+            "platforms"
+          ],
+          "docstring": "Start onboarding for a new company.\n\nThis crawls the company website, analyzes competitors, generates\naudience personas, and builds a content strategy. Takes 2-5 minutes.\n\nArgs:\n    company_name: Company name (required).\n    website_url: Company website URL to crawl.\n    competitors: Comma-separated competitor names.\n    industry: Industry/sector description.\n    target_audience_description: Who the company targets.\n    platforms: Content platforms (e.g., ['LinkedIn Posts', 'Blog Posts']).\n"
+        },
+        {
+          "name": "get_onboarding_status",
+          "module": "onboarding",
+          "args": [
+            "execution_id"
+          ],
+          "docstring": "Check the status of an onboarding process.\n\nArgs:\n    execution_id: The onboarding execution ID.\n"
+        },
+        {
+          "name": "validate_onboarding",
+          "module": "onboarding",
+          "args": [
+            "company_name",
+            "website_url",
+            "competitors"
+          ],
+          "docstring": "Validate onboarding input without executing.\n\nChecks if the provided data is sufficient for onboarding.\n\nArgs:\n    company_name: Company name.\n    website_url: Company website URL.\n    competitors: Comma-separated competitor names.\n"
+        }
+      ],
+      "classes": []
+    },
+    {
+      "module": "organization",
+      "docstring": "Organization and project management tools.",
+      "functions": [
+        {
+          "name": "list_projects",
+          "module": "organization",
+          "args": [],
+          "docstring": "List all projects in your Visibilio organization.\n\nReturns project names, IDs, and statuses. Use set_active_project\nto select which project to work with.\n"
+        },
+        {
+          "name": "get_project",
+          "module": "organization",
+          "args": [
+            "project_id"
+          ],
+          "docstring": "Get details of a specific project.\n\nArgs:\n    project_id: The project ID to look up.\n"
+        },
+        {
+          "name": "set_active_project",
+          "module": "organization",
+          "args": [
+            "project_id"
+          ],
+          "docstring": "Set the active project for this session.\n\nAll subsequent content generation, knowledge queries, and other\noperations will be scoped to this project.\n\nArgs:\n    project_id: The project ID to activate.\n"
+        }
+      ],
+      "classes": []
+    },
+    {
+      "module": "strategy",
+      "docstring": "Strategy, personas, and market research tools.",
+      "functions": [
+        {
+          "name": "generate_strategy",
+          "module": "strategy",
+          "args": [
+            "platforms",
+            "goals",
+            "preferred_tone"
+          ],
+          "docstring": "Generate a content strategy for your project.\n\nCreates content pillars, tone guidelines, and platform-specific\nrecommendations based on your company profile and market data.\n\nArgs:\n    platforms: Target platforms (e.g., ['linkedin', 'blog']). Defaults to all.\n    goals: Strategic goals (e.g., ['thought_leadership', 'lead_generation']).\n    preferred_tone: Overall tone preference (e.g., 'professional', 'casual').\n"
+        },
+        {
+          "name": "generate_personas",
+          "module": "strategy",
+          "args": [
+            "num_personas",
+            "target_audience",
+            "platform_focus"
+          ],
+          "docstring": "Generate audience personas for your project.\n\nCreates detailed audience profiles with demographics, pain points,\nmotivations, and content preferences.\n\nArgs:\n    num_personas: Number of personas to generate (1-5).\n    target_audience: Description of your target audience.\n    platform_focus: Platforms to optimize personas for.\n"
+        },
+        {
+          "name": "research_market",
+          "module": "strategy",
+          "args": [
+            "company_name",
+            "focus_areas",
+            "competitor_names"
+          ],
+          "docstring": "Research market, competitors, and industry trends.\n\nAnalyzes competitors, identifies market opportunities, and\ngathers industry intelligence.\n\nArgs:\n    company_name: Company to research (defaults to project company).\n    focus_areas: Areas to focus on (e.g., ['competitors', 'trends', 'opportunities']).\n    competitor_names: Specific competitors to analyze.\n"
+        }
+      ],
+      "classes": []
+    },
+    {
+      "module": "workflow",
+      "docstring": "Workflow management tools.",
+      "functions": [
+        {
+          "name": "start_workflow",
+          "module": "workflow",
+          "args": [
+            "request",
+            "auto_confirm"
+          ],
+          "docstring": "Start a Visibilio AI workflow from a natural language request.\n\nThe workflow planner analyzes your request, creates a plan with\nestimated costs, and (if auto_confirm=False) waits for confirmation\nbefore executing.\n\nExamples:\n- \"Write 3 LinkedIn posts about AI in healthcare\"\n- \"Research competitors in the fintech space\"\n- \"Generate a content strategy for Q2\"\n\nArgs:\n    request: Natural language description of what you want to do.\n    auto_confirm: If True, skip confirmation and execute immediately.\n"
+        },
+        {
+          "name": "confirm_workflow",
+          "module": "workflow",
+          "args": [
+            "execution_id",
+            "confirmed"
+          ],
+          "docstring": "Confirm or reject a workflow plan.\n\nAfter starting a workflow, if it's in 'awaiting_confirmation' state,\nuse this to confirm and execute it, or reject it.\n\nArgs:\n    execution_id: The workflow execution ID from start_workflow.\n    confirmed: True to confirm and execute, False to reject.\n"
+        },
+        {
+          "name": "get_workflow_status",
+          "module": "workflow",
+          "args": [
+            "execution_id"
+          ],
+          "docstring": "Check the status of a running or completed workflow.\n\nArgs:\n    execution_id: The workflow execution ID.\n"
+        },
+        {
+          "name": "cancel_workflow",
+          "module": "workflow",
+          "args": [
+            "execution_id",
+            "reason"
+          ],
+          "docstring": "Cancel a running workflow.\n\nArgs:\n    execution_id: The workflow execution ID.\n    reason: Optional reason for cancellation.\n"
+        }
+      ],
+      "classes": []
+    }
+  ]
+}
