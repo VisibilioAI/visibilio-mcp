@@ -32,6 +32,7 @@ jobs:
     name: Deploy to Cloud Run (${{ github.event.inputs.target || 'prod' }})
     runs-on: ubuntu-latest
     env:
+      GCP_PROJECT_ID: visibilio-ai-v2
       GCP_REGION: europe-central2
       SERVICE_NAME: ${{ github.event.inputs.target == 'staging' && 'visibilio-mcp-staging' || 'visibilio-mcp-prod' }}
       MAX_INSTANCES: ${{ github.event.inputs.target == 'staging' && '3' || '10' }}
@@ -45,6 +46,8 @@ jobs:
 
       - name: Set up gcloud
         uses: google-github-actions/setup-gcloud@v2
+        with:
+          project_id: ${{ env.GCP_PROJECT_ID }}
 
       - name: Deploy to Cloud Run
         id: deploy
@@ -52,6 +55,7 @@ jobs:
         with:
           service: ${{ env.SERVICE_NAME }}
           region: ${{ env.GCP_REGION }}
+          project_id: ${{ env.GCP_PROJECT_ID }}
           source: .
           flags: |-
             --min-instances=0
