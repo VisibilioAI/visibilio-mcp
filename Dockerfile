@@ -1,30 +1,35 @@
 # Multi-stage build for the MCP HTTP/SSE transport on Cloud Run.
-# Final image: ~50MB Alpine + bundled JS, no transitive node_modules.
+# Builder runs the full install + tsup build; runtime carries only the
+# bundled entry points plus production deps (tsup externalizes runtime
+# packages by default — keeps the npm-published tarball small and lets
+# us pin a single source of truth in package-lock.json).
 
 FROM node:20-alpine AS builder
 WORKDIR /app
 
-# Install deps using lockfile (npm ci is idempotent and lockfile-driven).
 COPY package.json package-lock.json ./
 RUN npm ci --no-audit --no-fund
 
-# Build with tsup; output is fully bundled into dist/cli.js + dist/http.js.
 COPY tsconfig.json tsup.config.ts ./
 COPY src ./src
 COPY spec ./spec
 RUN npm run build
 
-# Runtime stage: only Node + the bundled entry points. No node_modules.
 FROM node:20-alpine
 WORKDIR /app
 
-# Run as non-root for defense-in-depth.
 RUN addgroup -S app && adduser -S app -G app
+
+# Production deps only — tsup externalizes packages listed under
+# `dependencies`, so they must be present at runtime.
+COPY --from=builder /app/package.json /app/package-lock.json ./
+RUN npm ci --omit=dev --no-audit --no-fund
 
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/spec ./spec
-COPY --from=builder /app/package.json ./
 
+# Drop write perms on app code; runtime only reads.
+RUN chown -R app:app /app
 USER app
 
 ENV NODE_ENV=production
