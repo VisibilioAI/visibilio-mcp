@@ -1,0 +1,80 @@
+name: Deploy HTTP transport to Cloud Run
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'src/**'
+      - 'spec/**'
+      - 'Dockerfile'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'tsconfig.json'
+      - 'tsup.config.ts'
+      - '.github/workflows/deploy-cloud-run.yml'
+  workflow_dispatch:
+    inputs:
+      target:
+        description: 'Deploy target (prod or staging)'
+        required: true
+        default: 'prod'
+        type: choice
+        options:
+          - prod
+          - staging
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  deploy:
+    name: Deploy to Cloud Run (${{ github.event.inputs.target || 'prod' }})
+    runs-on: ubuntu-latest
+    env:
+      GCP_REGION: europe-central2
+      SERVICE_NAME: ${{ github.event.inputs.target == 'staging' && 'visibilio-mcp-staging' || 'visibilio-mcp-prod' }}
+      MAX_INSTANCES: ${{ github.event.inputs.target == 'staging' && '3' || '10' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Authenticate to GCP
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Set up gcloud
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Deploy to Cloud Run
+        id: deploy
+        uses: google-github-actions/deploy-cloudrun@v2
+        with:
+          service: ${{ env.SERVICE_NAME }}
+          region: ${{ env.GCP_REGION }}
+          source: .
+          flags: |-
+            --min-instances=0
+            --max-instances=${{ env.MAX_INSTANCES }}
+            --memory=256Mi
+            --cpu=1
+            --timeout=300
+            --concurrency=80
+            --allow-unauthenticated
+          env_vars: |-
+            VISIBILIO_BACKEND_URL=https://api.visibilio.ai
+            VISIBILIO_GATEWAY_URL=https://gateway.visibilio.ai
+
+      - name: Smoke-test /healthz
+        run: |
+          URL="${{ steps.deploy.outputs.url }}"
+          for i in 1 2 3 4 5; do
+            if curl -sSf "$URL/healthz" | grep -q "ok"; then
+              echo "✓ healthz OK on $URL"
+              exit 0
+            fi
+            echo "  attempt $i: not yet, sleeping 5s"
+            sleep 5
+          done
+          echo "✗ healthz never responded"
+          exit 1
