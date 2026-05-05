@@ -21,10 +21,9 @@ export function buildHttpApp(options: HttpAppOptions): HttpApp {
 
   const sessions = new Map<string, SSEServerTransport>();
 
-  app.get('/healthz', (_req: Request, res: Response) => {
-    res.status(200).send('ok');
-  });
-
+  // Note: /healthz is reserved by Google Cloud Run's frontend and is
+  // intercepted before reaching the container — GFE returns its own
+  // branded 404. Use /health for health checks instead.
   app.get('/health', (_req: Request, res: Response) => {
     res.json({ status: 'ok', service: '@visibilio/mcp', sessions: sessions.size });
   });
