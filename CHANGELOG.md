@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.1 — 2026-05-05
+
+License correction. The npm metadata for `0.1.0` shipped as `UNLICENSED` because the artifact was built minutes before the proprietary → MIT switch. No code changes between `0.1.0` and `0.1.1` — bump exists only so the published tarball carries the correct `MIT` license string.
+
 ## 0.1.0 — 2026-05-04
 
 Initial public release on npm.
