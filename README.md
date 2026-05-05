@@ -71,4 +71,4 @@ Domain language: see [GLOSSARY.md](GLOSSARY.md).
 
 ## License
 
-Proprietary — see [LICENSE](LICENSE).
+MIT — see [LICENSE](LICENSE).
