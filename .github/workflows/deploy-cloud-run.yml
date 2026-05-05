@@ -66,6 +66,7 @@ jobs:
             --concurrency=80
             --allow-unauthenticated
             --service-account=github-actions@visibilio-ai-v2.iam.gserviceaccount.com
+            --build-service-account=projects/visibilio-ai-v2/serviceAccounts/github-actions@visibilio-ai-v2.iam.gserviceaccount.com
           env_vars: |-
             VISIBILIO_BACKEND_URL=https://api.visibilio.ai
             VISIBILIO_GATEWAY_URL=https://gateway.visibilio.ai
