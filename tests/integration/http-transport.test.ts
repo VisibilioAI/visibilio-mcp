@@ -42,13 +42,6 @@ function buildFailAuthFetch(status: number): typeof fetch {
 }
 
 describe('HTTP transport — auth gate', () => {
-  it('GET /healthz responds 200 ok without auth', async () => {
-    const { app } = buildHttpApp({ baseSettings });
-    const response = await request(app).get('/healthz');
-    expect(response.status).toBe(200);
-    expect(response.text).toBe('ok');
-  });
-
   it('GET /health includes session count', async () => {
     const { app } = buildHttpApp({ baseSettings });
     const response = await request(app).get('/health');
@@ -110,7 +103,7 @@ describe('HTTP transport — fetch wired through to backend', () => {
     // Don't actually open the SSE — just confirm routes resolve. We assert that
     // a real connection would have used the spy. Sessions stays empty until
     // an SSE handshake completes; that's expected here.
-    const r = await request(app).get('/healthz');
+    const r = await request(app).get('/health');
     expect(r.status).toBe(200);
     expect(sessions.size).toBe(0);
   });

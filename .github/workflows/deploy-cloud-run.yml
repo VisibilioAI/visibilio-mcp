@@ -71,16 +71,16 @@ jobs:
             VISIBILIO_BACKEND_URL=https://api.visibilio.ai
             VISIBILIO_GATEWAY_URL=https://gateway.visibilio.ai
 
-      - name: Smoke-test /healthz
+      - name: Smoke-test /health
         run: |
           URL="${{ steps.deploy.outputs.url }}"
           for i in 1 2 3 4 5; do
-            if curl -sSf "$URL/healthz" | grep -q "ok"; then
-              echo "✓ healthz OK on $URL"
+            if curl -sSf "$URL/health" | grep -q '"status":"ok"'; then
+              echo "✓ /health OK on $URL"
               exit 0
             fi
             echo "  attempt $i: not yet, sleeping 5s"
             sleep 5
           done
-          echo "✗ healthz never responded"
+          echo "✗ /health never responded"
           exit 1
