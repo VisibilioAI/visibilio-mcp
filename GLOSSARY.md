@@ -41,3 +41,7 @@ An HTTP error class (429, 502, 503, 504) that triggers exponential backoff. Dist
 ## Scope
 
 A capability granted to a session. Format: `mcp:read`, `mcp:write`, `mcp:admin`. Read-only sessions can `tools/list` write tools but cannot `tools/call` them — the dispatcher rejects with `ScopeError` before reaching the backend.
+
+## Workflow
+
+(Phase 2) A backend-driven asynchronous execution started via `POST /api/v2/workflow/start`, identified by an `execution_id`, polled at `GET /api/v2/workflow/{execution_id}/status` until it reaches a terminal state (`completed`, `failed`, `cancelled`, `error`). Tool handlers in the writer/strategy/research families delegate to the `runWorkflow` helper which encapsulates this start-poll-return contract. Writers force a specific writer agent by setting `repurpose_targets: [contentType]` on the start request. The MCP server only reads the workflow lifecycle — backend persists state, generates content, and returns `final_output` on completion. Defaults: `auto_confirm: true`, `async_mode: true`, 120-second poll deadline.
