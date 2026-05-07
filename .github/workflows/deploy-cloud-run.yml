@@ -33,7 +33,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       GCP_PROJECT_ID: visibilio-ai-v2
-      GCP_REGION: europe-central2
+      GCP_REGION: europe-west1
       SERVICE_NAME: ${{ github.event.inputs.target == 'staging' && 'visibilio-mcp-staging' || 'visibilio-mcp-prod' }}
       MAX_INSTANCES: ${{ github.event.inputs.target == 'staging' && '3' || '10' }}
     steps:
