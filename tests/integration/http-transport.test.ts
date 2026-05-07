@@ -54,13 +54,20 @@ describe('HTTP transport — auth gate', () => {
     const response = await request(app).get('/sse');
     expect(response.status).toBe(401);
     expect(response.body.error).toBe('missing_authorization');
+    // MCP spec: 401 must include WWW-Authenticate with resource_metadata pointer
+    // so clients (Claude.ai etc.) can auto-discover the OAuth flow per RFC 9728.
+    const challenge = response.headers['www-authenticate'];
+    expect(challenge).toMatch(/^Bearer /);
+    expect(challenge).toContain('resource_metadata="');
+    expect(challenge).toContain('/.well-known/oauth-protected-resource');
   });
 
-  it('GET /sse with non-vsk_ key → 401 invalid_api_key', async () => {
+  it('GET /sse with non-vsk_ key → 401 invalid_api_key with WWW-Authenticate', async () => {
     const { app } = buildHttpApp({ baseSettings });
     const response = await request(app).get('/sse').set('Authorization', 'Bearer not_an_mcp_key');
     expect(response.status).toBe(401);
     expect(response.body.error).toBe('invalid_api_key');
+    expect(response.headers['www-authenticate']).toContain('resource_metadata=');
   });
 
   it('GET /sse with revoked key (backend 401) → 401 invalid_api_key', async () => {
