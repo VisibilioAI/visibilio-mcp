@@ -79,6 +79,9 @@ jobs:
             VISIBILIO_GATEWAY_URL=${{ env.GATEWAY_URL }}
             VISIBILIO_FRONTEND_URL=${{ env.FRONTEND_URL }}
             VISIBILIO_OAUTH_CLIENT_ID=${{ env.OAUTH_CLIENT_ID }}
+          secrets: |-
+            VISIBILIO_OAUTH_CLIENT_SECRET=VISIBILIO_OAUTH_CLIENT_SECRET:latest
+            VISIBILIO_INTERNAL_API_KEY=VISIBILIO_AI_API_KEY:latest
 
       - name: Smoke-test /health
         run: |
