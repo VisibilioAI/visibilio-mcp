@@ -90,7 +90,7 @@ export class VisibilioClient {
       Accept: 'application/json',
     };
     if (tenant['X-Project-Id']) headers['X-Project-Id'] = tenant['X-Project-Id'];
-    if (this.internalApiKey) headers['X-Internal-Api-Key'] = this.internalApiKey;
+    if (this.internalApiKey) headers['X-API-Key'] = this.internalApiKey;
     return headers;
   }
 
