@@ -42,8 +42,7 @@ async function startWorkflow(
 ): Promise<string | { executionId: string; immediateOutput: unknown }> {
   try {
     const body = {
-      user_request: options.brief,
-      repurpose_targets: [options.contentType],
+      user_request: `Write a ${humanContentLabel(options.contentType)}: ${options.brief}`,
       auto_confirm: true,
       async_mode: true,
     };
@@ -108,6 +107,25 @@ function formatOutput(raw: unknown): string {
   if (typeof raw === 'string') return raw;
   if (raw === null || raw === undefined) return 'Workflow completed with no output.';
   return JSON.stringify(raw, null, 2);
+}
+
+const HUMAN_CONTENT_LABELS: Readonly<Record<string, string>> = {
+  linkedin_post: 'LinkedIn post',
+  blog_article: 'blog article',
+  tweet: 'tweet',
+  facebook_post: 'Facebook post',
+  newsletter: 'newsletter',
+  press_release: 'press release',
+  email_campaign: 'email campaign',
+  instagram_caption: 'Instagram caption',
+  youtube_description: 'YouTube description',
+  tiktok_script: 'TikTok script',
+  website_copy: 'website copy',
+  ad_copy: 'ad copy',
+};
+
+function humanContentLabel(contentType: string): string {
+  return HUMAN_CONTENT_LABELS[contentType] ?? contentType.replace(/_/g, ' ');
 }
 
 function sleep(ms: number): Promise<void> {

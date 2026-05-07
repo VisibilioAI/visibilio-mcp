@@ -41,7 +41,7 @@ function fakeSession(
 }
 
 describe('runWorkflow', () => {
-  it('starts workflow at /api/v2/workflow/start with the brief and contentType', async () => {
+  it('starts workflow at /api/v2/workflow/start with brief encoded as natural-language user_request', async () => {
     const calls: FakeBackendCalls = { starts: [], statusFetches: [] };
     const session = fakeSession(
       [
@@ -62,10 +62,44 @@ describe('runWorkflow', () => {
     expect(calls.starts).toHaveLength(1);
     expect(calls.starts[0]!.path).toBe('/api/v2/workflow/start');
     const body = calls.starts[0]!.body as Record<string, unknown>;
-    expect(body.user_request).toBe('celebrate Human×AI Europe');
-    expect(body.repurpose_targets).toEqual(['linkedin_post']);
+    expect(body.user_request).toBe('Write a LinkedIn post: celebrate Human×AI Europe');
+    // repurpose_targets is for cross-posting after primary generation, not writer
+    // selection — backend rejects with 422 if we send strings instead of
+    // RepurposeTargetRequest objects. Writer routing is via natural language.
+    expect(body.repurpose_targets).toBeUndefined();
     expect(body.auto_confirm).toBe(true);
     expect(body.async_mode).toBe(true);
+  });
+
+  it('uses human-readable label for known content types and falls back to underscore-stripped name', async () => {
+    const calls: FakeBackendCalls = { starts: [], statusFetches: [] };
+    const session = fakeSession(
+      [
+        { status: 200, body: { execution_id: 'e1', state: 'pending' } },
+        { status: 200, body: { execution_id: 'e1', state: 'completed', final_output: '' } },
+        { status: 200, body: { execution_id: 'e2', state: 'pending' } },
+        { status: 200, body: { execution_id: 'e2', state: 'completed', final_output: '' } },
+      ],
+      calls
+    );
+    await runWorkflow(session, {
+      contentType: 'press_release',
+      brief: 'launch announcement',
+      timeoutSeconds: 5,
+      pollIntervalMs: 1,
+    });
+    await runWorkflow(session, {
+      contentType: 'whitepaper_summary',
+      brief: 'AI in marketing',
+      timeoutSeconds: 5,
+      pollIntervalMs: 1,
+    });
+    expect((calls.starts[0]!.body as Record<string, unknown>).user_request).toBe(
+      'Write a press release: launch announcement'
+    );
+    expect((calls.starts[1]!.body as Record<string, unknown>).user_request).toBe(
+      'Write a whitepaper summary: AI in marketing'
+    );
   });
 
   it('polls /workflow/{id}/status until completed and returns final_output', async () => {
