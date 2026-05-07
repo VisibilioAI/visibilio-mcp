@@ -48,6 +48,11 @@ export function buildHttpApp(options: HttpAppOptions): HttpApp {
   app.get('/sse', async (req: Request, res: Response) => {
     const apiKey = extractBearer(req);
     if (!apiKey) {
+      setBearerChallenge(req, res, {
+        error: 'invalid_token',
+        description:
+          'Authorization required. Authenticate via OAuth (RFC 9728 metadata served at /.well-known/oauth-protected-resource) or send Authorization: Bearer vsk_<api-key>',
+      });
       res.status(401).json({
         error: 'missing_authorization',
         message: 'Authorization: Bearer vsk_... (API key) or vat_... (OAuth)',
@@ -59,6 +64,10 @@ export function buildHttpApp(options: HttpAppOptions): HttpApp {
     try {
       settings = withApiKey(baseSettings, apiKey);
     } catch {
+      setBearerChallenge(req, res, {
+        error: 'invalid_token',
+        description: 'Bearer token must start with vsk_ (API key) or vat_ (OAuth)',
+      });
       res.status(401).json({
         error: 'invalid_api_key',
         message: 'Bearer token must start with vsk_ (API key) or vat_ (OAuth)',
@@ -85,6 +94,12 @@ export function buildHttpApp(options: HttpAppOptions): HttpApp {
       }
       if (err instanceof AuthenticationError) {
         if (!res.headersSent) {
+          if (err.status !== 403) {
+            setBearerChallenge(req, res, {
+              error: 'invalid_token',
+              description: err.message,
+            });
+          }
           res.status(err.status === 403 ? 403 : 401).json({
             error: err.status === 403 ? 'expired_or_revoked_key' : 'invalid_api_key',
             message: err.message,
@@ -120,4 +135,23 @@ function extractBearer(req: Request): string | null {
   if (!header) return null;
   const match = /^Bearer\s+(.+)$/i.exec(header);
   return match?.[1] ?? null;
+}
+
+function setBearerChallenge(
+  req: Request,
+  res: Response,
+  options: { error: string; description: string }
+): void {
+  const proto = (req.header('x-forwarded-proto') ?? 'https').split(',')[0]!.trim();
+  const host = (req.header('x-forwarded-host') ?? req.header('host') ?? '').split(',')[0]!.trim();
+  const resourceMetadata = `${proto}://${host}/.well-known/oauth-protected-resource`;
+  // RFC 6750 quoted-string requires printable ASCII; strip control chars,
+  // non-ASCII (e.g. em-dash from upstream messages), and escape backslash + quote.
+  const sanitize = (v: string) =>
+    v
+      .replace(/[^\x20-\x7E]/g, ' ')
+      .replace(/\\/g, '\\\\')
+      .replace(/"/g, '\\"');
+  const challenge = `Bearer realm="visibilio-mcp", resource_metadata="${resourceMetadata}", error="${sanitize(options.error)}", error_description="${sanitize(options.description)}"`;
+  res.setHeader('WWW-Authenticate', challenge);
 }
