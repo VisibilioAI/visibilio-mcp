@@ -57,8 +57,9 @@ describe('OAuth token resolution', () => {
     expect(url).toBe('https://gateway.test/api/v2/oauth/introspect');
     expect((init as RequestInit).method).toBe('POST');
     const headers = (init as RequestInit).headers as Record<string, string>;
-    expect(headers.Authorization).toMatch(/^Basic /);
-    const decoded = Buffer.from(headers.Authorization.slice(6), 'base64').toString('utf8');
+    const authHeader = headers.Authorization ?? '';
+    expect(authHeader).toMatch(/^Basic /);
+    const decoded = Buffer.from(authHeader.slice(6), 'base64').toString('utf8');
     expect(decoded).toBe('vco_mcp:vcs_secret');
     expect(headers['Content-Type']).toBe('application/x-www-form-urlencoded');
     expect(String((init as RequestInit).body)).toContain('token=vat_abcdef');
