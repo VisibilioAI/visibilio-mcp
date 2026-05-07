@@ -41,7 +41,7 @@ describe('write_linkedin_post', () => {
     expect(out).toContain('Generated LinkedIn post text');
   });
 
-  it('forces the linkedin_post writer via repurpose_targets', async () => {
+  it('signals the linkedin_post writer through user_request natural language', async () => {
     const tool = findTool('write_linkedin_post');
     const calls: Array<unknown> = [];
     const session = {
@@ -63,7 +63,8 @@ describe('write_linkedin_post', () => {
     } as unknown as McpSession;
     await tool.handler({ brief: 'b', timeout_seconds: 2 }, session);
     const body = calls[0] as Record<string, unknown>;
-    expect(body.repurpose_targets).toEqual(['linkedin_post']);
+    expect(body.user_request).toBe('Write a LinkedIn post: b');
+    expect(body.repurpose_targets).toBeUndefined();
   });
 });
 

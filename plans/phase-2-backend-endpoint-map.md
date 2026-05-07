@@ -29,7 +29,7 @@ Response:
 
 Tenant headers required: `X-User-Id`, `X-Organization-Id`, `X-Project-Id` (when active).
 
-**Implementation note for `runWorkflow` helper:** force the desired writer by populating `repurpose_targets: [contentType]` (e.g. `['linkedin_post']`) — the plan's deterministic-routing requirement holds. `user_request` carries the brief.
+**Implementation note for `runWorkflow` helper:** ⚠️ Original plan assumption was wrong. `repurpose_targets` is `list[RepurposeTargetRequest]` — objects of shape `{platform, content_type, remix_strategy}` — and is for **cross-posting after primary generation**, not writer selection. Sending strings like `['linkedin_post']` triggers a Pydantic 422. Writer routing happens via the **workflow planner reading `user_request` natural language**. `runWorkflow` encodes the choice as `"Write a {humanLabel(contentType)}: {brief}"` (e.g. "Write a LinkedIn post: ..."). Discovered 2026-05-07 via Cloud Run 422 backend log after Phase 2 PR 14a went live; corrected in PR 16 (this fix lives in `_workflow.ts` `humanContentLabel` map).
 
 ## Workflow primitives
 
