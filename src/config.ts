@@ -3,6 +3,9 @@ import { z } from 'zod';
 const baseSchema = z.object({
   backendUrl: z.string().url(),
   gatewayUrl: z.string().url(),
+  // Browser-facing FE host. Used as the authorization_endpoint in
+  // RFC 8414 metadata (browser navigates here to consent screen).
+  frontendUrl: z.string().url().optional(),
   internalApiKey: z.string().optional(),
   timeoutMs: z.number().int().positive().default(30_000),
   // OAuth introspection client credentials. When set, the MCP server
@@ -23,6 +26,7 @@ function readBase(env: NodeJS.ProcessEnv) {
   return {
     backendUrl: env.VISIBILIO_BACKEND_URL ?? 'https://api.visibilio.ai',
     gatewayUrl: env.VISIBILIO_GATEWAY_URL ?? 'https://gateway.visibilio.ai',
+    frontendUrl: env.VISIBILIO_FRONTEND_URL,
     internalApiKey: env.VISIBILIO_INTERNAL_API_KEY,
     timeoutMs: env.VISIBILIO_TIMEOUT_MS ? Number(env.VISIBILIO_TIMEOUT_MS) : undefined,
     oauthClientId: env.VISIBILIO_OAUTH_CLIENT_ID,

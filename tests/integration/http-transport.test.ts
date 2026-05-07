@@ -85,17 +85,134 @@ describe('HTTP transport — auth gate', () => {
 });
 
 describe('HTTP transport — RFC 9728 protected resource metadata', () => {
-  it('GET /.well-known/oauth-protected-resource returns the metadata', async () => {
+  it('GET /.well-known/oauth-protected-resource resource = own host, AS = own host', async () => {
     const { app } = buildHttpApp({ baseSettings });
-    const response = await request(app).get('/.well-known/oauth-protected-resource');
+    const response = await request(app)
+      .get('/.well-known/oauth-protected-resource')
+      .set('host', 'mcp.test')
+      .set('x-forwarded-proto', 'https');
     expect(response.status).toBe(200);
-    expect(response.body).toMatchObject({
-      resource: 'https://gateway.test',
-      authorization_servers: ['https://gateway.test'],
-      bearer_methods_supported: ['header'],
-      scopes_supported: ['mcp:read', 'mcp:write', 'mcp:admin'],
-    });
+    expect(response.body.resource).toBe('https://mcp.test');
+    expect(response.body.authorization_servers).toEqual(['https://mcp.test']);
+    expect(response.body.bearer_methods_supported).toEqual(['header']);
+    expect(response.body.scopes_supported).toEqual(['mcp:read', 'mcp:write', 'mcp:admin']);
     expect(response.headers['cache-control']).toBe('public, max-age=300');
+  });
+
+  it('GET /.well-known/oauth-protected-resource/sse returns the same payload (path-aware alias)', async () => {
+    const { app } = buildHttpApp({ baseSettings });
+    const a = await request(app)
+      .get('/.well-known/oauth-protected-resource')
+      .set('host', 'mcp.test')
+      .set('x-forwarded-proto', 'https');
+    const b = await request(app)
+      .get('/.well-known/oauth-protected-resource/sse')
+      .set('host', 'mcp.test')
+      .set('x-forwarded-proto', 'https');
+    expect(b.status).toBe(200);
+    expect(b.body).toEqual(a.body);
+  });
+});
+
+describe('HTTP transport — RFC 8414 authorization-server metadata (MCP-host)', () => {
+  it('GET /.well-known/oauth-authorization-server publishes MCP-hosted endpoints', async () => {
+    const { app } = buildHttpApp({ baseSettings });
+    const response = await request(app)
+      .get('/.well-known/oauth-authorization-server')
+      .set('host', 'mcp.test')
+      .set('x-forwarded-proto', 'https');
+    expect(response.status).toBe(200);
+    expect(response.body.issuer).toBe('https://mcp.test');
+    expect(response.body.registration_endpoint).toBe('https://mcp.test/register');
+    expect(response.body.token_endpoint).toBe('https://mcp.test/oauth/token');
+    expect(response.body.revocation_endpoint).toBe('https://mcp.test/oauth/revoke');
+    expect(response.body.response_types_supported).toContain('code');
+    expect(response.body.grant_types_supported).toEqual(
+      expect.arrayContaining(['authorization_code', 'refresh_token'])
+    );
+    expect(response.body.code_challenge_methods_supported).toContain('S256');
+    expect(response.body.scopes_supported).toEqual(
+      expect.arrayContaining(['mcp:read', 'mcp:write'])
+    );
+  });
+
+  it('authorization_endpoint points at the FE consent screen when frontendUrl is set', async () => {
+    const { app } = buildHttpApp({
+      baseSettings: { ...baseSettings, frontendUrl: 'https://app.test' },
+    });
+    const response = await request(app)
+      .get('/.well-known/oauth-authorization-server')
+      .set('host', 'mcp.test')
+      .set('x-forwarded-proto', 'https');
+    expect(response.body.authorization_endpoint).toBe('https://app.test/oauth/consent');
+  });
+});
+
+describe('HTTP transport — OAuth proxy to gateway', () => {
+  it('POST /register forwards to gateway/api/v2/oauth/register and mirrors the response', async () => {
+    const fetchSpy = vi.fn(
+      async () =>
+        ({
+          ok: true,
+          status: 201,
+          json: async () => ({ client_id: 'vco_test', client_name: 'Test' }),
+          text: async () => JSON.stringify({ client_id: 'vco_test', client_name: 'Test' }),
+          headers: { get: () => 'application/json' },
+        }) as unknown as Response
+    ) as unknown as typeof fetch;
+    const { app } = buildHttpApp({ baseSettings, fetch: fetchSpy });
+    const response = await request(app)
+      .post('/register')
+      .send({ client_name: 'Test', redirect_uris: ['https://x'] });
+    expect(response.status).toBe(201);
+    expect(response.body).toMatchObject({ client_id: 'vco_test' });
+    const fn = fetchSpy as unknown as ReturnType<typeof vi.fn>;
+    expect(fn.mock.calls[0]![0]).toBe('https://gateway.test/api/v2/oauth/register');
+    expect((fn.mock.calls[0]![1] as RequestInit).method).toBe('POST');
+  });
+
+  it('POST /oauth/token forwards form-encoded body to gateway', async () => {
+    const fetchSpy = vi.fn(
+      async () =>
+        ({
+          ok: true,
+          status: 200,
+          json: async () => ({ access_token: 'vat_x', token_type: 'Bearer', expires_in: 3600 }),
+          text: async () =>
+            JSON.stringify({ access_token: 'vat_x', token_type: 'Bearer', expires_in: 3600 }),
+          headers: { get: () => 'application/json' },
+        }) as unknown as Response
+    ) as unknown as typeof fetch;
+    const { app } = buildHttpApp({ baseSettings, fetch: fetchSpy });
+    const response = await request(app)
+      .post('/oauth/token')
+      .type('form')
+      .send('grant_type=authorization_code&code=vac_x&client_id=vco_x&code_verifier=v');
+    expect(response.status).toBe(200);
+    expect(response.body.access_token).toBe('vat_x');
+    const fn = fetchSpy as unknown as ReturnType<typeof vi.fn>;
+    expect(fn.mock.calls[0]![0]).toBe('https://gateway.test/api/v2/oauth/token');
+    const body = (fn.mock.calls[0]![1] as RequestInit).body as string;
+    expect(body).toContain('grant_type=authorization_code');
+    expect(body).toContain('code=vac_x');
+  });
+
+  it('POST /oauth/revoke forwards to gateway', async () => {
+    const fetchSpy = vi.fn(
+      async () =>
+        ({
+          ok: true,
+          status: 200,
+          json: async () => ({}),
+          text: async () => '{}',
+          headers: { get: () => 'application/json' },
+        }) as unknown as Response
+    ) as unknown as typeof fetch;
+    const { app } = buildHttpApp({ baseSettings, fetch: fetchSpy });
+    const response = await request(app).post('/oauth/revoke').type('form').send('token=vat_x');
+    expect(response.status).toBe(200);
+    const fn = fetchSpy as unknown as ReturnType<typeof vi.fn>;
+    expect(fn.mock.calls[0]![0]).toBe('https://gateway.test/api/v2/oauth/revoke');
   });
 });
 
