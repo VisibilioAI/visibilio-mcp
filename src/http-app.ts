@@ -50,7 +50,8 @@ export function buildHttpApp(options: HttpAppOptions): HttpApp {
     if (!apiKey) {
       setBearerChallenge(req, res, {
         error: 'invalid_token',
-        description: 'Authorization required. Authenticate via OAuth (RFC 9728 metadata served at /.well-known/oauth-protected-resource) or send Authorization: Bearer vsk_<api-key>',
+        description:
+          'Authorization required. Authenticate via OAuth (RFC 9728 metadata served at /.well-known/oauth-protected-resource) or send Authorization: Bearer vsk_<api-key>',
       });
       res.status(401).json({
         error: 'missing_authorization',
@@ -147,7 +148,10 @@ function setBearerChallenge(
   // RFC 6750 quoted-string requires printable ASCII; strip control chars,
   // non-ASCII (e.g. em-dash from upstream messages), and escape backslash + quote.
   const sanitize = (v: string) =>
-    v.replace(/[^\x20-\x7E]/g, ' ').replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+    v
+      .replace(/[^\x20-\x7E]/g, ' ')
+      .replace(/\\/g, '\\\\')
+      .replace(/"/g, '\\"');
   const challenge = `Bearer realm="visibilio-mcp", resource_metadata="${resourceMetadata}", error="${sanitize(options.error)}", error_description="${sanitize(options.description)}"`;
   res.setHeader('WWW-Authenticate', challenge);
 }
