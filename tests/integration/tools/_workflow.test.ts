@@ -41,7 +41,21 @@ function fakeSession(
 }
 
 describe('runWorkflow', () => {
-  it('starts workflow at /api/v2/workflow/start with brief encoded as natural-language user_request', async () => {
+  it('returns an error string when topic is empty (no backend call)', async () => {
+    const calls: FakeBackendCalls = { starts: [], statusFetches: [] };
+    const session = fakeSession([], calls);
+    const out = await runWorkflow(session, {
+      contentType: 'linkedin_post',
+      topic: '   ',
+      timeoutSeconds: 5,
+      pollIntervalMs: 1,
+    });
+    expect(out.toLowerCase()).toContain('topic');
+    expect(out.toLowerCase()).toContain('required');
+    expect(calls.starts).toHaveLength(0);
+  });
+
+  it('starts workflow at /api/v2/workflow/start with topic encoded as natural-language user_request', async () => {
     const calls: FakeBackendCalls = { starts: [], statusFetches: [] };
     const session = fakeSession(
       [
@@ -55,7 +69,7 @@ describe('runWorkflow', () => {
     );
     await runWorkflow(session, {
       contentType: 'linkedin_post',
-      brief: 'celebrate Human×AI Europe',
+      topic: 'celebrate Human×AI Europe',
       timeoutSeconds: 5,
       pollIntervalMs: 1,
     });
@@ -63,12 +77,54 @@ describe('runWorkflow', () => {
     expect(calls.starts[0]!.path).toBe('/api/v2/workflow/start');
     const body = calls.starts[0]!.body as Record<string, unknown>;
     expect(body.user_request).toBe('Write a LinkedIn post: celebrate Human×AI Europe');
-    // repurpose_targets is for cross-posting after primary generation, not writer
-    // selection — backend rejects with 422 if we send strings instead of
-    // RepurposeTargetRequest objects. Writer routing is via natural language.
     expect(body.repurpose_targets).toBeUndefined();
     expect(body.auto_confirm).toBe(true);
     expect(body.async_mode).toBe(true);
+  });
+
+  it('appends tone and key_points to user_request when provided', async () => {
+    const calls: FakeBackendCalls = { starts: [], statusFetches: [] };
+    const session = fakeSession(
+      [
+        { status: 200, body: { execution_id: 'e', state: 'pending' } },
+        { status: 200, body: { execution_id: 'e', state: 'completed', final_output: '' } },
+      ],
+      calls
+    );
+    await runWorkflow(session, {
+      contentType: 'linkedin_post',
+      topic: 'product launch',
+      tone: 'bold',
+      keyPoints: 'shipping today; built in 6 weeks',
+      timeoutSeconds: 5,
+      pollIntervalMs: 1,
+    });
+    const body = calls.starts[0]!.body as Record<string, unknown>;
+    expect(body.user_request).toBe(
+      'Write a LinkedIn post: product launch\nTone: bold\nKey points: shipping today; built in 6 weeks'
+    );
+  });
+
+  it('maps audienceId to persona_id and includeImage to include_image in the body', async () => {
+    const calls: FakeBackendCalls = { starts: [], statusFetches: [] };
+    const session = fakeSession(
+      [
+        { status: 200, body: { execution_id: 'e', state: 'pending' } },
+        { status: 200, body: { execution_id: 'e', state: 'completed', final_output: '' } },
+      ],
+      calls
+    );
+    await runWorkflow(session, {
+      contentType: 'blog_article',
+      topic: 'X',
+      audienceId: 'persona_42',
+      includeImage: true,
+      timeoutSeconds: 5,
+      pollIntervalMs: 1,
+    });
+    const body = calls.starts[0]!.body as Record<string, unknown>;
+    expect(body.persona_id).toBe('persona_42');
+    expect(body.include_image).toBe(true);
   });
 
   it('uses human-readable label for known content types and falls back to underscore-stripped name', async () => {
@@ -84,13 +140,13 @@ describe('runWorkflow', () => {
     );
     await runWorkflow(session, {
       contentType: 'press_release',
-      brief: 'launch announcement',
+      topic: 'launch announcement',
       timeoutSeconds: 5,
       pollIntervalMs: 1,
     });
     await runWorkflow(session, {
       contentType: 'whitepaper_summary',
-      brief: 'AI in marketing',
+      topic: 'AI in marketing',
       timeoutSeconds: 5,
       pollIntervalMs: 1,
     });
@@ -118,7 +174,7 @@ describe('runWorkflow', () => {
     );
     const out = await runWorkflow(session, {
       contentType: 'tweet',
-      brief: 'short brief',
+      topic: 'short brief',
       timeoutSeconds: 5,
       pollIntervalMs: 1,
     });
@@ -143,7 +199,7 @@ describe('runWorkflow', () => {
     );
     const out = await runWorkflow(session, {
       contentType: 'blog_article',
-      brief: 'long-form piece',
+      topic: 'long-form piece',
       timeoutSeconds: 0.005,
       pollIntervalMs: 2,
     });
@@ -170,7 +226,7 @@ describe('runWorkflow', () => {
     } as unknown as McpSession;
     const out = await runWorkflow(session, {
       contentType: 'linkedin_post',
-      brief: 'x',
+      topic: 'x',
       timeoutSeconds: 5,
       pollIntervalMs: 1,
     });

@@ -3,7 +3,11 @@ import { formatHttpError } from './_format.js';
 
 export interface RunWorkflowOptions {
   readonly contentType: string;
-  readonly brief: string;
+  readonly topic: string;
+  readonly tone?: string;
+  readonly keyPoints?: string;
+  readonly audienceId?: string;
+  readonly includeImage?: boolean;
   readonly timeoutSeconds: number;
   readonly pollIntervalMs?: number;
 }
@@ -28,6 +32,9 @@ export async function runWorkflow(
   session: McpSession,
   options: RunWorkflowOptions
 ): Promise<string> {
+  if (!options.topic.trim()) {
+    return 'Error: topic is required. Provide a short description of what the post should be about.';
+  }
   const pollIntervalMs = options.pollIntervalMs ?? 1500;
   const start = await startWorkflow(session, options);
   if (typeof start === 'string') return start;
@@ -41,11 +48,13 @@ async function startWorkflow(
   options: RunWorkflowOptions
 ): Promise<string | { executionId: string; immediateOutput: unknown }> {
   try {
-    const body = {
-      user_request: `Write a ${humanContentLabel(options.contentType)}: ${options.brief}`,
+    const body: Record<string, unknown> = {
+      user_request: buildUserRequest(options),
       auto_confirm: true,
       async_mode: true,
     };
+    if (options.audienceId) body.persona_id = options.audienceId;
+    if (options.includeImage) body.include_image = true;
     const response = (await session.client.backendPost(
       '/api/v2/workflow/start',
       body,
@@ -126,6 +135,13 @@ const HUMAN_CONTENT_LABELS: Readonly<Record<string, string>> = {
 
 function humanContentLabel(contentType: string): string {
   return HUMAN_CONTENT_LABELS[contentType] ?? contentType.replace(/_/g, ' ');
+}
+
+function buildUserRequest(options: RunWorkflowOptions): string {
+  const parts = [`Write a ${humanContentLabel(options.contentType)}: ${options.topic.trim()}`];
+  if (options.tone?.trim()) parts.push(`Tone: ${options.tone.trim()}`);
+  if (options.keyPoints?.trim()) parts.push(`Key points: ${options.keyPoints.trim()}`);
+  return parts.join('\n');
 }
 
 function sleep(ms: number): Promise<void> {

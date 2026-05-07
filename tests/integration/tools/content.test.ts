@@ -35,7 +35,7 @@ describe('write_linkedin_post', () => {
     const tool = findTool('write_linkedin_post');
     const session = sessionThatFakesWorkflow('Generated LinkedIn post text');
     const out = await tool.handler(
-      { brief: 'celebrate Human×AI Europe', timeout_seconds: 2 },
+      { topic: 'celebrate Human×AI Europe', timeout_seconds: 2 },
       session
     );
     expect(out).toContain('Generated LinkedIn post text');
@@ -61,10 +61,70 @@ describe('write_linkedin_post', () => {
         }),
       },
     } as unknown as McpSession;
-    await tool.handler({ brief: 'b', timeout_seconds: 2 }, session);
+    await tool.handler({ topic: 'b', timeout_seconds: 2 }, session);
     const body = calls[0] as Record<string, unknown>;
     expect(body.user_request).toBe('Write a LinkedIn post: b');
     expect(body.repurpose_targets).toBeUndefined();
+  });
+
+  it('forwards tone, key_points, audience_id, and include_image when provided', async () => {
+    const tool = findTool('write_linkedin_post');
+    const calls: Array<unknown> = [];
+    const session = {
+      organizationId: 7,
+      userId: 42,
+      projectId: null,
+      buildTenantHeaders: () => ({ 'X-User-Id': '42', 'X-Organization-Id': '7' }),
+      client: {
+        backendPost: async (_path: string, body: unknown) => {
+          calls.push(body);
+          return { execution_id: 'e', state: 'pending' };
+        },
+        backendGet: async () => ({
+          execution_id: 'e',
+          state: 'completed',
+          final_output: 'x',
+        }),
+      },
+    } as unknown as McpSession;
+    await tool.handler(
+      {
+        topic: 'launch',
+        tone: 'celebratory',
+        key_points: 'six weeks of build',
+        audience_id: 'persona_42',
+        include_image: true,
+        timeout_seconds: 2,
+      },
+      session
+    );
+    const body = calls[0] as Record<string, unknown>;
+    expect(body.user_request).toBe(
+      'Write a LinkedIn post: launch\nTone: celebratory\nKey points: six weeks of build'
+    );
+    expect(body.persona_id).toBe('persona_42');
+    expect(body.include_image).toBe(true);
+  });
+
+  it('returns a clear error message when topic is missing', async () => {
+    const tool = findTool('write_linkedin_post');
+    const session = {
+      organizationId: 7,
+      userId: 42,
+      projectId: null,
+      buildTenantHeaders: () => ({ 'X-User-Id': '42', 'X-Organization-Id': '7' }),
+      client: {
+        backendPost: async () => {
+          throw new Error('should not be called');
+        },
+        backendGet: async () => {
+          throw new Error('should not be called');
+        },
+      },
+    } as unknown as McpSession;
+    const out = await tool.handler({ timeout_seconds: 2 }, session);
+    expect(out.toLowerCase()).toContain('topic');
+    expect(out.toLowerCase()).toContain('required');
   });
 });
 
