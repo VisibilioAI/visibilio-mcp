@@ -36,6 +36,13 @@ jobs:
       GCP_REGION: europe-west1
       SERVICE_NAME: ${{ github.event.inputs.target == 'staging' && 'visibilio-mcp-staging' || 'visibilio-mcp-prod' }}
       MAX_INSTANCES: ${{ github.event.inputs.target == 'staging' && '3' || '10' }}
+      # Real upstream URLs for the Cloud Run service. The `*.visibilio.ai` aliases
+      # are not yet provisioned (NXDOMAIN), so we hardcode the actual *.run.app /
+      # *.vercel.app endpoints. Re-point to the alias when DNS lands.
+      BACKEND_URL: ${{ github.event.inputs.target == 'staging' && 'https://visibilio-ai-backend-952474168989.europe-central2.run.app' || 'https://visibilio-ai-backend-prod-952474168989.europe-central2.run.app' }}
+      GATEWAY_URL: ${{ github.event.inputs.target == 'staging' && 'https://visibilio-api-gateway-v2-staging.vercel.app' || 'https://visibilio-api-gateway-prod.vercel.app' }}
+      FRONTEND_URL: ${{ github.event.inputs.target == 'staging' && 'https://visibilio-frontend-v2-staging.vercel.app' || 'https://visibilio-frontend-prod.vercel.app' }}
+      OAUTH_CLIENT_ID: vco_adc0e9cc5157d9bd08517a1513b5ea92
     steps:
       - uses: actions/checkout@v4
 
@@ -68,8 +75,10 @@ jobs:
             --service-account=github-actions@visibilio-ai-v2.iam.gserviceaccount.com
             --build-service-account=projects/visibilio-ai-v2/serviceAccounts/github-actions@visibilio-ai-v2.iam.gserviceaccount.com
           env_vars: |-
-            VISIBILIO_BACKEND_URL=https://api.visibilio.ai
-            VISIBILIO_GATEWAY_URL=https://gateway.visibilio.ai
+            VISIBILIO_BACKEND_URL=${{ env.BACKEND_URL }}
+            VISIBILIO_GATEWAY_URL=${{ env.GATEWAY_URL }}
+            VISIBILIO_FRONTEND_URL=${{ env.FRONTEND_URL }}
+            VISIBILIO_OAUTH_CLIENT_ID=${{ env.OAUTH_CLIENT_ID }}
 
       - name: Smoke-test /health
         run: |
