@@ -19,7 +19,10 @@ export function buildHttpApp(options: HttpAppOptions): HttpApp {
   const app = express();
   app.use(express.json({ limit: '1mb' }));
   app.use(express.urlencoded({ extended: false, limit: '1mb' }));
-  const httpFetch: typeof fetch = fetchImpl ?? globalThis.fetch;
+  // Bind to globalThis so the runtime's fetch (Node's undici wrapper) keeps
+  // its expected `this`. Some Node builds throw "Illegal invocation" without
+  // the bind when the function is reassigned to a const.
+  const httpFetch: typeof fetch = fetchImpl ?? globalThis.fetch.bind(globalThis);
 
   const sessions = new Map<string, SSEServerTransport>();
 
@@ -94,10 +97,12 @@ export function buildHttpApp(options: HttpAppOptions): HttpApp {
         if (upstreamCt) res.setHeader('Content-Type', upstreamCt);
         res.status(upstream.status).send(text);
       } catch (err) {
-        res.status(502).json({
-          error: 'gateway_proxy_failed',
-          message: err instanceof Error ? err.message : 'unknown',
-        });
+        const detail =
+          err instanceof Error
+            ? `${err.message}${err.cause ? ` (cause: ${String((err.cause as Error).message ?? err.cause)})` : ''}`
+            : 'unknown';
+        console.error('[visibilio-mcp/http] proxy error:', detail, err);
+        res.status(502).json({ error: 'gateway_proxy_failed', message: detail });
       }
     };
   };
@@ -184,7 +189,9 @@ export function buildHttpApp(options: HttpAppOptions): HttpApp {
       res.status(404).json({ error: 'session_not_found' });
       return;
     }
-    await transport.handlePostMessage(req, res);
+    // Pass req.body explicitly so the SSE transport doesn't try to re-read
+    // the request stream (express.json() above already consumed it).
+    await transport.handlePostMessage(req, res, req.body);
   });
 
   return { app, sessions };
