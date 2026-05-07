@@ -77,6 +77,21 @@ describe('HTTP transport — auth gate', () => {
   });
 });
 
+describe('HTTP transport — RFC 9728 protected resource metadata', () => {
+  it('GET /.well-known/oauth-protected-resource returns the metadata', async () => {
+    const { app } = buildHttpApp({ baseSettings });
+    const response = await request(app).get('/.well-known/oauth-protected-resource');
+    expect(response.status).toBe(200);
+    expect(response.body).toMatchObject({
+      resource: 'https://gateway.test',
+      authorization_servers: ['https://gateway.test'],
+      bearer_methods_supported: ['header'],
+      scopes_supported: ['mcp:read', 'mcp:write', 'mcp:admin'],
+    });
+    expect(response.headers['cache-control']).toBe('public, max-age=300');
+  });
+});
+
 describe('HTTP transport — session lifecycle', () => {
   it('POST /messages with unknown sessionId → 404', async () => {
     const { app } = buildHttpApp({ baseSettings });

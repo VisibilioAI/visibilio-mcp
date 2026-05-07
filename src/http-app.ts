@@ -28,12 +28,30 @@ export function buildHttpApp(options: HttpAppOptions): HttpApp {
     res.json({ status: 'ok', service: '@visibilio/mcp', sessions: sessions.size });
   });
 
+  // RFC 9728 — protected resource metadata. Lets MCP clients (Claude, etc)
+  // discover which authorization server issues tokens this resource accepts.
+  app.get('/.well-known/oauth-protected-resource', (_req: Request, res: Response) => {
+    if (!baseSettings.gatewayUrl) {
+      res.status(500).json({ error: 'gateway_url_not_configured' });
+      return;
+    }
+    res.setHeader('Cache-Control', 'public, max-age=300');
+    res.json({
+      resource: baseSettings.gatewayUrl,
+      authorization_servers: [baseSettings.gatewayUrl],
+      bearer_methods_supported: ['header'],
+      scopes_supported: ['mcp:read', 'mcp:write', 'mcp:admin'],
+      resource_documentation: 'https://visibilio.ai/docs/mcp',
+    });
+  });
+
   app.get('/sse', async (req: Request, res: Response) => {
     const apiKey = extractBearer(req);
     if (!apiKey) {
-      res
-        .status(401)
-        .json({ error: 'missing_authorization', message: 'Authorization: Bearer vsk_...' });
+      res.status(401).json({
+        error: 'missing_authorization',
+        message: 'Authorization: Bearer vsk_... (API key) or vat_... (OAuth)',
+      });
       return;
     }
 
@@ -41,7 +59,10 @@ export function buildHttpApp(options: HttpAppOptions): HttpApp {
     try {
       settings = withApiKey(baseSettings, apiKey);
     } catch {
-      res.status(401).json({ error: 'invalid_api_key', message: 'API key must start with vsk_' });
+      res.status(401).json({
+        error: 'invalid_api_key',
+        message: 'Bearer token must start with vsk_ (API key) or vat_ (OAuth)',
+      });
       return;
     }
 

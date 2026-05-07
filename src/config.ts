@@ -5,10 +5,15 @@ const baseSchema = z.object({
   gatewayUrl: z.string().url(),
   internalApiKey: z.string().optional(),
   timeoutMs: z.number().int().positive().default(30_000),
+  // OAuth introspection client credentials. When set, the MCP server
+  // will resolve Bearer vat_* tokens via /api/v2/oauth/introspect on
+  // the gateway. Without these, only vsk_* API keys work.
+  oauthClientId: z.string().optional(),
+  oauthClientSecret: z.string().optional(),
 });
 
 const settingsSchema = baseSchema.extend({
-  apiKey: z.string().regex(/^vsk_/, 'VISIBILIO_API_KEY must start with vsk_'),
+  apiKey: z.string().regex(/^(vsk_|vat_)/, 'API key must start with vsk_ or vat_'),
 });
 
 export type BaseSettings = z.infer<typeof baseSchema>;
@@ -20,6 +25,8 @@ function readBase(env: NodeJS.ProcessEnv) {
     gatewayUrl: env.VISIBILIO_GATEWAY_URL ?? 'https://gateway.visibilio.ai',
     internalApiKey: env.VISIBILIO_INTERNAL_API_KEY,
     timeoutMs: env.VISIBILIO_TIMEOUT_MS ? Number(env.VISIBILIO_TIMEOUT_MS) : undefined,
+    oauthClientId: env.VISIBILIO_OAUTH_CLIENT_ID,
+    oauthClientSecret: env.VISIBILIO_OAUTH_CLIENT_SECRET,
   };
 }
 

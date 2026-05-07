@@ -31,6 +31,9 @@ export async function buildServer(options: BuildServerOptions = {}): Promise<{
   const auth = new McpAuth({
     apiKey: settings.apiKey,
     backendUrl: settings.backendUrl,
+    gatewayUrl: settings.gatewayUrl,
+    oauthClientId: settings.oauthClientId,
+    oauthClientSecret: settings.oauthClientSecret,
     fetch: fetchImpl,
   });
   const ctx = await auth.resolve();
