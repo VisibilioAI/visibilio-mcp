@@ -4,7 +4,7 @@ Domain language used inside the MCP server. Names here are authoritative — cod
 
 ## Session
 
-A live MCP session bound to one `vsk_*` API key. Holds the resolved `AuthContext`, the currently active project (if set via `set_active_project`), and the wire transport (stdio for `cli.ts`, SSE for `http.ts`).
+A live MCP session bound to one `vsk_*` API key OR `vat_*` OAuth token. Holds the resolved `AuthContext`, the active project (if set via `set_active_project`), the active organization override (if set via `set_active_organization`), and the wire transport (stdio for `cli.ts`, SSE for `http.ts`). The session's `organizationId` getter returns the active-organization override when present and falls back to `auth.organizationId` otherwise — this lets a multi-org user switch context within a single MCP session without re-authorizing the connector. Switching the active organization clears the active project (project IDs are org-scoped).
 
 ## AuthContext
 
