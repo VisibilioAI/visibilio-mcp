@@ -61,10 +61,24 @@ const setActiveProject = defineTool('set_active_project', async (args, session) 
   return `Active project set: ${project.name ?? 'Unnamed'} (ID: ${project.id}). Subsequent calls are scoped to this project.`;
 });
 
+const setActiveOrganization = defineTool('set_active_organization', async (args, session) => {
+  const raw = args.organization_id;
+  if (raw === undefined || raw === null || raw === '') {
+    return 'Error: organization_id is required. Provide the numeric ID of an organization you belong to.';
+  }
+  const idAsNumber = Number(raw);
+  if (!Number.isFinite(idAsNumber) || !Number.isInteger(idAsNumber)) {
+    return `Error: organization_id must be numeric (got "${String(raw)}").`;
+  }
+  session.setActiveOrganization(idAsNumber, null);
+  return `Active organization set to ${idAsNumber}. The active project was cleared; use set_active_project to pick a project inside this organization. If you don't have access to this organization, subsequent calls will return a 403.`;
+});
+
 export const organizationTools: readonly ToolDescriptor[] = [
   listProjects,
   getProject,
   setActiveProject,
+  setActiveOrganization,
 ];
 
 export const _testHelpers = { fetchProjects, fetchProject };

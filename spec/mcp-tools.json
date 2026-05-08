@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1",
   "extractedFrom": "/Users/alekseylazarov/Documents/Visibilio Product 2/visibilio-mcp-server/src/visibilio_mcp",
-  "totalToolsExtracted": 43,
+  "totalToolsExtracted": 44,
   "totalResourcesExtracted": 9,
   "tools": [
     {
@@ -340,6 +340,14 @@
         "project_id"
       ],
       "docstring": "Set the active project for this session.\n\nAll subsequent content generation, knowledge queries, and other\noperations will be scoped to this project.\n\nArgs:\n    project_id: The project ID to activate.\n"
+    },
+    {
+      "name": "set_active_organization",
+      "module": "organization",
+      "args": [
+        "organization_id"
+      ],
+      "docstring": "Set the active organization for this MCP session when the authenticated user belongs to multiple organizations.\n\nWithout this call, the session uses the organization that was active when\nthe user authorized this MCP client (typically the user's most recent\norganization). After calling this, all subsequent content generation,\nknowledge queries, and other organization-scoped operations are routed\nto the new organization. The active project is cleared; pick one with\nset_active_project before generating content if needed.\n\nArgs:\n    organization_id: The numeric ID of an organization you belong to.\n"
     },
     {
       "name": "generate_strategy",
