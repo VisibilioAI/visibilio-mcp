@@ -7,10 +7,20 @@ const writer = (name: string, contentType: string): ToolDescriptor =>
   defineTool(name, async (args, session) =>
     runWorkflow(session, {
       contentType,
-      brief: String(args.brief ?? ''),
+      topic: String(args.topic ?? ''),
+      tone: optionalString(args.tone),
+      keyPoints: optionalString(args.key_points),
+      audienceId: optionalString(args.audience_id),
+      includeImage: args.include_image === true || args.include_image === 'true',
       timeoutSeconds: Number(args.timeout_seconds ?? DEFAULT_TIMEOUT_SECONDS),
     })
   );
+
+function optionalString(value: unknown): string | undefined {
+  if (typeof value !== 'string') return undefined;
+  const trimmed = value.trim();
+  return trimmed.length > 0 ? trimmed : undefined;
+}
 
 export const contentTools: readonly ToolDescriptor[] = [
   writer('write_linkedin_post', 'linkedin_post'),
