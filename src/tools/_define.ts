@@ -9,7 +9,28 @@ export interface ToolAnnotations {
 }
 
 export type ToolArgs = Record<string, unknown>;
-export type ToolHandler = (args: ToolArgs, session: McpSession) => Promise<string>;
+
+export interface StructuredResult {
+  readonly structuredContent: Record<string, unknown>;
+}
+
+export type ToolOutput = string | StructuredResult;
+export type ToolHandler = (args: ToolArgs, session: McpSession) => Promise<ToolOutput>;
+
+export interface CallToolResult {
+  [key: string]: unknown;
+  content: Array<{ type: 'text'; text: string }>;
+  structuredContent?: Record<string, unknown>;
+}
+
+/** A plain string becomes one text item; a structured result also carries the same JSON as text (ChatGPT reads both). */
+export function toCallToolResult(output: ToolOutput): CallToolResult {
+  if (typeof output === 'string') return { content: [{ type: 'text', text: output }] };
+  return {
+    content: [{ type: 'text', text: JSON.stringify(output.structuredContent) }],
+    structuredContent: output.structuredContent,
+  };
+}
 
 export interface ToolDefinition<TShape extends ZodRawShape = ZodRawShape> {
   readonly name: string;

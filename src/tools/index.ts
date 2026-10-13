@@ -1,3 +1,4 @@
+import { searchTools } from './search.js';
 import { contextTools } from './context.js';
 import { productTools } from './products.js';
 import { contentItemTools } from './content-items.js';
@@ -15,6 +16,7 @@ import { feedbackTools } from './feedback.js';
 import type { ToolDefinition } from './_define.js';
 
 export const allTools: readonly ToolDefinition[] = [
+  ...searchTools,
   ...contextTools,
   ...productTools,
   ...contentItemTools,

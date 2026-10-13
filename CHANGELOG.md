@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.2.2 — 2026-10-13
+
+### Added
+
+- **`search` and `fetch`**, the two tools ChatGPT connectors and deep research require. `search(query)` looks through the content items of every product in the active organization and returns `{results: [{id, title, url}]}`; `fetch(id)` returns one item as `{id, title, text, url, metadata}` with the body as plain text. Both answer with `structuredContent` plus the same JSON as text. Ids look like `content-item:123`; urls point at the item in the Visibilio app.
+
 ## 0.2.1 — 2026-10-13
 
 ### Fixed

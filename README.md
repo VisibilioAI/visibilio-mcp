@@ -1,6 +1,6 @@
 # @visibilio/mcp
 
-MCP server for the Visibilio AI content platform. Lets LLM clients (claude.ai connectors, Claude Desktop, Claude Code, Cursor, custom agents) work inside your Visibilio workspace: products, content items, briefs, content plans, audiences, knowledge, brand voice, publishing, signals, review, measurement and AI visibility — 89 tools and 10 resources over the Visibilio API gateway.
+MCP server for the Visibilio AI content platform. Lets LLM clients (claude.ai connectors, ChatGPT, Claude Desktop, Claude Code, Cursor, custom agents) work inside your Visibilio workspace: products, content items, briefs, content plans, audiences, knowledge, brand voice, publishing, signals, review, measurement and AI visibility — 91 tools and 10 resources over the Visibilio API gateway.
 
 ## Connect from claude.ai (recommended)
 
@@ -9,6 +9,8 @@ MCP server for the Visibilio AI content platform. Lets LLM clients (claude.ai co
 3. Server URL: `https://mcp.visibilio.ai/mcp`. Claude asks you to sign in to Visibilio (OAuth) and to approve the connection.
 
 The same URL works in Claude Desktop, Claude mobile, Claude Code (`claude mcp add --transport http visibilio https://mcp.visibilio.ai/mcp`) and any client that speaks MCP Streamable HTTP. Clients that still use the legacy SSE transport can use `https://mcp.visibilio.ai/sse`.
+
+**ChatGPT:** Settings → Apps → Advanced settings → Developer mode, then Settings → Apps → Create with the same URL and OAuth. Full tool access needs a Business, Enterprise or Edu workspace; Pro gets the read-only tools. Outside developer mode ChatGPT uses only `search` and `fetch`, which search the content items of the active organization and return them with citation URLs.
 
 ## Run locally (stdio)
 
@@ -37,6 +39,7 @@ Every tool is scoped to the active organization and product. Start with `whoami`
 
 | Family | Tools |
 |---|---|
+| ChatGPT connector contract | `search`, `fetch` |
 | Context | `whoami`, `list_organizations`, `set_active_organization`, `list_products`, `set_active_product`, `get_product`, `create_product`, `update_product` |
 | Content items | `list_content_items`, `get_content_item`, `create_content_item`, `update_content_item`, `delete_content_item`, `duplicate_content_item`, `list_content_item_versions`, `restore_content_item_version`, `generate_seo_meta`, `validate_brand_voice`, `repurpose_content_item`, `quick_repurpose_content_item`, `translate_content_item`, `generate_cover_image` |
 | Briefs & generation | `list_briefs`, `get_brief`, `create_brief`, `update_brief`, `delete_brief`, `generate_from_brief`, `list_brief_content_items`, `start_workflow`, `confirm_workflow`, `get_workflow_status`, `cancel_workflow` |

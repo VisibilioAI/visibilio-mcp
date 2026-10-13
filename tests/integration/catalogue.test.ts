@@ -3,6 +3,8 @@ import { allTools } from '../../src/tools/index.js';
 import { allResources } from '../../src/resources/index.js';
 
 const EXPECTED_TOOLS = [
+  'search',
+  'fetch',
   'whoami',
   'list_organizations',
   'set_active_organization',
@@ -149,7 +151,7 @@ describe('tool catalogue — one tool per gateway capability', () => {
 
   it('read tools are read-only; delete/cancel tools are destructive; the rest mutate without being destructive', () => {
     for (const tool of allTools) {
-      const isRead = /^(list_|get_|whoami$|search_|validate_)/.test(tool.name);
+      const isRead = /^(list_|get_|whoami$|search$|fetch$|search_|validate_)/.test(tool.name);
       const isDestructive = /^(delete_|cancel_)/.test(tool.name);
       if (isRead) expect(tool.annotations.readOnlyHint, tool.name).toBe(true);
       if (isDestructive) expect(tool.annotations.destructiveHint, tool.name).toBe(true);

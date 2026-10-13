@@ -13,6 +13,7 @@ Other clients:
 - **Claude Code:** `claude mcp add --transport http visibilio https://mcp.visibilio.ai/mcp`
 - **Cursor / any Streamable HTTP client:** server URL `https://mcp.visibilio.ai/mcp`; when the client asks for a token, paste a `vsk_` key (see below).
 - **Legacy SSE clients:** `https://mcp.visibilio.ai/sse`.
+- **ChatGPT:** Settings → Apps → Advanced settings → Developer mode (Business: admins only), then Settings → Apps → Create: name `Visibilio`, server URL `https://mcp.visibilio.ai/mcp`, authentication OAuth. Full tool access needs a Business, Enterprise or Edu workspace; Pro gets read-only tools; without developer mode ChatGPT uses only `search` and `fetch`.
 
 ## Option B — local stdio with an API key
 
