@@ -28,8 +28,11 @@ function describeProduct(product: Row): string {
 const getProduct = defineTool({
   name: 'get_product',
   title: 'Get product',
-  description: 'Show the details of one product (name, description, type, supported languages, archive state).',
-  inputSchema: { product_id: z.number().int().optional().describe('Defaults to the active product') },
+  description:
+    'Show the details of one product (name, description, type, supported languages, archive state).',
+  inputSchema: {
+    product_id: z.number().int().optional().describe('Defaults to the active product'),
+  },
   annotations: readOnly,
   handler: async (args, session) => {
     const productId = resolveProductId(args, session);
@@ -52,7 +55,10 @@ const createProduct = defineTool({
   handler: async (args, session) => {
     requireStringArg(args, 'name');
     const product = unwrapData<Row>(
-      await session.client.post('/api/v2/products', pick(args, ['name', 'description', 'product_type']))
+      await session.client.post(
+        '/api/v2/products',
+        pick(args, ['name', 'description', 'product_type'])
+      )
     );
     return `Product created.\n${describeProduct(product)}`;
   },

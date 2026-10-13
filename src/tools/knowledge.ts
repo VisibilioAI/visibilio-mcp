@@ -32,7 +32,9 @@ export function assertDomain(value: unknown): KnowledgeDomain {
   if (typeof value === 'string' && (KNOWLEDGE_DOMAINS as readonly string[]).includes(value)) {
     return value as KnowledgeDomain;
   }
-  throw new ToolError(`Invalid domain "${String(value)}". Valid domains: ${KNOWLEDGE_DOMAINS.join(', ')}`);
+  throw new ToolError(
+    `Invalid domain "${String(value)}". Valid domains: ${KNOWLEDGE_DOMAINS.join(', ')}`
+  );
 }
 
 function knowledgePath(domain: KnowledgeDomain, productId: number | undefined): string {
@@ -43,20 +45,31 @@ function knowledgePath(domain: KnowledgeDomain, productId: number | undefined): 
 
 function versionOf(row: Row): string | undefined {
   const version = row.version;
-  if (version && typeof version === 'object' && typeof (version as Row).version_number === 'number') {
+  if (
+    version &&
+    typeof version === 'object' &&
+    typeof (version as Row).version_number === 'number'
+  ) {
     return `version ${String((version as Row).version_number)}`;
   }
   return undefined;
 }
 
-export async function readKnowledge(session: McpSession, args: ToolArgs, domain: KnowledgeDomain): Promise<Row> {
+export async function readKnowledge(
+  session: McpSession,
+  args: ToolArgs,
+  domain: KnowledgeDomain
+): Promise<Row> {
   const productId = optionalProductId(args, session);
   return unwrapData<Row>(await session.client.get(knowledgePath(domain, productId)));
 }
 
 export function renderKnowledge(row: Row, domain: string): string {
   const content = row.content;
-  const empty = content === null || content === undefined || (typeof content === 'object' && Object.keys(content as object).length === 0);
+  const empty =
+    content === null ||
+    content === undefined ||
+    (typeof content === 'object' && Object.keys(content as object).length === 0);
   const head = fields([
     ['domain', domain],
     ['product_id', row.product_id],
@@ -98,10 +111,14 @@ const updateKnowledge = defineTool({
   annotations: mutating,
   handler: async (args, session) => {
     const domain = assertDomain(args.domain);
-    if (!args.content || typeof args.content !== 'object') throw new ToolError('content must be an object');
+    if (!args.content || typeof args.content !== 'object')
+      throw new ToolError('content must be an object');
     const productId = optionalProductId(args, session);
     const row = unwrapData<Row>(
-      await session.client.put(knowledgePath(domain, productId), pick(args, ['content', 'change_note']))
+      await session.client.put(
+        knowledgePath(domain, productId),
+        pick(args, ['content', 'change_note'])
+      )
     );
     return `Knowledge updated (${versionOf(row) ?? 'new version'}).\n${renderKnowledge(row, domain)}`;
   },
@@ -110,7 +127,8 @@ const updateKnowledge = defineTool({
 const searchKnowledge = defineTool({
   name: 'search_knowledge',
   title: 'Search knowledge',
-  description: 'Semantic search across the organization knowledge base. Returns matching fragments with their domain and relevance.',
+  description:
+    'Semantic search across the organization knowledge base. Returns matching fragments with their domain and relevance.',
   inputSchema: {
     query: z.string().min(3),
     domains: z.array(z.enum(KNOWLEDGE_DOMAINS)).optional(),
@@ -118,7 +136,10 @@ const searchKnowledge = defineTool({
   annotations: readOnly,
   handler: async (args, session) => {
     requireStringArg(args, 'query');
-    const body = (await session.client.post('/api/v2/knowledge/search', pick(args, ['query', 'domains']))) as Row;
+    const body = (await session.client.post(
+      '/api/v2/knowledge/search',
+      pick(args, ['query', 'domains'])
+    )) as Row;
     const results = asArray<Row>(body.results);
     return listOrEmpty(
       `Results for "${String(body.query ?? args.query)}" (${results.length}):`,
@@ -134,13 +155,19 @@ const searchKnowledge = defineTool({
 const listKnowledgeProposals = defineTool({
   name: 'list_knowledge_proposals',
   title: 'List knowledge proposals',
-  description: 'List pending knowledge updates proposed by Visibilio (from scans, signals and research) that await acceptance.',
+  description:
+    'List pending knowledge updates proposed by Visibilio (from scans, signals and research) that await acceptance.',
   inputSchema: { product_id: z.number().int().optional() },
   annotations: readOnly,
   handler: async (args, session) => {
     const productId = optionalProductId(args, session);
     const proposals = asArray<Row>(
-      unwrapData(await session.client.get('/api/v2/knowledge/proposals', productId !== undefined ? { product_id: productId } : undefined))
+      unwrapData(
+        await session.client.get(
+          '/api/v2/knowledge/proposals',
+          productId !== undefined ? { product_id: productId } : undefined
+        )
+      )
     );
     return listOrEmpty(
       `Pending knowledge proposals (${proposals.length}):`,
@@ -162,7 +189,9 @@ const acceptKnowledgeProposal = defineTool({
   annotations: mutating,
   handler: async (args, session) => {
     const proposalId = requireNumberArg(args, 'proposal_id');
-    const result = unwrapData<Row>(await session.client.post(`/api/v2/knowledge/proposals/${proposalId}/accept`));
+    const result = unwrapData<Row>(
+      await session.client.post(`/api/v2/knowledge/proposals/${proposalId}/accept`)
+    );
     return `Proposal ${proposalId} ${String(result.status)} into ${String(result.domain)} (${versionOf(result) ?? 'new version'}).`;
   },
 });
@@ -175,7 +204,9 @@ const dismissKnowledgeProposal = defineTool({
   annotations: mutating,
   handler: async (args, session) => {
     const proposalId = requireNumberArg(args, 'proposal_id');
-    const result = unwrapData<Row>(await session.client.post(`/api/v2/knowledge/proposals/${proposalId}/dismiss`));
+    const result = unwrapData<Row>(
+      await session.client.post(`/api/v2/knowledge/proposals/${proposalId}/dismiss`)
+    );
     return `Proposal ${proposalId} ${String(result.status)}.`;
   },
 });

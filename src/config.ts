@@ -1,7 +1,8 @@
 import { z } from 'zod';
 
 const CREDENTIAL_PATTERN = /^(vsk_|vat_)/;
-const CREDENTIAL_MESSAGE = 'Credential must start with vsk_ or vat_ (personal API key or OAuth access token)';
+const CREDENTIAL_MESSAGE =
+  'Credential must start with vsk_ or vat_ (personal API key or OAuth access token)';
 const DEFAULT_GATEWAY_URL = 'https://visibilio-api-gateway-prod.vercel.app';
 
 const baseSchema = z.object({

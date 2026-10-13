@@ -76,7 +76,10 @@ export class McpAuth {
       headers: { Authorization: `Bearer ${this.credential}`, Accept: 'application/json' },
     });
     if (!response.ok) {
-      throw new AuthenticationError(describeFailure(response.status), failureStatus(response.status));
+      throw new AuthenticationError(
+        describeFailure(response.status),
+        failureStatus(response.status)
+      );
     }
     this.context = toAuthContext((await response.json()) as MeResponse);
     return this.context;
@@ -89,8 +92,10 @@ function failureStatus(status: number): number {
 }
 
 function describeFailure(status: number): string {
-  if (status === 401) return 'Credential rejected by Visibilio (401) — the key may be revoked or expired';
-  if (status === 403) return 'Credential lacks the mcp scope (403) — generate a key with MCP access';
+  if (status === 401)
+    return 'Credential rejected by Visibilio (401) — the key may be revoked or expired';
+  if (status === 403)
+    return 'Credential lacks the mcp scope (403) — generate a key with MCP access';
   return `Visibilio gateway unavailable while authenticating (HTTP ${status})`;
 }
 

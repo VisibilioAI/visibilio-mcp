@@ -23,7 +23,10 @@ describe('resources', () => {
 
   it('visibilio://product reads the active product from the gateway', async () => {
     const { session } = buildSession([
-      { match: pathMatcher('GET', '/api/v2/products/147'), body: { data: { id: 147, name: 'Visibilio', description: 'AI content platform' } } },
+      {
+        match: pathMatcher('GET', '/api/v2/products/147'),
+        body: { data: { id: 147, name: 'Visibilio', description: 'AI content platform' } },
+      },
     ]);
     session.setActiveProduct(147, 'Visibilio');
 
@@ -45,7 +48,13 @@ describe('resources', () => {
     const { session, calls } = buildSession([
       {
         match: pathMatcher('GET', '/api/v2/products/147/knowledge/market_intelligence'),
-        body: { data: { domain: 'market_intelligence', content: { competitors: ['Jasper'] }, version: { version_number: 2 } } },
+        body: {
+          data: {
+            domain: 'market_intelligence',
+            content: { competitors: ['Jasper'] },
+            version: { version_number: 2 },
+          },
+        },
       },
     ]);
     session.setActiveProduct(147, 'Visibilio');

@@ -24,7 +24,12 @@ function renderOutput(output: unknown): string {
   if (typeof output === 'object') {
     const row = output as Row;
     const title = typeof row.title === 'string' ? row.title : null;
-    const content = typeof row.content === 'string' ? row.content : typeof row.body === 'string' ? row.body : null;
+    const content =
+      typeof row.content === 'string'
+        ? row.content
+        : typeof row.body === 'string'
+          ? row.body
+          : null;
     if (title || content) {
       const rest = Object.fromEntries(
         Object.entries(row).filter(([k]) => !['title', 'content', 'body'].includes(k))
@@ -49,8 +54,14 @@ const startWorkflow = defineTool({
   inputSchema: {
     user_request: z.string().min(10).max(5000),
     product_id: z.number().int().optional().describe('Defaults to the active product'),
-    auto_confirm: z.boolean().optional().describe('Default true; false stops at awaiting_confirmation so you can review the plan'),
-    audience_ids: z.array(z.string()).optional().describe('Audience ids from list_audiences to write for'),
+    auto_confirm: z
+      .boolean()
+      .optional()
+      .describe('Default true; false stops at awaiting_confirmation so you can review the plan'),
+    audience_ids: z
+      .array(z.string())
+      .optional()
+      .describe('Audience ids from list_audiences to write for'),
     source_url: z.string().url().optional().describe('A page to base the content on'),
     source_content: z.string().optional().describe('Raw text to base the content on'),
     include_cta: z.boolean().optional(),
@@ -71,7 +82,9 @@ const startWorkflow = defineTool({
     return [
       `Workflow started: execution_id ${String(result.execution_id)}, state ${String(result.state)}.`,
       describePlan(result.plan),
-      result.requires_confirmation ? 'The plan awaits your confirmation: call confirm_workflow.' : null,
+      result.requires_confirmation
+        ? 'The plan awaits your confirmation: call confirm_workflow.'
+        : null,
       `Poll get_workflow_status(execution_id: "${String(result.execution_id)}") every few seconds until it completes.`,
     ]
       .filter((s): s is string => s !== null)
@@ -82,12 +95,16 @@ const startWorkflow = defineTool({
 const confirmWorkflow = defineTool({
   name: 'confirm_workflow',
   title: 'Confirm workflow',
-  description: 'Confirm or reject a workflow plan that stopped at awaiting_confirmation (start_workflow with auto_confirm=false).',
+  description:
+    'Confirm or reject a workflow plan that stopped at awaiting_confirmation (start_workflow with auto_confirm=false).',
   inputSchema: {
     execution_id: z.string(),
     confirmed: z.boolean(),
     modifications: z
-      .object({ remove_steps: z.array(z.string()).optional(), add_instructions: z.string().optional() })
+      .object({
+        remove_steps: z.array(z.string()).optional(),
+        add_instructions: z.string().optional(),
+      })
       .optional(),
   },
   annotations: mutating,
@@ -114,7 +131,12 @@ const getWorkflowStatus = defineTool({
     const head = fields([
       ['execution_id', status.execution_id ?? executionId],
       ['state', status.state],
-      ['progress', typeof status.progress_percentage === 'number' ? `${status.progress_percentage}%` : undefined],
+      [
+        'progress',
+        typeof status.progress_percentage === 'number'
+          ? `${status.progress_percentage}%`
+          : undefined,
+      ],
       ['cost_usd', status.total_cost_usd],
       ['duration_seconds', status.duration_seconds],
       ['error', status.error],

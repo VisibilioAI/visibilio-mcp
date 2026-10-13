@@ -12,7 +12,9 @@ async function main(): Promise<void> {
   });
 
   const shutdown = async (signal: string) => {
-    console.error(`[visibilio-mcp/http] received ${signal}, draining ${sessions.size} session(s)...`);
+    console.error(
+      `[visibilio-mcp/http] received ${signal}, draining ${sessions.size} session(s)...`
+    );
     server.close();
     for (const session of sessions.values()) {
       await session.close().catch(() => undefined);

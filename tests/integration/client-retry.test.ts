@@ -15,7 +15,12 @@ describe('VisibilioClient retry behavior', () => {
 
   it('retries 429 honoring Retry-After header (in seconds)', async () => {
     const { session, fetch } = buildSession([
-      { match: PRODUCTS, status: 429, body: { error: 'rate limited' }, headers: { 'Retry-After': '1' } },
+      {
+        match: PRODUCTS,
+        status: 429,
+        body: { error: 'rate limited' },
+        headers: { 'Retry-After': '1' },
+      },
       { match: PRODUCTS, body: { products: [{ id: 1, name: 'Alpha' }] } },
     ]);
     const promise = session.client.get('/api/v2/products');
@@ -51,7 +56,11 @@ describe('VisibilioClient retry behavior', () => {
 
   it('does NOT retry 4xx (other than 429) and surfaces the status and body', async () => {
     const { session, fetch } = buildSession([
-      { match: pathMatcher('GET', '/api/v2/products/999'), status: 404, body: { error: 'not found' } },
+      {
+        match: pathMatcher('GET', '/api/v2/products/999'),
+        status: 404,
+        body: { error: 'not found' },
+      },
     ]);
     await expect(session.client.get('/api/v2/products/999')).rejects.toMatchObject({
       status: 404,

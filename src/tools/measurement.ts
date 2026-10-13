@@ -32,15 +32,24 @@ const getMeasurementOverview = defineTool({
     'Performance overview for a product over a window: publications, impressions, engagement, followers, website sessions, search, top publications and pages.',
   inputSchema: {
     product_id: z.number().int().optional().describe('Defaults to the active product'),
-    from: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
-    to: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+    from: z
+      .string()
+      .regex(/^\d{4}-\d{2}-\d{2}$/)
+      .optional(),
+    to: z
+      .string()
+      .regex(/^\d{4}-\d{2}-\d{2}$/)
+      .optional(),
   },
   annotations: readOnly,
   handler: async (args, session) => {
     const productId = resolveProductId(args, session);
     return gated('Measurement overview', async () => {
       const overview = unwrapData<Row>(
-        await session.client.get('/api/v2/measurement/overview', { productId, ...(pick(args, ['from', 'to']) as Record<string, string>) })
+        await session.client.get('/api/v2/measurement/overview', {
+          productId,
+          ...(pick(args, ['from', 'to']) as Record<string, string>),
+        })
       );
       return JSON.stringify(overview, null, 2);
     });
@@ -50,22 +59,36 @@ const getMeasurementOverview = defineTool({
 const listMeasurementRecommendations = defineTool({
   name: 'list_measurement_recommendations',
   title: 'List measurement recommendations',
-  description: 'Data-driven recommendations derived from performance measurement (what to refresh, repeat or stop).',
-  inputSchema: { product_id: z.number().int().optional(), state: z.enum(['open', 'done', 'dismissed']).optional() },
+  description:
+    'Data-driven recommendations derived from performance measurement (what to refresh, repeat or stop).',
+  inputSchema: {
+    product_id: z.number().int().optional(),
+    state: z.enum(['open', 'done', 'dismissed']).optional(),
+  },
   annotations: readOnly,
   handler: async (args, session) => {
     const productId = resolveProductId(args, session);
     return gated('Measurement recommendations', async () => {
       const rows = asArray<Row>(
-        unwrapData(await session.client.get('/api/v2/measurement/recommendations', { productId, ...(pick(args, ['state']) as Record<string, string>) }))
+        unwrapData(
+          await session.client.get('/api/v2/measurement/recommendations', {
+            productId,
+            ...(pick(args, ['state']) as Record<string, string>),
+          })
+        )
       );
       return listOrEmpty(
         `Recommendations (${rows.length}):`,
         rows.map((r) =>
-          line(String(r.recommended_topic ?? r.rule_id ?? 'Recommendation'), 'recommendation_id', r.id, [
-            typeof r.reason === 'string' ? r.reason : undefined,
-            typeof r.state === 'string' ? r.state : undefined,
-          ])
+          line(
+            String(r.recommended_topic ?? r.rule_id ?? 'Recommendation'),
+            'recommendation_id',
+            r.id,
+            [
+              typeof r.reason === 'string' ? r.reason : undefined,
+              typeof r.state === 'string' ? r.state : undefined,
+            ]
+          )
         ),
         'No recommendations in this state.'
       );
@@ -95,8 +118,10 @@ const getAiVisibilityMetrics = defineTool({
         ...(typeof args.topic_id === 'string' ? { topic: args.topic_id } : {}),
       })
     );
-    const metrics = result.metrics && typeof result.metrics === 'object' ? (result.metrics as Row) : null;
-    if (!metrics) return `No AI visibility measurements yet${result.reason ? ` (${String(result.reason)})` : ''}.`;
+    const metrics =
+      result.metrics && typeof result.metrics === 'object' ? (result.metrics as Row) : null;
+    if (!metrics)
+      return `No AI visibility measurements yet${result.reason ? ` (${String(result.reason)})` : ''}.`;
     const cycle = result.cycle && typeof result.cycle === 'object' ? (result.cycle as Row) : null;
     return fields([
       ['cycle', cycle ? (cycle.number ?? cycle.id) : undefined],
@@ -112,12 +137,15 @@ const getAiVisibilityMetrics = defineTool({
 const listAiVisibilityRecommendations = defineTool({
   name: 'list_ai_visibility_recommendations',
   title: 'List AI visibility recommendations',
-  description: 'Recommendations for improving AI assistant visibility: topics where competitors are cited instead of the product.',
+  description:
+    'Recommendations for improving AI assistant visibility: topics where competitors are cited instead of the product.',
   inputSchema: { product_id: z.number().int().optional() },
   annotations: readOnly,
   handler: async (args, session) => {
     const productId = resolveProductId(args, session);
-    const result = unwrapData<Row>(await session.client.get(`/api/v2/answer-engine/products/${productId}/recommendations`));
+    const result = unwrapData<Row>(
+      await session.client.get(`/api/v2/answer-engine/products/${productId}/recommendations`)
+    );
     const rows = asArray<Row>(result.recommendations);
     return listOrEmpty(
       `AI visibility recommendations (${rows.length}):`,
@@ -137,12 +165,15 @@ const listAiVisibilityRecommendations = defineTool({
 const listAiVisibilityContentIdeas = defineTool({
   name: 'list_ai_visibility_content_ideas',
   title: 'List AI visibility content ideas',
-  description: 'Content ideas derived from AI visibility gaps, with their status and linked briefs.',
+  description:
+    'Content ideas derived from AI visibility gaps, with their status and linked briefs.',
   inputSchema: { product_id: z.number().int().optional() },
   annotations: readOnly,
   handler: async (args, session) => {
     const productId = resolveProductId(args, session);
-    const result = unwrapData<Row>(await session.client.get(`/api/v2/answer-engine/products/${productId}/content-ideas`));
+    const result = unwrapData<Row>(
+      await session.client.get(`/api/v2/answer-engine/products/${productId}/content-ideas`)
+    );
     const ideas = asArray<Row>(result.ideas);
     return listOrEmpty(
       `Content ideas (${ideas.length}):`,
@@ -161,7 +192,8 @@ const listAiVisibilityContentIdeas = defineTool({
 const listAiVisibilityAnswers = defineTool({
   name: 'list_ai_visibility_answers',
   title: 'List AI visibility answers',
-  description: 'The actual AI assistant answers collected for the product questions, filterable by whether the product was mentioned.',
+  description:
+    'The actual AI assistant answers collected for the product questions, filterable by whether the product was mentioned.',
   inputSchema: {
     product_id: z.number().int().optional(),
     mention: z.enum(['included', 'mentioned', 'not_mentioned', 'excluded']).optional(),
@@ -178,7 +210,8 @@ const listAiVisibilityAnswers = defineTool({
         ...(typeof args.page_size === 'number' ? { pageSize: args.page_size } : {}),
       })
     );
-    if (!result.items) return `Answers are not ready yet${result.reason ? ` (${String(result.reason)})` : ''}.`;
+    if (!result.items)
+      return `Answers are not ready yet${result.reason ? ` (${String(result.reason)})` : ''}.`;
     return `Page ${String(result.page)} of ${String(result.totalPages ?? '?')} (${String(result.total ?? '?')} answers):\n${JSON.stringify(result.items, null, 2)}`;
   },
 });

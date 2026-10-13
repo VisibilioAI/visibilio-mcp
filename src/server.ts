@@ -79,7 +79,9 @@ export async function buildServer(options: BuildServerOptions = {}): Promise<Bui
       resource.uri,
       { title: resource.title, description: resource.description, mimeType: resource.mimeType },
       async (uri) => ({
-        contents: [{ uri: uri.href, mimeType: resource.mimeType, text: await resource.read(session) }],
+        contents: [
+          { uri: uri.href, mimeType: resource.mimeType, text: await resource.read(session) },
+        ],
       })
     );
   }

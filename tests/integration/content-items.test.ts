@@ -27,10 +27,9 @@ describe('content items — listing and reading', () => {
     ]);
     session.setActiveProduct(147, 'Visibilio');
 
-    const text = await (await findTool('list_content_items')).handler(
-      { status: 'draft', type: 'article', search: 'MCP', limit: 20 },
-      session
-    );
+    const text = await (
+      await findTool('list_content_items')
+    ).handler({ status: 'draft', type: 'article', search: 'MCP', limit: 20 }, session);
 
     const url = new URL(calls[0]!.url);
     expect(url.pathname).toBe('/api/v2/products/147/content-items');
@@ -72,7 +71,9 @@ describe('content items — listing and reading', () => {
       { match: pathMatcher('GET', '/api/v2/content-items/501'), body: { data: ITEM } },
     ]);
 
-    const text = await (await findTool('get_content_item')).handler({ content_item_id: 501 }, session);
+    const text = await (
+      await findTool('get_content_item')
+    ).handler({ content_item_id: 501 }, session);
 
     expect(text).toContain('Why MCP matters');
     expect(text).toContain('<p>Body text</p>');
@@ -88,7 +89,9 @@ describe('content items — listing and reading', () => {
       },
     ]);
 
-    const text = await (await findTool('get_content_item')).handler({ content_item_id: 999 }, session);
+    const text = await (
+      await findTool('get_content_item')
+    ).handler({ content_item_id: 999 }, session);
 
     expect(text).toMatch(/HTTP 404/);
     expect(text).toContain('Content item not found');
@@ -106,7 +109,9 @@ describe('content items — writing', () => {
     ]);
     session.setActiveProduct(147, 'Visibilio');
 
-    const text = await (await findTool('create_content_item')).handler(
+    const text = await (
+      await findTool('create_content_item')
+    ).handler(
       {
         type: 'article',
         title: 'Why MCP matters',
@@ -141,10 +146,9 @@ describe('content items — writing', () => {
       },
     ]);
 
-    const text = await (await findTool('update_content_item')).handler(
-      { content_item_id: 501, status: 'review', edit_prompt: 'ready for review' },
-      session
-    );
+    const text = await (
+      await findTool('update_content_item')
+    ).handler({ content_item_id: 501, status: 'review', edit_prompt: 'ready for review' }, session);
 
     expect(jsonBodyOf(calls[0])).toEqual({
       status: 'review',
@@ -160,11 +164,17 @@ describe('content items — writing', () => {
       {
         match: pathMatcher('DELETE', '/api/v2/content-items/501'),
         status: 409,
-        body: { error: 'CONTENT_ITEM_PUBLISHED', message: 'Unpublish first', details: { destinations: ['hub 3'] } },
+        body: {
+          error: 'CONTENT_ITEM_PUBLISHED',
+          message: 'Unpublish first',
+          details: { destinations: ['hub 3'] },
+        },
       },
     ]);
 
-    const text = await (await findTool('delete_content_item')).handler({ content_item_id: 501 }, session);
+    const text = await (
+      await findTool('delete_content_item')
+    ).handler({ content_item_id: 501 }, session);
 
     expect(text).toMatch(/HTTP 409/);
     expect(text).toContain('Unpublish first');
@@ -175,10 +185,9 @@ describe('content items — writing', () => {
       { match: pathMatcher('POST', '/api/v2/content-items/501/restore'), body: { data: ITEM } },
     ]);
 
-    await (await findTool('restore_content_item_version')).handler(
-      { content_item_id: 501, version_id: 42 },
-      session
-    );
+    await (
+      await findTool('restore_content_item_version')
+    ).handler({ content_item_id: 501, version_id: 42 }, session);
 
     expect(jsonBodyOf(calls[0])).toEqual({ version_id: 42 });
   });
@@ -190,13 +199,26 @@ describe('content items — AI helpers', () => {
       { match: pathMatcher('GET', '/api/v2/content-items/501'), body: { data: ITEM } },
       {
         match: pathMatcher('POST', '/api/v2/content-items/501/seo-meta'),
-        body: { data: { seo_meta: { description: 'A crisp description', keywords: ['mcp'], suggested_slug: 'why-mcp' } } },
+        body: {
+          data: {
+            seo_meta: {
+              description: 'A crisp description',
+              keywords: ['mcp'],
+              suggested_slug: 'why-mcp',
+            },
+          },
+        },
       },
     ]);
 
-    const text = await (await findTool('generate_seo_meta')).handler({ content_item_id: 501 }, session);
+    const text = await (
+      await findTool('generate_seo_meta')
+    ).handler({ content_item_id: 501 }, session);
 
-    expect(jsonBodyOf(calls[1])).toMatchObject({ body: '<p>Body text</p>', title: 'Why MCP matters' });
+    expect(jsonBodyOf(calls[1])).toMatchObject({
+      body: '<p>Body text</p>',
+      title: 'Why MCP matters',
+    });
     expect(text).toContain('A crisp description');
     expect(text).toContain('update_content_item');
   });
@@ -206,11 +228,20 @@ describe('content items — AI helpers', () => {
       {
         match: pathMatcher('POST', '/api/v2/content-items/501/repurpose'),
         status: 201,
-        body: { data: { session_id: 's1', source_content_item_id: 501, variants: [{ id: 601, title: 'LinkedIn take', platform: 'linkedin' }], variants_count: 1 } },
+        body: {
+          data: {
+            session_id: 's1',
+            source_content_item_id: 501,
+            variants: [{ id: 601, title: 'LinkedIn take', platform: 'linkedin' }],
+            variants_count: 1,
+          },
+        },
       },
     ]);
 
-    const text = await (await findTool('repurpose_content_item')).handler(
+    const text = await (
+      await findTool('repurpose_content_item')
+    ).handler(
       {
         content_item_id: 501,
         targets: [{ platform: 'linkedin', content_type: 'social_post', remix_strategy: 'adapt' }],
@@ -229,13 +260,16 @@ describe('content items — AI helpers', () => {
 
   it('translate_content_item sends the target language', async () => {
     const { session, calls } = buildSession([
-      { match: pathMatcher('POST', '/api/v2/content-items/501/translate'), status: 201, body: { data: { ...ITEM, id: 611, language: 'bg' } } },
+      {
+        match: pathMatcher('POST', '/api/v2/content-items/501/translate'),
+        status: 201,
+        body: { data: { ...ITEM, id: 611, language: 'bg' } },
+      },
     ]);
 
-    const text = await (await findTool('translate_content_item')).handler(
-      { content_item_id: 501, target_language: 'bg' },
-      session
-    );
+    const text = await (
+      await findTool('translate_content_item')
+    ).handler({ content_item_id: 501, target_language: 'bg' }, session);
 
     expect(jsonBodyOf(calls[0])).toEqual({ target_language: 'bg' });
     expect(text).toContain('content_item_id: 611');

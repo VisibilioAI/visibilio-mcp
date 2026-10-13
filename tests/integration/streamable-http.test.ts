@@ -66,7 +66,9 @@ describe('Streamable HTTP transport — unauthenticated probe', () => {
 
       expect(response.status).toBe(401);
       expect(response.headers['www-authenticate']).toMatch(/^Bearer /);
-      expect(response.headers['www-authenticate']).toContain('/.well-known/oauth-protected-resource');
+      expect(response.headers['www-authenticate']).toContain(
+        '/.well-known/oauth-protected-resource'
+      );
     }
   );
 

@@ -72,7 +72,10 @@ describe('McpAuth.resolve — identity comes from the gateway /auth/me', () => {
   });
 
   it('falls back to the first organization when the gateway reports no default', async () => {
-    const fetchImpl = fakeFetch({ status: 200, body: meResponse({ default_organization_id: null }) });
+    const fetchImpl = fakeFetch({
+      status: 200,
+      body: meResponse({ default_organization_id: null }),
+    });
 
     const ctx = await buildAuth('vsk_abc', fetchImpl).resolve();
 

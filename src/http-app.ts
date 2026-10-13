@@ -48,7 +48,12 @@ export function buildHttpApp(options: HttpAppOptions): HttpApp {
   });
 
   app.get('/health', (_req: Request, res: Response) => {
-    res.json({ status: 'ok', service: SERVER_NAME, version: SERVER_VERSION, sessions: sessions.size });
+    res.json({
+      status: 'ok',
+      service: SERVER_NAME,
+      version: SERVER_VERSION,
+      sessions: sessions.size,
+    });
   });
 
   const protectedResourceHandler = (req: Request, res: Response) => {
@@ -136,7 +141,11 @@ export function buildHttpApp(options: HttpAppOptions): HttpApp {
     }
     res.status(status).json({
       error:
-        status === 403 ? 'insufficient_scope' : status === 502 ? 'gateway_unavailable' : 'invalid_credential',
+        status === 403
+          ? 'insufficient_scope'
+          : status === 502
+            ? 'gateway_unavailable'
+            : 'invalid_credential',
       message: err.message,
     });
   };
@@ -184,7 +193,9 @@ export function buildHttpApp(options: HttpAppOptions): HttpApp {
           error: 'invalid_token',
           description: 'Credential does not match the session',
         });
-        res.status(401).json({ error: 'invalid_credential', message: 'Credential does not match the session' });
+        res
+          .status(401)
+          .json({ error: 'invalid_credential', message: 'Credential does not match the session' });
         return;
       }
       await transport.handleRequest(req, res, req.body);
@@ -192,7 +203,9 @@ export function buildHttpApp(options: HttpAppOptions): HttpApp {
     }
 
     if (req.method !== 'POST') {
-      res.status(405).json({ error: 'method_not_allowed', message: 'Send a POST initialize request first' });
+      res
+        .status(405)
+        .json({ error: 'method_not_allowed', message: 'Send a POST initialize request first' });
       return;
     }
 
@@ -205,7 +218,9 @@ export function buildHttpApp(options: HttpAppOptions): HttpApp {
         return;
       }
       console.error('[visibilio-mcp/http] streamable init error:', err);
-      res.status(500).json({ error: 'internal_error', message: err instanceof Error ? err.message : 'unknown' });
+      res
+        .status(500)
+        .json({ error: 'internal_error', message: err instanceof Error ? err.message : 'unknown' });
       return;
     }
 
@@ -256,7 +271,11 @@ export function buildHttpApp(options: HttpAppOptions): HttpApp {
       const id = transport.sessionId;
       const t = transport;
       sseTransports.set(id, t);
-      sessions.set(id, { kind: 'sse', credentialHash: hashCredential(settings.credential), close: () => t.close() });
+      sessions.set(id, {
+        kind: 'sse',
+        credentialHash: hashCredential(settings.credential),
+        close: () => t.close(),
+      });
       res.on('close', () => {
         sseTransports.delete(id);
         sessions.delete(id);
@@ -275,7 +294,12 @@ export function buildHttpApp(options: HttpAppOptions): HttpApp {
       }
       console.error('[visibilio-mcp/http] sse error:', err);
       if (!res.headersSent) {
-        res.status(500).json({ error: 'internal_error', message: err instanceof Error ? err.message : 'unknown' });
+        res
+          .status(500)
+          .json({
+            error: 'internal_error',
+            message: err instanceof Error ? err.message : 'unknown',
+          });
       }
     }
   });

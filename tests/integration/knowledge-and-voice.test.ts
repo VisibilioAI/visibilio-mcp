@@ -6,12 +6,22 @@ describe('knowledge', () => {
     const { session, calls } = buildSession([
       {
         match: pathMatcher('GET', '/api/v2/products/147/knowledge/content_strategy'),
-        body: { data: { organization_id: 7, product_id: 147, domain: 'content_strategy', content: { pillars: ['education'] }, version: { version_number: 4 } } },
+        body: {
+          data: {
+            organization_id: 7,
+            product_id: 147,
+            domain: 'content_strategy',
+            content: { pillars: ['education'] },
+            version: { version_number: 4 },
+          },
+        },
       },
     ]);
     session.setActiveProduct(147, 'Visibilio');
 
-    const text = await (await findTool('get_knowledge')).handler({ domain: 'content_strategy' }, session);
+    const text = await (
+      await findTool('get_knowledge')
+    ).handler({ domain: 'content_strategy' }, session);
 
     expect(calls[0]!.url).toContain('/api/v2/products/147/knowledge/content_strategy');
     expect(text).toContain('education');
@@ -22,11 +32,20 @@ describe('knowledge', () => {
     const { session, calls } = buildSession([
       {
         match: pathMatcher('GET', '/api/v2/knowledge/company_profile'),
-        body: { data: { organization_id: 7, domain: 'company_profile', content: { name: 'Acme' }, version: null } },
+        body: {
+          data: {
+            organization_id: 7,
+            domain: 'company_profile',
+            content: { name: 'Acme' },
+            version: null,
+          },
+        },
       },
     ]);
 
-    const text = await (await findTool('get_knowledge')).handler({ domain: 'company_profile' }, session);
+    const text = await (
+      await findTool('get_knowledge')
+    ).handler({ domain: 'company_profile' }, session);
 
     expect(calls[0]!.url).toContain('/api/v2/knowledge/company_profile');
     expect(text).toContain('Acme');
@@ -45,17 +64,32 @@ describe('knowledge', () => {
     const { session, calls } = buildSession([
       {
         match: pathMatcher('PUT', '/api/v2/products/147/knowledge/company_profile'),
-        body: { data: { domain: 'company_profile', content: { name: 'Acme', industry: 'SaaS' }, version: { version_number: 2 } } },
+        body: {
+          data: {
+            domain: 'company_profile',
+            content: { name: 'Acme', industry: 'SaaS' },
+            version: { version_number: 2 },
+          },
+        },
       },
     ]);
     session.setActiveProduct(147, 'Visibilio');
 
-    const text = await (await findTool('update_knowledge')).handler(
-      { domain: 'company_profile', content: { name: 'Acme', industry: 'SaaS' }, change_note: 'added industry' },
+    const text = await (
+      await findTool('update_knowledge')
+    ).handler(
+      {
+        domain: 'company_profile',
+        content: { name: 'Acme', industry: 'SaaS' },
+        change_note: 'added industry',
+      },
       session
     );
 
-    expect(jsonBodyOf(calls[0])).toEqual({ content: { name: 'Acme', industry: 'SaaS' }, change_note: 'added industry' });
+    expect(jsonBodyOf(calls[0])).toEqual({
+      content: { name: 'Acme', industry: 'SaaS' },
+      change_note: 'added industry',
+    });
     expect(text).toContain('version 2');
   });
 
@@ -63,11 +97,18 @@ describe('knowledge', () => {
     const { session, calls } = buildSession([
       {
         match: pathMatcher('POST', '/api/v2/knowledge/search'),
-        body: { query: 'pricing', results: [{ domain: 'company_profile', content: { pricing: 'freemium' }, relevance_score: 0.91 }] },
+        body: {
+          query: 'pricing',
+          results: [
+            { domain: 'company_profile', content: { pricing: 'freemium' }, relevance_score: 0.91 },
+          ],
+        },
       },
     ]);
 
-    const text = await (await findTool('search_knowledge')).handler({ query: 'pricing', domains: ['company_profile'] }, session);
+    const text = await (
+      await findTool('search_knowledge')
+    ).handler({ query: 'pricing', domains: ['company_profile'] }, session);
 
     expect(jsonBodyOf(calls[0])).toEqual({ query: 'pricing', domains: ['company_profile'] });
     expect(text).toContain('company_profile');
@@ -77,10 +118,22 @@ describe('knowledge', () => {
 
   it('accept_knowledge_proposal posts to the accept route', async () => {
     const { session, calls } = buildSession([
-      { match: pathMatcher('POST', '/api/v2/knowledge/proposals/8/accept'), body: { data: { proposal_id: 8, status: 'accepted', domain: 'market_intelligence', version: { version_number: 3 } } } },
+      {
+        match: pathMatcher('POST', '/api/v2/knowledge/proposals/8/accept'),
+        body: {
+          data: {
+            proposal_id: 8,
+            status: 'accepted',
+            domain: 'market_intelligence',
+            version: { version_number: 3 },
+          },
+        },
+      },
     ]);
 
-    const text = await (await findTool('accept_knowledge_proposal')).handler({ proposal_id: 8 }, session);
+    const text = await (
+      await findTool('accept_knowledge_proposal')
+    ).handler({ proposal_id: 8 }, session);
 
     expect(calls[0]!.url).toContain('/api/v2/knowledge/proposals/8/accept');
     expect(text).toContain('accepted');
@@ -98,7 +151,10 @@ describe('brand voice', () => {
 
   it('get_brand_voice returns the structured document', async () => {
     const { session } = buildSession([
-      { match: pathMatcher('GET', '/api/v2/brand-voice/147'), body: { document: DOCUMENT, legacy_text: null, has_structured: true } },
+      {
+        match: pathMatcher('GET', '/api/v2/brand-voice/147'),
+        body: { document: DOCUMENT, legacy_text: null, has_structured: true },
+      },
     ]);
     session.setActiveProduct(147, 'Visibilio');
 
@@ -121,7 +177,9 @@ describe('brand voice', () => {
     ]);
     session.setActiveProduct(147, 'Visibilio');
 
-    const text = await (await findTool('update_brand_voice')).handler({ document: DOCUMENT }, session);
+    const text = await (
+      await findTool('update_brand_voice')
+    ).handler({ document: DOCUMENT }, session);
 
     expect(jsonBodyOf(calls[1])).toEqual({ document: DOCUMENT, version_number: 6 });
     expect(text).toContain('version 7');
@@ -129,16 +187,30 @@ describe('brand voice', () => {
 
   it('analyze_brand_voice_text starts an analysis and get_brand_voice_analysis polls it', async () => {
     const { session, calls } = buildSession([
-      { match: pathMatcher('POST', '/api/v2/brand-voice/147/analyze-text'), status: 202, body: { execution_id: 'bv-1', status: 'running' } },
+      {
+        match: pathMatcher('POST', '/api/v2/brand-voice/147/analyze-text'),
+        status: 202,
+        body: { execution_id: 'bv-1', status: 'running' },
+      },
       {
         match: pathMatcher('GET', '/api/v2/brand-voice/147/generate/bv-1'),
-        body: { execution_id: 'bv-1', status: 'completed', progress_percentage: 100, brand_voice: DOCUMENT, error: null },
+        body: {
+          execution_id: 'bv-1',
+          status: 'completed',
+          progress_percentage: 100,
+          brand_voice: DOCUMENT,
+          error: null,
+        },
       },
     ]);
     session.setActiveProduct(147, 'Visibilio');
 
-    const started = await (await findTool('analyze_brand_voice_text')).handler({ text: 'x'.repeat(120), mode: 'merge' }, session);
-    const polled = await (await findTool('get_brand_voice_analysis')).handler({ execution_id: 'bv-1' }, session);
+    const started = await (
+      await findTool('analyze_brand_voice_text')
+    ).handler({ text: 'x'.repeat(120), mode: 'merge' }, session);
+    const polled = await (
+      await findTool('get_brand_voice_analysis')
+    ).handler({ execution_id: 'bv-1' }, session);
 
     expect(jsonBodyOf(calls[0])).toEqual({ text: 'x'.repeat(120), mode: 'merge' });
     expect(started).toContain('bv-1');

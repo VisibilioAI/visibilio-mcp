@@ -15,13 +15,34 @@ import {
 import { asArray, fields, line, listOrEmpty, nameOf, truncate, type Row } from './_format.js';
 
 const CONTENT_TYPES = ['article', 'social_post', 'newsletter'] as const;
-const STATUSES = ['draft', 'review', 'changes_requested', 'approved', 'scheduled', 'published', 'archived'] as const;
+const STATUSES = [
+  'draft',
+  'review',
+  'changes_requested',
+  'approved',
+  'scheduled',
+  'published',
+  'archived',
+] as const;
 const LANGUAGES = ['en', 'bg', 'de'] as const;
 const REMIX_STRATEGIES = ['adapt', 'split', 'expand', 'summarize', 'remix'] as const;
 
 const EDITORIAL_FIELDS = [
-  'title', 'subtitle', 'body', 'excerpt', 'status', 'platform', 'tags', 'categories', 'seo_meta',
-  'canonical_url', 'body_format', 'audience_ids', 'featured_image_url', 'author_name', 'edit_prompt',
+  'title',
+  'subtitle',
+  'body',
+  'excerpt',
+  'status',
+  'platform',
+  'tags',
+  'categories',
+  'seo_meta',
+  'canonical_url',
+  'body_format',
+  'audience_ids',
+  'featured_image_url',
+  'author_name',
+  'edit_prompt',
 ] as const;
 
 function itemLine(item: Row): string {
@@ -35,7 +56,9 @@ function itemLine(item: Row): string {
 }
 
 function describeItem(item: Row, includeBody: boolean): string {
-  const audiences = asArray<Row>(item.audiences).map((a) => a.name).filter(Boolean);
+  const audiences = asArray<Row>(item.audiences)
+    .map((a) => a.name)
+    .filter(Boolean);
   const head = fields([
     ['Title', item.title],
     ['content_item_id', item.id],
@@ -83,7 +106,10 @@ const listContentItems = defineTool({
     const productId = resolveProductId(args, session);
     const body = await session.client.get(
       `/api/v2/products/${productId}/content-items`,
-      pick(args, ['type', 'status', 'platform', 'search', 'limit', 'offset']) as Record<string, string | number>
+      pick(args, ['type', 'status', 'platform', 'search', 'limit', 'offset']) as Record<
+        string,
+        string | number
+      >
     );
     const items = asArray<Row>(unwrapData(body));
     return listOrEmpty(
@@ -124,18 +150,38 @@ const createContentItem = defineTool({
     tags: z.array(z.string()).optional(),
     categories: z.array(z.string()).optional(),
     audience_ids: z.array(z.string()).optional().describe('Audience ids from list_audiences'),
-    seo_meta: z.object({ description: z.string().optional(), keywords: z.array(z.string()).optional(), suggested_slug: z.string().optional() }).optional(),
+    seo_meta: z
+      .object({
+        description: z.string().optional(),
+        keywords: z.array(z.string()).optional(),
+        suggested_slug: z.string().optional(),
+      })
+      .optional(),
     subtitle: z.string().optional(),
     excerpt: z.string().optional(),
     body_format: z.enum(['markdown', 'html', 'plain']).optional(),
-    source_execution_id: z.string().optional().describe('Workflow execution id whose output this item saves'),
+    source_execution_id: z
+      .string()
+      .optional()
+      .describe('Workflow execution id whose output this item saves'),
   },
   annotations: mutating,
   handler: async (args, session) => {
     const productId = resolveProductId(args, session);
     const payload = pick(args, [
-      'type', 'title', 'body', 'platform', 'language', 'tags', 'categories', 'audience_ids',
-      'seo_meta', 'subtitle', 'excerpt', 'body_format', 'source_execution_id',
+      'type',
+      'title',
+      'body',
+      'platform',
+      'language',
+      'tags',
+      'categories',
+      'audience_ids',
+      'seo_meta',
+      'subtitle',
+      'excerpt',
+      'body_format',
+      'source_execution_id',
     ]);
     const item = unwrapData<Row>(
       await session.client.post(`/api/v2/products/${productId}/content-items`, payload)
@@ -159,13 +205,22 @@ const updateContentItem = defineTool({
     platform: z.string().optional(),
     tags: z.array(z.string()).optional(),
     categories: z.array(z.string()).optional(),
-    seo_meta: z.object({ description: z.string().optional(), keywords: z.array(z.string()).optional(), suggested_slug: z.string().optional() }).optional(),
+    seo_meta: z
+      .object({
+        description: z.string().optional(),
+        keywords: z.array(z.string()).optional(),
+        suggested_slug: z.string().optional(),
+      })
+      .optional(),
     canonical_url: z.string().optional(),
     body_format: z.enum(['markdown', 'html', 'plain']).optional(),
     audience_ids: z.array(z.string()).optional().describe('Replaces the audience set'),
     featured_image_url: z.string().optional(),
     author_name: z.string().optional(),
-    edit_prompt: z.string().optional().describe('Short note on what changed and why (stored with the version)'),
+    edit_prompt: z
+      .string()
+      .optional()
+      .describe('Short note on what changed and why (stored with the version)'),
   },
   annotations: mutating,
   handler: async (args, session) => {
@@ -176,7 +231,9 @@ const updateContentItem = defineTool({
       changed_fields?: string[];
     };
     const item = body.data ?? (body as Row);
-    const changed = body.changed_fields?.length ? body.changed_fields.join(', ') : 'nothing (no differences)';
+    const changed = body.changed_fields?.length
+      ? body.changed_fields.join(', ')
+      : 'nothing (no differences)';
     return `Updated: ${changed}.\n${describeItem(item, false)}`;
   },
 });
@@ -184,7 +241,8 @@ const updateContentItem = defineTool({
 const deleteContentItem = defineTool({
   name: 'delete_content_item',
   title: 'Delete content item',
-  description: 'Permanently delete a content item. Fails with 409 if it is still published on a hub; unpublish first.',
+  description:
+    'Permanently delete a content item. Fails with 409 if it is still published on a hub; unpublish first.',
   inputSchema: { content_item_id: z.number().int() },
   annotations: destructive,
   handler: async (args, session) => {
@@ -202,7 +260,9 @@ const duplicateContentItem = defineTool({
   annotations: mutating,
   handler: async (args, session) => {
     const itemId = requireNumberArg(args, 'content_item_id');
-    const copy = unwrapData<Row>(await session.client.post(`/api/v2/content-items/${itemId}/duplicate`));
+    const copy = unwrapData<Row>(
+      await session.client.post(`/api/v2/content-items/${itemId}/duplicate`)
+    );
     return `Duplicated.\n${itemLine(copy)}`;
   },
 });
@@ -210,13 +270,22 @@ const duplicateContentItem = defineTool({
 const listContentItemVersions = defineTool({
   name: 'list_content_item_versions',
   title: 'List content item versions',
-  description: 'Show the version history of a content item (who changed what, when). Use restore_content_item_version to roll back.',
-  inputSchema: { content_item_id: z.number().int(), limit: z.number().int().min(1).max(200).optional() },
+  description:
+    'Show the version history of a content item (who changed what, when). Use restore_content_item_version to roll back.',
+  inputSchema: {
+    content_item_id: z.number().int(),
+    limit: z.number().int().min(1).max(200).optional(),
+  },
   annotations: readOnly,
   handler: async (args, session) => {
     const itemId = requireNumberArg(args, 'content_item_id');
     const versions = asArray<Row>(
-      unwrapData(await session.client.get(`/api/v2/content-items/${itemId}/versions`, pick(args, ['limit']) as Record<string, number>))
+      unwrapData(
+        await session.client.get(
+          `/api/v2/content-items/${itemId}/versions`,
+          pick(args, ['limit']) as Record<string, number>
+        )
+      )
     );
     return listOrEmpty(
       `Versions of content item ${itemId}:`,
@@ -224,8 +293,12 @@ const listContentItemVersions = defineTool({
         line(typeof v.title === 'string' ? v.title : 'Version', 'version_id', v.id, [
           typeof v.created_at === 'string' ? v.created_at : undefined,
           typeof v.created_by === 'string' ? `by ${v.created_by}` : undefined,
-          Array.isArray(v.changed_fields) && v.changed_fields.length ? `changed: ${(v.changed_fields as string[]).join(', ')}` : undefined,
-          typeof v.edit_prompt === 'string' && v.edit_prompt ? `note: ${truncate(v.edit_prompt, 80)}` : undefined,
+          Array.isArray(v.changed_fields) && v.changed_fields.length
+            ? `changed: ${(v.changed_fields as string[]).join(', ')}`
+            : undefined,
+          typeof v.edit_prompt === 'string' && v.edit_prompt
+            ? `note: ${truncate(v.edit_prompt, 80)}`
+            : undefined,
         ])
       ),
       'No versions recorded yet.'
@@ -236,14 +309,17 @@ const listContentItemVersions = defineTool({
 const restoreContentItemVersion = defineTool({
   name: 'restore_content_item_version',
   title: 'Restore content item version',
-  description: 'Roll a content item back to an earlier version (from list_content_item_versions). Creates a new version; nothing is lost.',
+  description:
+    'Roll a content item back to an earlier version (from list_content_item_versions). Creates a new version; nothing is lost.',
   inputSchema: { content_item_id: z.number().int(), version_id: z.number().int() },
   annotations: mutating,
   handler: async (args, session) => {
     const itemId = requireNumberArg(args, 'content_item_id');
     const versionId = requireNumberArg(args, 'version_id');
     const item = unwrapData<Row>(
-      await session.client.post(`/api/v2/content-items/${itemId}/restore`, { version_id: versionId })
+      await session.client.post(`/api/v2/content-items/${itemId}/restore`, {
+        version_id: versionId,
+      })
     );
     return `Restored version ${versionId}.\n${describeItem(item, false)}`;
   },
@@ -270,7 +346,9 @@ const generateSeoMeta = defineTool({
       title: stringArg(args, 'title') ?? (stored ? String(stored.title ?? '') : undefined),
       ...pick(args, ['keywords', 'include_aeo_assets']),
     };
-    const result = unwrapData<Row>(await session.client.post(`/api/v2/content-items/${itemId}/seo-meta`, payload));
+    const result = unwrapData<Row>(
+      await session.client.post(`/api/v2/content-items/${itemId}/seo-meta`, payload)
+    );
     return [
       'Suggested SEO meta (not saved yet):',
       JSON.stringify(result, null, 2),
@@ -288,8 +366,11 @@ const validateBrandVoice = defineTool({
   annotations: readOnly,
   handler: async (args, session) => {
     const itemId = requireNumberArg(args, 'content_item_id');
-    const content = stringArg(args, 'content') ?? String((await fetchItem(session, itemId)).body ?? '');
-    const result = unwrapData<Row>(await session.client.post(`/api/v2/content-items/${itemId}/voice-validate`, { content }));
+    const content =
+      stringArg(args, 'content') ?? String((await fetchItem(session, itemId)).body ?? '');
+    const result = unwrapData<Row>(
+      await session.client.post(`/api/v2/content-items/${itemId}/voice-validate`, { content })
+    );
     return JSON.stringify(result, null, 2);
   },
 });
@@ -360,13 +441,17 @@ const quickRepurposeContentItem = defineTool({
 const translateContentItem = defineTool({
   name: 'translate_content_item',
   title: 'Translate content item',
-  description: 'Translate a content item into another supported language as a linked draft variant (requires multi-language to be enabled for the product).',
+  description:
+    'Translate a content item into another supported language as a linked draft variant (requires multi-language to be enabled for the product).',
   inputSchema: { content_item_id: z.number().int(), target_language: z.enum(LANGUAGES) },
   annotations: mutating,
   handler: async (args, session) => {
     const itemId = requireNumberArg(args, 'content_item_id');
     const item = unwrapData<Row>(
-      await session.client.post(`/api/v2/content-items/${itemId}/translate`, pick(args, ['target_language']))
+      await session.client.post(
+        `/api/v2/content-items/${itemId}/translate`,
+        pick(args, ['target_language'])
+      )
     );
     return `Translation created.\n${itemLine(item)}`;
   },
@@ -375,7 +460,8 @@ const translateContentItem = defineTool({
 const generateCoverImage = defineTool({
   name: 'generate_cover_image',
   title: 'Generate cover image',
-  description: 'Generate an AI cover image for a content item in the product illustration style and attach it as the featured image.',
+  description:
+    'Generate an AI cover image for a content item in the product illustration style and attach it as the featured image.',
   inputSchema: {
     content_item_id: z.number().int(),
     prompt: z.string().max(500).optional().describe('Optional art direction'),
@@ -385,7 +471,10 @@ const generateCoverImage = defineTool({
   handler: async (args, session) => {
     const itemId = requireNumberArg(args, 'content_item_id');
     const item = unwrapData<Row>(
-      await session.client.post(`/api/v2/content-items/${itemId}/generate-cover`, pick(args, ['prompt', 'user_initiated']))
+      await session.client.post(
+        `/api/v2/content-items/${itemId}/generate-cover`,
+        pick(args, ['prompt', 'user_initiated'])
+      )
     );
     return `Cover generated: ${String(item.featured_image_url ?? '(no url returned)')}`;
   },

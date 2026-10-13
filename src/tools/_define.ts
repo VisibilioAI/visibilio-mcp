@@ -103,7 +103,8 @@ export function numberArg(args: ToolArgs, key: string): number | undefined {
   const value = args[key];
   if (value === undefined || value === null || value === '') return undefined;
   const parsed = typeof value === 'number' ? value : Number(value);
-  if (!Number.isFinite(parsed)) throw new ToolError(`${key} must be a number (got "${String(value)}")`);
+  if (!Number.isFinite(parsed))
+    throw new ToolError(`${key} must be a number (got "${String(value)}")`);
   return parsed;
 }
 

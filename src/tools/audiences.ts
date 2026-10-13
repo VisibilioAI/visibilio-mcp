@@ -17,7 +17,9 @@ const listAudiences = defineTool({
   title: 'List audiences',
   description:
     'List the audience segments of a product (id, name, description, whether a persona exists). Audience ids are used by create_content_item, start_workflow and repurpose_content_item.',
-  inputSchema: { product_id: z.number().int().optional().describe('Defaults to the active product') },
+  inputSchema: {
+    product_id: z.number().int().optional().describe('Defaults to the active product'),
+  },
   annotations: readOnly,
   handler: async (args, session) => {
     const productId = optionalProductId(args, session);
@@ -42,7 +44,8 @@ const listAudiences = defineTool({
 const createAudience = defineTool({
   name: 'create_audience',
   title: 'Create audience',
-  description: 'Add an audience segment to a product with a name and a description of who they are and what they need.',
+  description:
+    'Add an audience segment to a product with a name and a description of who they are and what they need.',
   inputSchema: {
     product_id: z.number().int().optional(),
     name: z.string().min(1),
@@ -64,7 +67,8 @@ const createAudience = defineTool({
 const deleteAudience = defineTool({
   name: 'delete_audience',
   title: 'Delete audience',
-  description: 'Delete an audience segment and its persona. Content already written for it is kept.',
+  description:
+    'Delete an audience segment and its persona. Content already written for it is kept.',
   inputSchema: { audience_id: z.number().int() },
   annotations: destructive,
   handler: async (args, session) => {
@@ -74,4 +78,8 @@ const deleteAudience = defineTool({
   },
 });
 
-export const audienceTools: readonly ToolDefinition[] = [listAudiences, createAudience, deleteAudience];
+export const audienceTools: readonly ToolDefinition[] = [
+  listAudiences,
+  createAudience,
+  deleteAudience,
+];

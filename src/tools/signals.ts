@@ -44,18 +44,31 @@ const listSignals = defineTool({
       unwrapData(
         await session.client.get('/api/v2/signals', {
           ...(productId !== undefined ? { product_id: productId } : {}),
-          ...(pick(args, ['min_score', 'unused_only', 'source_type', 'topic', 'since', 'sort', 'limit']) as Record<string, string | number | boolean>),
+          ...(pick(args, [
+            'min_score',
+            'unused_only',
+            'source_type',
+            'topic',
+            'since',
+            'sort',
+            'limit',
+          ]) as Record<string, string | number | boolean>),
         })
       )
     );
-    return listOrEmpty(`Signals (${signals.length}):`, signals.map(signalLine), 'No signals match. Scan a source with scan_source or relax the filters.');
+    return listOrEmpty(
+      `Signals (${signals.length}):`,
+      signals.map(signalLine),
+      'No signals match. Scan a source with scan_source or relax the filters.'
+    );
   },
 });
 
 const getSignal = defineTool({
   name: 'get_signal',
   title: 'Get signal',
-  description: 'Read one signal in full: summary, topics, suggested actions, content angles and source.',
+  description:
+    'Read one signal in full: summary, topics, suggested actions, content angles and source.',
   inputSchema: { signal_id: z.number().int() },
   annotations: readOnly,
   handler: async (args, session) => {
@@ -86,7 +99,10 @@ const generateFromSignal = defineTool({
     'Turn a signal into content (e.g. output_types ["linkedin_post","blog_article"]). Returns an execution id; poll get_workflow_status, then save with create_content_item(source_execution_id).',
   inputSchema: {
     signal_id: z.number().int(),
-    output_types: z.array(z.string()).min(1).describe('e.g. linkedin_post, blog_article, tweet, newsletter'),
+    output_types: z
+      .array(z.string())
+      .min(1)
+      .describe('e.g. linkedin_post, blog_article, tweet, newsletter'),
     additional_context: z.string().optional(),
     language: z.enum(['en', 'bg', 'de']).optional(),
   },
@@ -94,7 +110,10 @@ const generateFromSignal = defineTool({
   handler: async (args, session) => {
     const signalId = requireNumberArg(args, 'signal_id');
     const result = unwrapData<Row>(
-      await session.client.post(`/api/v2/signals/${signalId}/generate`, pick(args, ['output_types', 'additional_context', 'language']))
+      await session.client.post(
+        `/api/v2/signals/${signalId}/generate`,
+        pick(args, ['output_types', 'additional_context', 'language'])
+      )
     );
     return `Generation started from signal ${signalId}: execution_id ${String(result.execution_id)} (${String(result.state)}). Poll get_workflow_status(execution_id).`;
   },
@@ -103,13 +122,16 @@ const generateFromSignal = defineTool({
 const addSignalToPlan = defineTool({
   name: 'add_signal_to_plan',
   title: 'Add signal to plan',
-  description: 'Insert a signal as a planned topic into the current content plan of its product, under a content pillar.',
+  description:
+    'Insert a signal as a planned topic into the current content plan of its product, under a content pillar.',
   inputSchema: { signal_id: z.number().int(), pillar: z.string().min(1) },
   annotations: mutating,
   handler: async (args, session) => {
     const signalId = requireNumberArg(args, 'signal_id');
     const result = unwrapData<Row>(
-      await session.client.post(`/api/v2/signals/${signalId}/add-to-plan`, { pillar: requireStringArg(args, 'pillar') })
+      await session.client.post(`/api/v2/signals/${signalId}/add-to-plan`, {
+        pillar: requireStringArg(args, 'pillar'),
+      })
     );
     return `Signal ${signalId} ${String(result.action)} into the plan${result.plannedTopicId ? ` (topic_id: ${String(result.plannedTopicId)})` : ''}.`;
   },
@@ -123,21 +145,29 @@ const dismissSignal = defineTool({
   annotations: mutating,
   handler: async (args, session) => {
     const signalId = requireNumberArg(args, 'signal_id');
-    const result = unwrapData<Row>(await session.client.patch(`/api/v2/signals/${signalId}/dismiss`, pick(args, ['undo'])));
-    return result.dismissed === false ? `Signal ${signalId} restored.` : `Signal ${signalId} dismissed.`;
+    const result = unwrapData<Row>(
+      await session.client.patch(`/api/v2/signals/${signalId}/dismiss`, pick(args, ['undo']))
+    );
+    return result.dismissed === false
+      ? `Signal ${signalId} restored.`
+      : `Signal ${signalId} dismissed.`;
   },
 });
 
 const getSignalStats = defineTool({
   name: 'get_signal_stats',
   title: 'Get signal stats',
-  description: 'Counts for the signal pipeline: active sources, items scanned in 24h, pending signals, scheduled content.',
+  description:
+    'Counts for the signal pipeline: active sources, items scanned in 24h, pending signals, scheduled content.',
   inputSchema: { product_id: z.number().int().optional() },
   annotations: readOnly,
   handler: async (args, session) => {
     const productId = optionalProductId(args, session);
     const stats = unwrapData<Row>(
-      await session.client.get('/api/v2/signals/stats', productId !== undefined ? { product_id: productId } : undefined)
+      await session.client.get(
+        '/api/v2/signals/stats',
+        productId !== undefined ? { product_id: productId } : undefined
+      )
     );
     return fields([
       ['active_sources', stats.active_sources],
@@ -151,12 +181,18 @@ const getSignalStats = defineTool({
 const listSources = defineTool({
   name: 'list_sources',
   title: 'List sources',
-  description: 'List the content sources (RSS feeds, websites, social feeds) the organization scans for signals.',
+  description:
+    'List the content sources (RSS feeds, websites, social feeds) the organization scans for signals.',
   inputSchema: { type: z.string().optional(), is_active: z.boolean().optional() },
   annotations: readOnly,
   handler: async (args, session) => {
     const sources = asArray<Row>(
-      unwrapData(await session.client.get('/api/v2/sources', pick(args, ['type', 'is_active']) as Record<string, string | boolean>))
+      unwrapData(
+        await session.client.get(
+          '/api/v2/sources',
+          pick(args, ['type', 'is_active']) as Record<string, string | boolean>
+        )
+      )
     );
     return listOrEmpty(
       `Sources (${sources.length}):`,
@@ -165,8 +201,12 @@ const listSources = defineTool({
           typeof s.type === 'string' ? s.type : undefined,
           typeof s.url === 'string' ? s.url : undefined,
           s.is_active === false ? 'inactive' : undefined,
-          typeof s.last_scanned_at === 'string' ? `last scan: ${s.last_scanned_at.slice(0, 10)}` : undefined,
-          typeof s.last_error === 'string' && s.last_error ? `error: ${truncate(s.last_error, 60)}` : undefined,
+          typeof s.last_scanned_at === 'string'
+            ? `last scan: ${s.last_scanned_at.slice(0, 10)}`
+            : undefined,
+          typeof s.last_error === 'string' && s.last_error
+            ? `error: ${truncate(s.last_error, 60)}`
+            : undefined,
         ])
       ),
       'No sources yet. Add one with create_source.'
@@ -190,7 +230,10 @@ const createSource = defineTool({
     requireStringArg(args, 'name');
     requireStringArg(args, 'url');
     const source = unwrapData<Row>(
-      await session.client.post('/api/v2/sources', pick(args, ['name', 'type', 'url', 'scan_frequency_minutes', 'priority']))
+      await session.client.post(
+        '/api/v2/sources',
+        pick(args, ['name', 'type', 'url', 'scan_frequency_minutes', 'priority'])
+      )
     );
     return `Source created.\n${line(nameOf(source), 'source_id', source.id, [typeof source.type === 'string' ? source.type : undefined, typeof source.url === 'string' ? source.url : undefined])}\nScan it now with scan_source(source_id: ${String(source.id)}).`;
   },
@@ -199,13 +242,16 @@ const createSource = defineTool({
 const scanSource = defineTool({
   name: 'scan_source',
   title: 'Scan source',
-  description: 'Scan a source now and score the new items as signals for a product (synchronous, up to 2 minutes).',
+  description:
+    'Scan a source now and score the new items as signals for a product (synchronous, up to 2 minutes).',
   inputSchema: { source_id: z.number().int(), product_id: z.number().int().optional() },
   annotations: mutating,
   handler: async (args, session) => {
     const sourceId = requireNumberArg(args, 'source_id');
     const productId = resolveProductId(args, session);
-    const result = unwrapData<Row>(await session.client.post(`/api/v2/sources/${sourceId}/scan`, { product_id: productId }));
+    const result = unwrapData<Row>(
+      await session.client.post(`/api/v2/sources/${sourceId}/scan`, { product_id: productId })
+    );
     return `Scan of source ${sourceId} finished: ${String(result.items_found ?? 0)} items found, ${String(result.items_new ?? 0)} new. See list_signals.`;
   },
 });

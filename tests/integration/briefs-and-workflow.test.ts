@@ -24,8 +24,16 @@ describe('briefs', () => {
       { match: pathMatcher('POST', '/api/v2/briefs'), status: 201, body: { data: BRIEF } },
     ]);
 
-    const text = await (await findTool('create_brief')).handler(
-      { title: 'Launch post', content_type: 'social_post', topic: 'MCP launch', tone: 'confident', key_messages: ['works everywhere'] },
+    const text = await (
+      await findTool('create_brief')
+    ).handler(
+      {
+        title: 'Launch post',
+        content_type: 'social_post',
+        topic: 'MCP launch',
+        tone: 'confident',
+        key_messages: ['works everywhere'],
+      },
       session
     );
 
@@ -44,9 +52,14 @@ describe('briefs', () => {
       { match: pathMatcher('GET', '/api/v2/briefs'), body: { data: [BRIEF] } },
     ]);
 
-    const text = await (await findTool('list_briefs')).handler({ status: 'draft', content_type: 'social_post' }, session);
+    const text = await (
+      await findTool('list_briefs')
+    ).handler({ status: 'draft', content_type: 'social_post' }, session);
 
-    expect(Object.fromEntries(new URL(calls[0]!.url).searchParams)).toEqual({ status: 'draft', content_type: 'social_post' });
+    expect(Object.fromEntries(new URL(calls[0]!.url).searchParams)).toEqual({
+      status: 'draft',
+      content_type: 'social_post',
+    });
     expect(text).toContain('Launch post');
     expect(text).toContain('brief_id: 31');
   });
@@ -68,10 +81,15 @@ describe('briefs', () => {
 
   it('update_brief PUTs only the given fields', async () => {
     const { session, calls } = buildSession([
-      { match: pathMatcher('PUT', '/api/v2/briefs/31'), body: { data: { ...BRIEF, status: 'ready' } } },
+      {
+        match: pathMatcher('PUT', '/api/v2/briefs/31'),
+        body: { data: { ...BRIEF, status: 'ready' } },
+      },
     ]);
 
-    await (await findTool('update_brief')).handler({ brief_id: 31, status: 'ready', notes: 'go' }, session);
+    await (
+      await findTool('update_brief')
+    ).handler({ brief_id: 31, status: 'ready', notes: 'go' }, session);
 
     expect(jsonBodyOf(calls[0])).toEqual({ status: 'ready', notes: 'go' });
   });
@@ -82,15 +100,19 @@ describe('workflow', () => {
     const { session, calls } = buildSession([
       {
         match: pathMatcher('POST', '/api/v2/workflow/start'),
-        body: { execution_id: 'exec-1', state: 'running', requires_confirmation: false, plan: { steps: [{ agent_type: 'linkedin_writer' }] } },
+        body: {
+          execution_id: 'exec-1',
+          state: 'running',
+          requires_confirmation: false,
+          plan: { steps: [{ agent_type: 'linkedin_writer' }] },
+        },
       },
     ]);
     session.setActiveProduct(147, 'Visibilio');
 
-    const text = await (await findTool('start_workflow')).handler(
-      { user_request: 'Write a LinkedIn post about our MCP launch' },
-      session
-    );
+    const text = await (
+      await findTool('start_workflow')
+    ).handler({ user_request: 'Write a LinkedIn post about our MCP launch' }, session);
 
     expect(jsonBodyOf(calls[0])).toEqual({
       user_request: 'Write a LinkedIn post about our MCP launch',
@@ -116,7 +138,9 @@ describe('workflow', () => {
       },
     ]);
 
-    const text = await (await findTool('get_workflow_status')).handler({ execution_id: 'exec-1' }, session);
+    const text = await (
+      await findTool('get_workflow_status')
+    ).handler({ execution_id: 'exec-1' }, session);
 
     expect(text).toContain('completed');
     expect(text).toContain('MCP is here');
@@ -127,10 +151,15 @@ describe('workflow', () => {
 
   it('confirm_workflow posts the decision', async () => {
     const { session, calls } = buildSession([
-      { match: pathMatcher('POST', '/api/v2/workflow/exec-1/confirm'), body: { execution_id: 'exec-1', state: 'running' } },
+      {
+        match: pathMatcher('POST', '/api/v2/workflow/exec-1/confirm'),
+        body: { execution_id: 'exec-1', state: 'running' },
+      },
     ]);
 
-    await (await findTool('confirm_workflow')).handler({ execution_id: 'exec-1', confirmed: true }, session);
+    await (
+      await findTool('confirm_workflow')
+    ).handler({ execution_id: 'exec-1', confirmed: true }, session);
 
     expect(jsonBodyOf(calls[0])).toEqual({ confirmed: true });
   });

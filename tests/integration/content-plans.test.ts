@@ -10,8 +10,20 @@ const PLAN = {
   period_end: '2026-10-31',
   __meta: {
     posts: [
-      { date: '2026-10-14', platform: 'linkedin', topic: 'MCP launch', pillar: 'product', contentType: 'social_post' },
-      { date: '2026-10-16', platform: 'blog', topic: 'Why MCP', pillar: 'education', contentType: 'article' },
+      {
+        date: '2026-10-14',
+        platform: 'linkedin',
+        topic: 'MCP launch',
+        pillar: 'product',
+        contentType: 'social_post',
+      },
+      {
+        date: '2026-10-16',
+        platform: 'blog',
+        topic: 'Why MCP',
+        pillar: 'education',
+        contentType: 'article',
+      },
     ],
   },
   __metrics: { execution_id: 'exec-5', cost_usd: 0.4 },
@@ -24,9 +36,13 @@ describe('content plans', () => {
     ]);
     session.setActiveProduct(147, 'Visibilio');
 
-    const text = await (await findTool('list_content_plans')).handler({ status: 'completed' }, session);
+    const text = await (
+      await findTool('list_content_plans')
+    ).handler({ status: 'completed' }, session);
 
-    expect(Object.fromEntries(new URL(calls[0]!.url).searchParams)).toEqual({ status: 'completed' });
+    expect(Object.fromEntries(new URL(calls[0]!.url).searchParams)).toEqual({
+      status: 'completed',
+    });
     expect(text).toContain('October plan');
     expect(text).toContain('plan_id: 12');
     expect(text).toContain('2026-10-01');
@@ -48,16 +64,26 @@ describe('content plans', () => {
 
   it('create_content_plan posts name, description and user_input', async () => {
     const { session, calls } = buildSession([
-      { match: pathMatcher('POST', '/api/v2/products/147/content-plans'), status: 201, body: { data: { ...PLAN, id: 13, status: 'pending' } } },
+      {
+        match: pathMatcher('POST', '/api/v2/products/147/content-plans'),
+        status: 201,
+        body: { data: { ...PLAN, id: 13, status: 'pending' } },
+      },
     ]);
     session.setActiveProduct(147, 'Visibilio');
 
-    const text = await (await findTool('create_content_plan')).handler(
+    const text = await (
+      await findTool('create_content_plan')
+    ).handler(
       { name: 'November plan', description: 'Growth', user_input: 'focus on case studies' },
       session
     );
 
-    expect(jsonBodyOf(calls[0])).toEqual({ name: 'November plan', description: 'Growth', user_input: 'focus on case studies' });
+    expect(jsonBodyOf(calls[0])).toEqual({
+      name: 'November plan',
+      description: 'Growth',
+      user_input: 'focus on case studies',
+    });
     expect(text).toContain('plan_id: 13');
     expect(text).toContain('generate_content_plan');
   });
@@ -72,8 +98,16 @@ describe('content plans', () => {
     ]);
     session.setActiveProduct(147, 'Visibilio');
 
-    const text = await (await findTool('generate_content_plan')).handler(
-      { plan_id: 13, start_date: '2026-11-01', end_date: '2026-11-30', platforms: ['linkedin', 'blog'], total_posts: 8 },
+    const text = await (
+      await findTool('generate_content_plan')
+    ).handler(
+      {
+        plan_id: 13,
+        start_date: '2026-11-01',
+        end_date: '2026-11-30',
+        platforms: ['linkedin', 'blog'],
+        total_posts: 8,
+      },
       session
     );
 
@@ -91,12 +125,20 @@ describe('content plans', () => {
     const { session } = buildSession([
       {
         match: pathMatcher('GET', '/api/v2/products/147/content-plans/13/status'),
-        body: { data: { status: 'completed', __meta: PLAN.__meta, __metrics: { execution_id: 'exec-7', cost_usd: 0.3 } } },
+        body: {
+          data: {
+            status: 'completed',
+            __meta: PLAN.__meta,
+            __metrics: { execution_id: 'exec-7', cost_usd: 0.3 },
+          },
+        },
       },
     ]);
     session.setActiveProduct(147, 'Visibilio');
 
-    const text = await (await findTool('get_content_plan_status')).handler({ plan_id: 13 }, session);
+    const text = await (
+      await findTool('get_content_plan_status')
+    ).handler({ plan_id: 13 }, session);
 
     expect(text).toContain('completed');
     expect(text).toContain('2 posts');
@@ -106,14 +148,30 @@ describe('content plans', () => {
     const { session, calls } = buildSession([
       {
         match: pathMatcher('GET', '/api/v2/products/147/planned-topics'),
-        body: { data: [{ id: 5, title: 'MCP launch', planned_at: '2026-10-14T09:00:00Z', status: 'planned', pillar: 'product', content_item_ids: [] }] },
+        body: {
+          data: [
+            {
+              id: 5,
+              title: 'MCP launch',
+              planned_at: '2026-10-14T09:00:00Z',
+              status: 'planned',
+              pillar: 'product',
+              content_item_ids: [],
+            },
+          ],
+        },
       },
     ]);
     session.setActiveProduct(147, 'Visibilio');
 
-    const text = await (await findTool('list_planned_topics')).handler({ from: '2026-10-01', to: '2026-10-31' }, session);
+    const text = await (
+      await findTool('list_planned_topics')
+    ).handler({ from: '2026-10-01', to: '2026-10-31' }, session);
 
-    expect(Object.fromEntries(new URL(calls[0]!.url).searchParams)).toEqual({ from: '2026-10-01', to: '2026-10-31' });
+    expect(Object.fromEntries(new URL(calls[0]!.url).searchParams)).toEqual({
+      from: '2026-10-01',
+      to: '2026-10-31',
+    });
     expect(text).toContain('MCP launch');
     expect(text).toContain('topic_id: 5');
   });

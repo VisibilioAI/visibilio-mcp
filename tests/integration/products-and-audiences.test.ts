@@ -14,7 +14,10 @@ const PRODUCT = {
 describe('products', () => {
   it('list_products unwraps {data, total} and marks the active product', async () => {
     const { session } = buildSession([
-      { match: pathMatcher('GET', '/api/v2/products'), body: { data: [PRODUCT, { ...PRODUCT, id: 148, name: 'Kondevs' }], total: 2 } },
+      {
+        match: pathMatcher('GET', '/api/v2/products'),
+        body: { data: [PRODUCT, { ...PRODUCT, id: 148, name: 'Kondevs' }], total: 2 },
+      },
     ]);
     session.setActiveProduct(148, 'Kondevs');
 
@@ -48,21 +51,36 @@ describe('products', () => {
 
   it('create_product posts name, description and type', async () => {
     const { session, calls } = buildSession([
-      { match: pathMatcher('POST', '/api/v2/products'), status: 201, body: { data: { ...PRODUCT, id: 150, name: 'New brand' } } },
+      {
+        match: pathMatcher('POST', '/api/v2/products'),
+        status: 201,
+        body: { data: { ...PRODUCT, id: 150, name: 'New brand' } },
+      },
     ]);
 
-    const text = await (await findTool('create_product')).handler({ name: 'New brand', description: 'A brand', product_type: 'standard' }, session);
+    const text = await (
+      await findTool('create_product')
+    ).handler({ name: 'New brand', description: 'A brand', product_type: 'standard' }, session);
 
-    expect(jsonBodyOf(calls[0])).toEqual({ name: 'New brand', description: 'A brand', product_type: 'standard' });
+    expect(jsonBodyOf(calls[0])).toEqual({
+      name: 'New brand',
+      description: 'A brand',
+      product_type: 'standard',
+    });
     expect(text).toContain('product_id: 150');
   });
 
   it('update_product PATCHes the given fields', async () => {
     const { session, calls } = buildSession([
-      { match: pathMatcher('PATCH', '/api/v2/products/147'), body: { data: { ...PRODUCT, is_archived: true } } },
+      {
+        match: pathMatcher('PATCH', '/api/v2/products/147'),
+        body: { data: { ...PRODUCT, is_archived: true } },
+      },
     ]);
 
-    await (await findTool('update_product')).handler({ product_id: 147, is_archived: true }, session);
+    await (
+      await findTool('update_product')
+    ).handler({ product_id: 147, is_archived: true }, session);
 
     expect(calls[0]!.init?.method).toBe('PATCH');
     expect(jsonBodyOf(calls[0])).toEqual({ is_archived: true });
@@ -71,7 +89,9 @@ describe('products', () => {
   it('set_active_organization switches scope and list_organizations marks it', async () => {
     const { session } = buildSession([]);
 
-    const switched = await (await findTool('set_active_organization')).handler({ organization_id: 8 }, session);
+    const switched = await (
+      await findTool('set_active_organization')
+    ).handler({ organization_id: 8 }, session);
     const listed = await (await findTool('list_organizations')).handler({}, session);
 
     expect(session.organizationId).toBe(8);
@@ -82,7 +102,9 @@ describe('products', () => {
   it('set_active_organization refuses an organization the user is not a member of', async () => {
     const { session } = buildSession([]);
 
-    const text = await (await findTool('set_active_organization')).handler({ organization_id: 999 }, session);
+    const text = await (
+      await findTool('set_active_organization')
+    ).handler({ organization_id: 999 }, session);
 
     expect(text).toMatch(/not a member/);
     expect(session.organizationId).toBe(7);
@@ -94,7 +116,17 @@ describe('audiences', () => {
     const { session, calls } = buildSession([
       {
         match: pathMatcher('GET', '/api/v2/audiences'),
-        body: { audiences: [{ id: '9', name: 'Founders', short_id: 'f1', description: 'Early-stage founders', has_persona: true }] },
+        body: {
+          audiences: [
+            {
+              id: '9',
+              name: 'Founders',
+              short_id: 'f1',
+              description: 'Early-stage founders',
+              has_persona: true,
+            },
+          ],
+        },
       },
     ]);
     session.setActiveProduct(147, 'Visibilio');
@@ -109,13 +141,23 @@ describe('audiences', () => {
 
   it('create_audience posts name, description and the product', async () => {
     const { session, calls } = buildSession([
-      { match: pathMatcher('POST', '/api/v2/audiences'), status: 201, body: { audience: { id: '10', name: 'CTOs', description: 'Technical buyers' } } },
+      {
+        match: pathMatcher('POST', '/api/v2/audiences'),
+        status: 201,
+        body: { audience: { id: '10', name: 'CTOs', description: 'Technical buyers' } },
+      },
     ]);
     session.setActiveProduct(147, 'Visibilio');
 
-    const text = await (await findTool('create_audience')).handler({ name: 'CTOs', description: 'Technical buyers' }, session);
+    const text = await (
+      await findTool('create_audience')
+    ).handler({ name: 'CTOs', description: 'Technical buyers' }, session);
 
-    expect(jsonBodyOf(calls[0])).toEqual({ name: 'CTOs', description: 'Technical buyers', product_id: 147 });
+    expect(jsonBodyOf(calls[0])).toEqual({
+      name: 'CTOs',
+      description: 'Technical buyers',
+      product_id: 147,
+    });
     expect(text).toContain('audience_id: 10');
   });
 

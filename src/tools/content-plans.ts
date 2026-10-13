@@ -44,9 +44,19 @@ function describePlan(plan: Row): string {
       ['plan_id', plan.id],
       ['status', plan.status],
       ['description', plan.description],
-      ['period', typeof plan.period_start === 'string' ? `${plan.period_start} → ${String(plan.period_end ?? '?')}` : undefined],
+      [
+        'period',
+        typeof plan.period_start === 'string'
+          ? `${plan.period_start} → ${String(plan.period_end ?? '?')}`
+          : undefined,
+      ],
       ['user_input', plan.user_input],
-      ['execution_id', plan.__metrics && typeof plan.__metrics === 'object' ? (plan.__metrics as Row).execution_id : undefined],
+      [
+        'execution_id',
+        plan.__metrics && typeof plan.__metrics === 'object'
+          ? (plan.__metrics as Row).execution_id
+          : undefined,
+      ],
     ]),
     renderPosts(plan.__meta),
   ].join('\n');
@@ -55,10 +65,13 @@ function describePlan(plan: Row): string {
 const listContentPlans = defineTool({
   name: 'list_content_plans',
   title: 'List content plans',
-  description: 'List the content plans (editorial calendars) of a product with their status and period.',
+  description:
+    'List the content plans (editorial calendars) of a product with their status and period.',
   inputSchema: {
     product_id: z.number().int().optional().describe('Defaults to the active product'),
-    status: z.enum(['pending', 'processing', 'completed', 'failed', 'regenerating', 'proposed']).optional(),
+    status: z
+      .enum(['pending', 'processing', 'completed', 'failed', 'regenerating', 'proposed'])
+      .optional(),
     limit: z.number().int().min(1).max(100).optional(),
     offset: z.number().int().min(0).optional(),
   },
@@ -73,7 +86,11 @@ const listContentPlans = defineTool({
         )
       )
     );
-    return listOrEmpty(`Content plans (${plans.length}):`, plans.map(planLine), 'No content plans yet. Create one with create_content_plan.');
+    return listOrEmpty(
+      `Content plans (${plans.length}):`,
+      plans.map(planLine),
+      'No content plans yet. Create one with create_content_plan.'
+    );
   },
 });
 
@@ -86,7 +103,11 @@ const getContentPlan = defineTool({
   handler: async (args, session) => {
     const productId = resolveProductId(args, session);
     const planId = requireNumberArg(args, 'plan_id');
-    return describePlan(unwrapData<Row>(await session.client.get(`/api/v2/products/${productId}/content-plans/${planId}`)));
+    return describePlan(
+      unwrapData<Row>(
+        await session.client.get(`/api/v2/products/${productId}/content-plans/${planId}`)
+      )
+    );
   },
 });
 
@@ -98,14 +119,21 @@ const createContentPlan = defineTool({
     product_id: z.number().int().optional(),
     name: z.string().min(1),
     description: z.string().optional(),
-    user_input: z.string().max(500).optional().describe('Guidance for the planner (themes, campaigns, constraints)'),
+    user_input: z
+      .string()
+      .max(500)
+      .optional()
+      .describe('Guidance for the planner (themes, campaigns, constraints)'),
   },
   annotations: mutating,
   handler: async (args, session) => {
     const productId = resolveProductId(args, session);
     requireStringArg(args, 'name');
     const plan = unwrapData<Row>(
-      await session.client.post(`/api/v2/products/${productId}/content-plans`, pick(args, ['name', 'description', 'user_input']))
+      await session.client.post(
+        `/api/v2/products/${productId}/content-plans`,
+        pick(args, ['name', 'description', 'user_input'])
+      )
     );
     return `Content plan created.\n${describePlan(plan)}\nNext: generate_content_plan(plan_id: ${String(plan.id)}, start_date, end_date).`;
   },
@@ -121,7 +149,10 @@ const generateContentPlan = defineTool({
     plan_id: z.number().int(),
     start_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
     end_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
-    platforms: z.array(z.string()).optional().describe('Subset of the connected channels, e.g. ["linkedin","blog"]'),
+    platforms: z
+      .array(z.string())
+      .optional()
+      .describe('Subset of the connected channels, e.g. ["linkedin","blog"]'),
     content_pillars: z.array(z.string()).optional(),
     total_posts: z.number().int().min(1).max(200).optional(),
     include_hashtags: z.boolean().optional(),
@@ -133,7 +164,14 @@ const generateContentPlan = defineTool({
     const result = unwrapData<Row>(
       await session.client.post(
         `/api/v2/products/${productId}/content-plans/${planId}/generate`,
-        pick(args, ['start_date', 'end_date', 'platforms', 'content_pillars', 'total_posts', 'include_hashtags'])
+        pick(args, [
+          'start_date',
+          'end_date',
+          'platforms',
+          'content_pillars',
+          'total_posts',
+          'include_hashtags',
+        ])
       )
     );
     return [
@@ -146,19 +184,23 @@ const generateContentPlan = defineTool({
 const getContentPlanStatus = defineTool({
   name: 'get_content_plan_status',
   title: 'Get content plan status',
-  description: 'Poll a generating content plan. When generation is done this call finalizes the plan and returns its posts.',
+  description:
+    'Poll a generating content plan. When generation is done this call finalizes the plan and returns its posts.',
   inputSchema: { plan_id: z.number().int(), product_id: z.number().int().optional() },
   annotations: readOnly,
   handler: async (args, session) => {
     const productId = resolveProductId(args, session);
     const planId = requireNumberArg(args, 'plan_id');
-    const status = unwrapData<Row>(await session.client.get(`/api/v2/products/${productId}/content-plans/${planId}/status`));
+    const status = unwrapData<Row>(
+      await session.client.get(`/api/v2/products/${productId}/content-plans/${planId}/status`)
+    );
     const head = fields([
       ['plan_id', planId],
       ['status', status.status],
       ['error', status.error],
     ]);
-    if (status.status === 'processing') return `${head}\nStill generating; poll again in a few seconds.`;
+    if (status.status === 'processing')
+      return `${head}\nStill generating; poll again in a few seconds.`;
     return `${head}\n${renderPosts(status.__meta)}`;
   },
 });
@@ -166,7 +208,8 @@ const getContentPlanStatus = defineTool({
 const listPlannedTopics = defineTool({
   name: 'list_planned_topics',
   title: 'List planned topics',
-  description: 'List the planned topics (calendar entries) of a product in a date window, with their status and generated content items.',
+  description:
+    'List the planned topics (calendar entries) of a product in a date window, with their status and generated content items.',
   inputSchema: {
     product_id: z.number().int().optional(),
     from: z.string().optional().describe('ISO date, inclusive'),
@@ -176,7 +219,12 @@ const listPlannedTopics = defineTool({
   handler: async (args, session) => {
     const productId = resolveProductId(args, session);
     const topics = asArray<Row>(
-      unwrapData(await session.client.get(`/api/v2/products/${productId}/planned-topics`, pick(args, ['from', 'to']) as Record<string, string>))
+      unwrapData(
+        await session.client.get(
+          `/api/v2/products/${productId}/planned-topics`,
+          pick(args, ['from', 'to']) as Record<string, string>
+        )
+      )
     );
     return listOrEmpty(
       `Planned topics (${topics.length}):`,
@@ -185,7 +233,9 @@ const listPlannedTopics = defineTool({
           typeof t.planned_at === 'string' ? t.planned_at.slice(0, 10) : undefined,
           typeof t.status === 'string' ? t.status : undefined,
           typeof t.pillar === 'string' ? `pillar: ${t.pillar}` : undefined,
-          Array.isArray(t.content_item_ids) && t.content_item_ids.length ? `content_item_ids: ${(t.content_item_ids as unknown[]).join(', ')}` : undefined,
+          Array.isArray(t.content_item_ids) && t.content_item_ids.length
+            ? `content_item_ids: ${(t.content_item_ids as unknown[]).join(', ')}`
+            : undefined,
         ])
       ),
       'No planned topics in this window.'
@@ -202,7 +252,9 @@ const getPlannedTopicBrief = defineTool({
   handler: async (args, session) => {
     const productId = resolveProductId(args, session);
     const topicId = requireNumberArg(args, 'topic_id');
-    const brief = unwrapData<unknown>(await session.client.get(`/api/v2/products/${productId}/planned-topics/${topicId}/brief`));
+    const brief = unwrapData<unknown>(
+      await session.client.get(`/api/v2/products/${productId}/planned-topics/${topicId}/brief`)
+    );
     return brief ? JSON.stringify(brief, null, 2) : 'No brief available for this topic.';
   },
 });

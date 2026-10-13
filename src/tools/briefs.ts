@@ -16,8 +16,17 @@ const CONTENT_TYPES = ['article', 'social_post', 'newsletter'] as const;
 const BRIEF_STATUSES = ['draft', 'ready', 'in_progress', 'completed'] as const;
 const LANGUAGES = ['en', 'bg', 'de'] as const;
 const BRIEF_FIELDS = [
-  'title', 'content_type', 'topic', 'target_audience', 'tone', 'key_messages', 'references', 'notes',
-  'channel_id', 'language', 'status',
+  'title',
+  'content_type',
+  'topic',
+  'target_audience',
+  'tone',
+  'key_messages',
+  'references',
+  'notes',
+  'channel_id',
+  'language',
+  'status',
 ] as const;
 
 function briefLine(brief: Row): string {
@@ -50,7 +59,8 @@ function describeBrief(brief: Row): string {
 const listBriefs = defineTool({
   name: 'list_briefs',
   title: 'List briefs',
-  description: 'List content briefs in the organization, optionally filtered by status or content type.',
+  description:
+    'List content briefs in the organization, optionally filtered by status or content type.',
   inputSchema: {
     status: z.enum([...BRIEF_STATUSES, 'failed']).optional(),
     content_type: z.enum(CONTENT_TYPES).optional(),
@@ -58,9 +68,18 @@ const listBriefs = defineTool({
   annotations: readOnly,
   handler: async (args, session) => {
     const briefs = asArray<Row>(
-      unwrapData(await session.client.get('/api/v2/briefs', pick(args, ['status', 'content_type']) as Record<string, string>))
+      unwrapData(
+        await session.client.get(
+          '/api/v2/briefs',
+          pick(args, ['status', 'content_type']) as Record<string, string>
+        )
+      )
     );
-    return listOrEmpty(`Briefs (${briefs.length}):`, briefs.map(briefLine), 'No briefs yet. Create one with create_brief.');
+    return listOrEmpty(
+      `Briefs (${briefs.length}):`,
+      briefs.map(briefLine),
+      'No briefs yet. Create one with create_brief.'
+    );
   },
 });
 
@@ -97,7 +116,13 @@ const createBrief = defineTool({
   handler: async (args, session) => {
     requireStringArg(args, 'title');
     const brief = unwrapData<Row>(
-      await session.client.post('/api/v2/briefs', pick(args, BRIEF_FIELDS.filter((f) => f !== 'status')))
+      await session.client.post(
+        '/api/v2/briefs',
+        pick(
+          args,
+          BRIEF_FIELDS.filter((f) => f !== 'status')
+        )
+      )
     );
     return `Brief created.\n${describeBrief(brief)}\nNext: generate_from_brief(brief_id: ${String(brief.id)}).`;
   },
@@ -106,7 +131,8 @@ const createBrief = defineTool({
 const updateBrief = defineTool({
   name: 'update_brief',
   title: 'Update brief',
-  description: 'Change a brief: text fields, status (draft/ready/in_progress/completed), channel or language. Only passed fields change.',
+  description:
+    'Change a brief: text fields, status (draft/ready/in_progress/completed), channel or language. Only passed fields change.',
   inputSchema: {
     brief_id: z.number().int(),
     title: z.string().optional(),
@@ -124,7 +150,9 @@ const updateBrief = defineTool({
   annotations: mutating,
   handler: async (args, session) => {
     const briefId = requireNumberArg(args, 'brief_id');
-    const brief = unwrapData<Row>(await session.client.put(`/api/v2/briefs/${briefId}`, pick(args, BRIEF_FIELDS)));
+    const brief = unwrapData<Row>(
+      await session.client.put(`/api/v2/briefs/${briefId}`, pick(args, BRIEF_FIELDS))
+    );
     return `Brief updated.\n${describeBrief(brief)}`;
   },
 });
@@ -167,7 +195,9 @@ const listBriefContentItems = defineTool({
   annotations: readOnly,
   handler: async (args, session) => {
     const briefId = requireNumberArg(args, 'brief_id');
-    const links = asArray<Row>(unwrapData(await session.client.get(`/api/v2/briefs/${briefId}/content-items`)));
+    const links = asArray<Row>(
+      unwrapData(await session.client.get(`/api/v2/briefs/${briefId}/content-items`))
+    );
     return listOrEmpty(
       `Content items linked to brief ${briefId}:`,
       links.map((l) => {

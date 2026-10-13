@@ -16,7 +16,8 @@ const organization: ResourceDefinition = {
   name: 'organization',
   uri: 'visibilio://organization',
   title: 'Current organization',
-  description: 'The authenticated user, the active organization and the active product of this session.',
+  description:
+    'The authenticated user, the active organization and the active product of this session.',
   mimeType: 'text/plain',
   read: async (session) =>
     fields([
@@ -39,9 +40,17 @@ const product: ResourceDefinition = {
   mimeType: 'application/json',
   read: async (session) => {
     if (session.productId === null) {
-      return JSON.stringify({ message: 'No active product. Call list_products, then set_active_product.' }, null, 2);
+      return JSON.stringify(
+        { message: 'No active product. Call list_products, then set_active_product.' },
+        null,
+        2
+      );
     }
-    return JSON.stringify(unwrapData<Row>(await session.client.get(`/api/v2/products/${session.productId}`)), null, 2);
+    return JSON.stringify(
+      unwrapData<Row>(await session.client.get(`/api/v2/products/${session.productId}`)),
+      null,
+      2
+    );
   },
 };
 
@@ -54,4 +63,8 @@ const knowledgeResources: ResourceDefinition[] = KNOWLEDGE_DOMAINS.map((domain) 
   read: async (session) => renderKnowledge(await readKnowledge(session, {}, domain), domain),
 }));
 
-export const allResources: readonly ResourceDefinition[] = [organization, product, ...knowledgeResources];
+export const allResources: readonly ResourceDefinition[] = [
+  organization,
+  product,
+  ...knowledgeResources,
+];

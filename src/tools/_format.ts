@@ -1,6 +1,11 @@
 export type Row = Record<string, unknown>;
 
-export function line(label: string, idKey: string, id: unknown, extras: ReadonlyArray<unknown>): string {
+export function line(
+  label: string,
+  idKey: string,
+  id: unknown,
+  extras: ReadonlyArray<unknown>
+): string {
   const details = extras
     .filter((value): value is string => typeof value === 'string' && value.length > 0)
     .join(', ');
@@ -27,7 +32,9 @@ export function listOrEmpty(heading: string, lines: readonly string[], empty: st
 }
 
 export function truncate(value: unknown, max = 160): string {
-  const text = String(value ?? '').replace(/\s+/g, ' ').trim();
+  const text = String(value ?? '')
+    .replace(/\s+/g, ' ')
+    .trim();
   return text.length <= max ? text : `${text.slice(0, max - 1)}…`;
 }
 
