@@ -294,12 +294,10 @@ export function buildHttpApp(options: HttpAppOptions): HttpApp {
       }
       console.error('[visibilio-mcp/http] sse error:', err);
       if (!res.headersSent) {
-        res
-          .status(500)
-          .json({
-            error: 'internal_error',
-            message: err instanceof Error ? err.message : 'unknown',
-          });
+        res.status(500).json({
+          error: 'internal_error',
+          message: err instanceof Error ? err.message : 'unknown',
+        });
       }
     }
   });
