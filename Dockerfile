@@ -12,7 +12,6 @@ RUN npm ci --no-audit --no-fund
 
 COPY tsconfig.json tsup.config.ts ./
 COPY src ./src
-COPY spec ./spec
 RUN npm run build
 
 FROM node:20-alpine
@@ -26,7 +25,6 @@ COPY --from=builder /app/package.json /app/package-lock.json ./
 RUN npm ci --omit=dev --no-audit --no-fund
 
 COPY --from=builder /app/dist ./dist
-COPY --from=builder /app/spec ./spec
 
 # Drop write perms on app code; runtime only reads.
 RUN chown -R app:app /app

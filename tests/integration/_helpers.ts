@@ -1,5 +1,5 @@
 import { vi } from 'vitest';
-import { McpAuth, type AuthContext } from '../../src/auth.js';
+import type { AuthContext } from '../../src/auth.js';
 import { VisibilioClient } from '../../src/client.js';
 import { McpSession } from '../../src/session.js';
 
@@ -37,17 +37,19 @@ export function buildSession(responses: MockResponse[], authOverrides?: Partial<
 
   const auth: AuthContext = {
     userId: 42,
+    email: 'owner@example.com',
+    name: 'Owner Example',
     organizationId: 7,
-    defaultProjectId: null,
-    subscriptionTier: 'pro',
-    scopes: ['mcp:read', 'mcp:write'],
+    organizations: [
+      { id: 7, name: 'Primary Org', role: 'owner' },
+      { id: 8, name: 'Second Org', role: 'member' },
+    ],
     ...authOverrides,
   };
 
   const client = new VisibilioClient({
-    backendUrl: 'https://backend.test',
     gatewayUrl: 'https://gateway.test',
-    userApiKey: 'vsk_mock',
+    credential: 'vsk_mock',
     fetch: fetchImpl as unknown as typeof fetch,
   });
 
@@ -62,4 +64,15 @@ export function pathMatcher(method: string, pathSubstring: string): MockResponse
   };
 }
 
-export { McpAuth };
+export function jsonBodyOf(call: { init?: RequestInit } | undefined): Record<string, unknown> {
+  if (!call?.init?.body) return {};
+  return JSON.parse(String(call.init.body)) as Record<string, unknown>;
+}
+
+export function findTool(name: string) {
+  return import('../../src/tools/index.js').then(({ allTools }) => {
+    const tool = allTools.find((t) => t.name === name);
+    if (!tool) throw new Error(`tool ${name} not registered`);
+    return tool;
+  });
+}

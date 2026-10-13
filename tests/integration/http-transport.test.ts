@@ -4,30 +4,9 @@ import { buildHttpApp } from '../../src/http-app.js';
 import type { BaseSettings } from '../../src/config.js';
 
 const baseSettings: BaseSettings = {
-  backendUrl: 'https://backend.test',
   gatewayUrl: 'https://gateway.test',
-  internalApiKey: undefined,
   timeoutMs: 30_000,
 };
-
-function buildOkAuthFetch(): typeof fetch {
-  return vi.fn(async (_url: string) => {
-    return {
-      ok: true,
-      status: 200,
-      headers: { get: () => null },
-      text: async () =>
-        JSON.stringify({
-          user_id: 42,
-          organization_id: 7,
-          default_project_id: null,
-          subscription_tier: 'pro',
-          scopes: ['mcp:read', 'mcp:write'],
-        }),
-      json: async () => ({}),
-    } as unknown as Response;
-  }) as unknown as typeof fetch;
-}
 
 function buildFailAuthFetch(status: number): typeof fetch {
   return vi.fn(async () => {
@@ -62,15 +41,15 @@ describe('HTTP transport — auth gate', () => {
     expect(challenge).toContain('/.well-known/oauth-protected-resource');
   });
 
-  it('GET /sse with non-vsk_ key → 401 invalid_api_key with WWW-Authenticate', async () => {
+  it('GET /sse with a non-vsk_/vat_ credential → 401 invalid_credential with WWW-Authenticate', async () => {
     const { app } = buildHttpApp({ baseSettings });
     const response = await request(app).get('/sse').set('Authorization', 'Bearer not_an_mcp_key');
     expect(response.status).toBe(401);
-    expect(response.body.error).toBe('invalid_api_key');
+    expect(response.body.error).toBe('invalid_credential');
     expect(response.headers['www-authenticate']).toContain('resource_metadata=');
   });
 
-  it('GET /sse with revoked key (backend 401) → 401 invalid_api_key', async () => {
+  it('GET /sse with a revoked key (gateway 401) → no session is registered', async () => {
     const { app } = buildHttpApp({ baseSettings, fetch: buildFailAuthFetch(401) });
     // SSE responses keep the connection open; supertest can hang. Abort after first chunk.
     const response = await request(app)
@@ -232,18 +211,5 @@ describe('HTTP transport — session lifecycle', () => {
       .post('/messages')
       .send({ jsonrpc: '2.0', method: 'tools/list', id: 1 });
     expect(response.status).toBe(404);
-  });
-});
-
-describe('HTTP transport — fetch wired through to backend', () => {
-  it('forwards X-API-Key header to backend resolve-key', async () => {
-    const fetchSpy = buildOkAuthFetch();
-    const { app, sessions } = buildHttpApp({ baseSettings, fetch: fetchSpy });
-    // Don't actually open the SSE — just confirm routes resolve. We assert that
-    // a real connection would have used the spy. Sessions stays empty until
-    // an SSE handshake completes; that's expected here.
-    const r = await request(app).get('/health');
-    expect(r.status).toBe(200);
-    expect(sessions.size).toBe(0);
   });
 });

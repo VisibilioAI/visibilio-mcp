@@ -10,7 +10,7 @@
 #   2. The bin script has the correct shebang and is executable
 #   3. The settings loader accepts the env vars
 #   4. The auth resolver is reachable (will fail with a clean error if the
-#      backend URL is unreachable from the container, which is fine — we
+#      gateway URL is unreachable from the container, which is fine — we
 #      only need to confirm the binary boots far enough to dial out)
 
 set -euo pipefail
@@ -27,7 +27,7 @@ docker pull node:18-alpine >/dev/null
 echo "→ Running smoke test in clean container..."
 docker run --rm \
   -e VISIBILIO_API_KEY="$VISIBILIO_API_KEY" \
-  -e VISIBILIO_BACKEND_URL="${VISIBILIO_BACKEND_URL:-https://api.visibilio.ai}" \
+  -e VISIBILIO_GATEWAY_URL="${VISIBILIO_GATEWAY_URL:-https://visibilio-api-gateway-prod.vercel.app}" \
   node:18-alpine \
   sh -c '
     set -e

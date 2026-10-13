@@ -5,7 +5,6 @@ on:
     branches: [main]
     paths:
       - 'src/**'
-      - 'spec/**'
       - 'Dockerfile'
       - 'package.json'
       - 'package-lock.json'
@@ -36,13 +35,11 @@ jobs:
       GCP_REGION: europe-west1
       SERVICE_NAME: ${{ github.event.inputs.target == 'staging' && 'visibilio-mcp-staging' || 'visibilio-mcp-prod' }}
       MAX_INSTANCES: ${{ github.event.inputs.target == 'staging' && '3' || '10' }}
-      # Real upstream URLs for the Cloud Run service. The `*.visibilio.ai` aliases
-      # are not yet provisioned (NXDOMAIN), so we hardcode the actual *.run.app /
-      # *.vercel.app endpoints. Re-point to the alias when DNS lands.
-      BACKEND_URL: ${{ github.event.inputs.target == 'staging' && 'https://visibilio-ai-backend-952474168989.europe-central2.run.app' || 'https://visibilio-ai-backend-prod-952474168989.europe-central2.run.app' }}
+      # The MCP server talks only to the gateway (with the caller's own credential).
+      # The *.visibilio.ai aliases for the gateway are not provisioned, so the
+      # real *.vercel.app hosts are used.
       GATEWAY_URL: ${{ github.event.inputs.target == 'staging' && 'https://visibilio-api-gateway-v2-staging.vercel.app' || 'https://visibilio-api-gateway-prod.vercel.app' }}
       FRONTEND_URL: ${{ github.event.inputs.target == 'staging' && 'https://visibilio-frontend-v2-staging.vercel.app' || 'https://visibilio-frontend-prod.vercel.app' }}
-      OAUTH_CLIENT_ID: vco_adc0e9cc5157d9bd08517a1513b5ea92
     steps:
       - uses: actions/checkout@v4
 
@@ -75,13 +72,8 @@ jobs:
             --service-account=github-actions@visibilio-ai-v2.iam.gserviceaccount.com
             --build-service-account=projects/visibilio-ai-v2/serviceAccounts/github-actions@visibilio-ai-v2.iam.gserviceaccount.com
           env_vars: |-
-            VISIBILIO_BACKEND_URL=${{ env.BACKEND_URL }}
             VISIBILIO_GATEWAY_URL=${{ env.GATEWAY_URL }}
             VISIBILIO_FRONTEND_URL=${{ env.FRONTEND_URL }}
-            VISIBILIO_OAUTH_CLIENT_ID=${{ env.OAUTH_CLIENT_ID }}
-          secrets: |-
-            VISIBILIO_OAUTH_CLIENT_SECRET=VISIBILIO_OAUTH_CLIENT_SECRET:latest
-            VISIBILIO_INTERNAL_API_KEY=VISIBILIO_AI_API_KEY:latest
 
       - name: Smoke-test /health
         run: |

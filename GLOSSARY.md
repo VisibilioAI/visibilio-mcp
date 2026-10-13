@@ -1,49 +1,47 @@
 # Glossary — visibilio-mcp
 
-Domain language used inside the MCP server. Names here are authoritative — code, tests, and tool schemas must match.
+Domain language used inside the MCP server. Names here are authoritative — code, tests and tool schemas must match. Platform terms (Product, ContentItem, Brief, ContentPlan, Audience, KnowledgeDomain, Channel, ContentHub, Signal, WorkflowExecution, `execution_id`) keep the meaning defined in the platform `GLOSSARY.md` of the meta repo.
 
-## Session
+## Credential
 
-A live MCP session bound to one `vsk_*` API key OR `vat_*` OAuth token. Holds the resolved `AuthContext`, the active project (if set via `set_active_project`), the active organization override (if set via `set_active_organization`), and the wire transport (stdio for `cli.ts`, SSE for `http.ts`). The session's `organizationId` getter returns the active-organization override when present and falls back to `auth.organizationId` otherwise — this lets a multi-org user switch context within a single MCP session without re-authorizing the connector. Switching the active organization clears the active project (project IDs are org-scoped).
+What a caller presents to prove who they are: a personal API key (`vsk_*`, generated in Settings → API Keys, scope `mcp`) or an OAuth access token (`vat_*`, issued by the gateway after the consent screen). Both are sent to the gateway as `Authorization: Bearer <credential>`; the gateway's `jwtAuth` resolves them into the same session claims a browser session would carry. The MCP server never inspects the credential beyond its prefix.
 
 ## AuthContext
 
-The resolved identity of the caller. Returned from the backend `/api/v2/auth/resolve-key` endpoint. Contains `userId`, `organizationId`, `defaultProjectId`, `subscriptionTier`, and (Phase 3+) `scopes`. Cached for the lifetime of the session.
+The resolved identity of the caller, obtained once per session from `GET /api/v2/auth/me`: `userId`, `email`, `name`, `organizationId` (the default organization) and `organizations` (every membership with its role). Cached for the lifetime of the session.
 
-## ToolDescriptor
+## Session
 
-The MCP-protocol metadata for a single tool: `name`, `description`, `inputSchema` (zod → JSON Schema). Registered with the MCP `Server` instance during startup. Visible to the LLM through `tools/list`.
+One authenticated MCP session: an `AuthContext`, a `VisibilioClient`, the active organization (switchable with `set_active_organization` among the memberships in the context) and the active product (set with `set_active_product`, cleared when the organization changes). Over Streamable HTTP a session is identified by the `Mcp-Session-Id` header and bound to the hash of the credential that created it; a request presenting another credential for that session id is rejected. Sessions live in the memory of one server instance; an unknown session id answers 404 so the client re-initializes.
 
-## ResourceUri
+## Active product
 
-The string identifier the LLM uses to read a resource. Format: `visibilio://{kind}/{slug}`. Example: `visibilio://current_organization`, `visibilio://knowledge/company_profile`. Resolved by handlers registered via `Server.setRequestHandler('resources/read')`.
+The product that product-scoped tools operate on when no `product_id` argument is passed. Every product-scoped tool accepts an optional `product_id` override, so a client can work without ever setting one.
 
-## TenantHeaders
+## ToolDefinition
 
-The HTTP headers required when calling the Visibilio backend on behalf of a session: `X-User-Id`, `X-Organization-Id`, `X-Project-Id` (when project is active). Built by `McpSession.buildTenantHeaders()`. Backend `tenant_middleware` rejects requests without them.
+The MCP-protocol metadata of one tool: `name`, `title`, `description`, `inputSchema` (a zod shape, converted to JSON Schema by the SDK), `annotations` (`readOnlyHint`, `destructiveHint`) and the `handler`. Handlers return plain text for the model; a `ToolError` or an upstream `HttpError` is rendered as an error message instead of failing the protocol call.
+
+## ToolError
+
+An expected, user-facing failure raised inside a handler (missing argument, no active product, not a member of the organization). Rendered as `Error: <message>`.
+
+## Resource
+
+A read-only document the client can load without calling a tool: `visibilio://organization` (session context), `visibilio://product` (the active product) and `visibilio://knowledge/{domain}` for the eight knowledge domains.
 
 ## VisibilioClient
 
-The HTTP adapter wrapping calls to the gateway (`gateway_*` methods, uses `vsk_*` key) and to the backend (`backend_*` methods, uses internal API key + tenant headers). Single shared instance per session.
+The HTTP adapter for the gateway: `get`, `post`, `put`, `patch`, `delete` with the credential as a bearer token, JSON bodies, a per-request timeout and retries with exponential backoff on 429 / 502 / 503 / 504 (`Retry-After` honoured).
 
-## RetryableError
+## Streamable HTTP
 
-An HTTP error class (429, 502, 503, 504) that triggers exponential backoff. Distinguished from non-retryable 4xx errors (400, 401, 403, 404) which propagate immediately. Status-specific initial delay — 503 gets longer than 429.
+The current MCP transport (`POST`/`GET`/`DELETE /mcp`, also served on `/sse` because existing connectors were registered with that path). The first `POST` must be an `initialize` request; the response carries `Mcp-Session-Id`. Responses are JSON. An unauthenticated request receives `401` with an RFC 6750 `WWW-Authenticate` challenge pointing at `/.well-known/oauth-protected-resource`, which is what lets claude.ai start the OAuth flow.
 
-## IntrospectionResult
+## Legacy SSE
 
-(Phase 7) The OAuth token introspection response from the gateway. Contains `active`, `sub`, `org_id`, `scope`, `exp`. MCP server calls introspection on every `Bearer vat_*` request and caches per token for ≤60s.
+The older transport (`GET /sse` opens the event stream, `POST /messages?sessionId=` sends requests). Kept for clients that have not moved to Streamable HTTP.
 
-## KnownOAuthClient
+## Generated output
 
-(Phase 7) An entry in the OAuth client registry that the gateway treats as pre-approved (no Dynamic Client Registration). Used for branding the consent screen ("Visibilio for Claude" vs generic "Application X is requesting access"). Anthropic Claude is pre-configured; future entries added via `KNOWN_OAUTH_CLIENTS` map.
-
-## Scope
-
-A capability granted to a session. Format: `mcp:read`, `mcp:write`, `mcp:admin`. Read-only sessions can `tools/list` write tools but cannot `tools/call` them — the dispatcher rejects with `ScopeError` before reaching the backend.
-
-## Workflow
-
-(Phase 2) A backend-driven asynchronous execution started via `POST /api/v2/workflow/start`, identified by an `execution_id`, polled at `GET /api/v2/workflow/{execution_id}/status` until it reaches a terminal state (`completed`, `failed`, `cancelled`, `error`). Tool handlers in the writer/strategy/research families delegate to the `runWorkflow` helper which encapsulates this start-poll-return contract. Writer agent selection is performed by the backend's workflow planner reading the natural-language `user_request` field (e.g. `"Write a LinkedIn post: ..."`); the MCP layer encodes this prefix per the `humanContentLabel` map in `_workflow.ts`. The MCP server only reads the workflow lifecycle — backend persists state, generates content, and returns `final_output` on completion. Defaults: `auto_confirm: true`, `async_mode: true`, 120-second poll deadline.
-
-⚠️ The `repurpose_targets` field on `WorkflowStartRequest` is for **cross-posting after primary generation**, not writer selection. It expects `list[RepurposeTargetRequest]` (objects of shape `{platform, content_type, remix_strategy}`); sending strings produces a 422 Pydantic validation error. The MCP server does not populate this field today.
+Text produced by a workflow (`start_workflow`, `generate_from_brief`, `generate_from_signal`) and returned by `get_workflow_status`. It is not a content item until `create_content_item` is called with `source_execution_id`, which the gateway treats idempotently per execution.

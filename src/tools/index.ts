@@ -1,29 +1,34 @@
-import { audienceTools } from './audience.js';
-import { briefingTools } from './briefing.js';
-import { contentTools } from './content.js';
-import { contentPlanTools } from './content-plans.js';
-import { imageTools } from './image.js';
-import { intelligenceTools } from './intelligence.js';
-import { knowledgeTools } from './knowledge.js';
-import { onboardingTools } from './onboarding.js';
-import { organizationTools } from './organization.js';
-import { strategyTools } from './strategy.js';
+import { contextTools } from './context.js';
+import { productTools } from './products.js';
+import { contentItemTools } from './content-items.js';
+import { briefTools } from './briefs.js';
 import { workflowTools } from './workflow.js';
+import { contentPlanTools } from './content-plans.js';
+import { audienceTools } from './audiences.js';
+import { knowledgeTools } from './knowledge.js';
+import { brandVoiceTools } from './brand-voice.js';
+import { publishingTools } from './publishing.js';
+import { signalTools } from './signals.js';
+import { overviewTools } from './overview.js';
+import { measurementTools } from './measurement.js';
+import { feedbackTools } from './feedback.js';
+import type { ToolDefinition } from './_define.js';
 
-import type { ToolDescriptor } from './_define.js';
-
-export const allTools: readonly ToolDescriptor[] = [
-  ...audienceTools,
-  ...briefingTools,
-  ...contentTools,
-  ...contentPlanTools,
-  ...imageTools,
-  ...intelligenceTools,
-  ...knowledgeTools,
-  ...onboardingTools,
-  ...organizationTools,
-  ...strategyTools,
+export const allTools: readonly ToolDefinition[] = [
+  ...contextTools,
+  ...productTools,
+  ...contentItemTools,
+  ...briefTools,
   ...workflowTools,
+  ...contentPlanTools,
+  ...audienceTools,
+  ...knowledgeTools,
+  ...brandVoiceTools,
+  ...publishingTools,
+  ...signalTools,
+  ...overviewTools,
+  ...measurementTools,
+  ...feedbackTools,
 ];
 
-export type { ToolDescriptor } from './_define.js';
+export type { ToolDefinition } from './_define.js';

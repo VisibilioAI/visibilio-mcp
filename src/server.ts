@@ -1,95 +1,90 @@
-import { Server } from '@modelcontextprotocol/sdk/server/index.js';
-import {
-  CallToolRequestSchema,
-  ListResourcesRequestSchema,
-  ListToolsRequestSchema,
-  ReadResourceRequestSchema,
-} from '@modelcontextprotocol/sdk/types.js';
-
+import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { McpAuth } from './auth.js';
 import { VisibilioClient } from './client.js';
 import { McpSession } from './session.js';
 import { loadSettings, type Settings } from './config.js';
 import { allTools } from './tools/index.js';
 import { allResources } from './resources/index.js';
+import { ToolError } from './tools/_define.js';
 
-const SERVER_NAME = '@visibilio/mcp';
-const SERVER_VERSION = '0.1.0';
+export const SERVER_NAME = '@visibilio/mcp';
+export const SERVER_VERSION = '0.2.0';
 
 export interface BuildServerOptions {
   settings?: Settings;
   fetch?: typeof fetch;
 }
 
-export async function buildServer(options: BuildServerOptions = {}): Promise<{
-  server: Server;
+export interface BuiltServer {
+  server: McpServer;
   session: McpSession;
-}> {
+}
+
+export async function buildServer(options: BuildServerOptions = {}): Promise<BuiltServer> {
   const settings = options.settings ?? loadSettings();
   const fetchImpl = options.fetch ?? globalThis.fetch;
 
   const auth = new McpAuth({
-    apiKey: settings.apiKey,
-    backendUrl: settings.backendUrl,
+    credential: settings.credential,
     gatewayUrl: settings.gatewayUrl,
-    oauthClientId: settings.oauthClientId,
-    oauthClientSecret: settings.oauthClientSecret,
     fetch: fetchImpl,
   });
-  const ctx = await auth.resolve();
+  const context = await auth.resolve();
 
   const client = new VisibilioClient({
-    backendUrl: settings.backendUrl,
     gatewayUrl: settings.gatewayUrl,
-    userApiKey: settings.apiKey,
-    internalApiKey: settings.internalApiKey,
+    credential: settings.credential,
     timeoutMs: settings.timeoutMs,
     fetch: fetchImpl,
   });
 
-  const session = new McpSession(ctx, client);
-  const server = new Server(
+  const session = new McpSession(context, client);
+  const server = new McpServer(
     { name: SERVER_NAME, version: SERVER_VERSION },
-    { capabilities: { tools: {}, resources: {} } }
+    {
+      instructions: [
+        'Visibilio is an AI content platform. Everything is scoped to an organization and a product.',
+        'Start with whoami; if no product is active, call list_products and set_active_product (or pass product_id).',
+        'Content tools create and edit content items; publishing tools push them to connected channels and hubs.',
+      ].join(' '),
+    }
   );
 
-  server.setRequestHandler(ListToolsRequestSchema, async () => ({
-    tools: allTools.map((t) => ({
-      name: t.name,
-      description: t.description,
-      inputSchema: t.inputSchema,
-    })),
-  }));
+  for (const tool of allTools) {
+    server.registerTool(
+      tool.name,
+      {
+        title: tool.title,
+        description: tool.description,
+        inputSchema: tool.inputSchema,
+        annotations: tool.annotations,
+      },
+      async (args: Record<string, unknown>) => {
+        try {
+          const text = await tool.handler(args ?? {}, session);
+          return { content: [{ type: 'text', text }] };
+        } catch (err) {
+          if (err instanceof ToolError) {
+            return { content: [{ type: 'text', text: `Error: ${err.message}` }], isError: true };
+          }
+          throw err;
+        }
+      }
+    );
+  }
 
-  server.setRequestHandler(CallToolRequestSchema, async (request) => {
-    const tool = allTools.find((t) => t.name === request.params.name);
-    if (!tool) {
-      throw new Error(`Unknown tool: ${request.params.name}`);
-    }
-    const args = (request.params.arguments ?? {}) as Record<string, unknown>;
-    const text = await tool.handler(args, session);
-    return {
-      content: [{ type: 'text', text }],
-    };
-  });
-
-  server.setRequestHandler(ListResourcesRequestSchema, async () => ({
-    resources: allResources.map((r) => ({
-      uri: r.uri,
-      name: r.name,
-      description: r.description,
-      mimeType: r.mimeType,
-    })),
-  }));
-
-  server.setRequestHandler(ReadResourceRequestSchema, async (request) => {
-    const resource = allResources.find((r) => r.uri === request.params.uri);
-    if (!resource) {
-      throw new Error(`Unknown resource: ${request.params.uri}`);
-    }
-    const result = await resource.read(session);
-    return { contents: [result] };
-  });
+  for (const resource of allResources) {
+    server.registerResource(
+      resource.name,
+      resource.uri,
+      { title: resource.title, description: resource.description, mimeType: resource.mimeType },
+      async (uri) => ({
+        contents: [
+          { uri: uri.href, mimeType: resource.mimeType, text: await resource.read(session) },
+        ],
+      })
+    );
+  }
 
   return { server, session };
 }

@@ -1,32 +1,50 @@
-import { HttpError } from '../client.js';
+export type Row = Record<string, unknown>;
 
-export function formatHttpError(prefix: string, err: unknown): string {
-  if (err instanceof HttpError) {
-    return `${prefix} (HTTP ${err.status}): ${describeBody(err.body)}`;
-  }
-  return `${prefix}: ${err instanceof Error ? err.message : String(err)}`;
+export function line(
+  label: string,
+  idKey: string,
+  id: unknown,
+  extras: ReadonlyArray<unknown>
+): string {
+  const details = extras
+    .filter((value): value is string => typeof value === 'string' && value.length > 0)
+    .join(', ');
+  return `- ${label} (${idKey}: ${String(id)})${details ? ` — ${details}` : ''}`;
 }
 
-function describeBody(body: unknown): string {
-  if (typeof body === 'string') return body;
-  if (body && typeof body === 'object') {
-    const obj = body as Record<string, unknown>;
-    if (typeof obj.error === 'string') return obj.error;
-    if (typeof obj.message === 'string') return obj.message;
-    if (typeof obj.detail === 'string') return obj.detail;
-  }
-  return JSON.stringify(body ?? null);
+export function field(name: string, value: unknown): string | null {
+  if (value === undefined || value === null || value === '') return null;
+  if (Array.isArray(value)) return value.length ? `${name}: ${value.join(', ')}` : null;
+  if (typeof value === 'object') return `${name}: ${JSON.stringify(value)}`;
+  return `${name}: ${String(value)}`;
 }
 
-export function requireString(args: Record<string, unknown>, key: string): string {
-  const value = args[key];
-  if (typeof value !== 'string' || value.length === 0) {
-    throw new Error(`Missing or invalid required argument: ${key}`);
-  }
-  return value;
+export function fields(entries: ReadonlyArray<[string, unknown]>): string {
+  return entries
+    .map(([name, value]) => field(name, value))
+    .filter((s): s is string => s !== null)
+    .join('\n');
 }
 
-export function optionalString(args: Record<string, unknown>, key: string): string | undefined {
-  const value = args[key];
-  return typeof value === 'string' && value.length > 0 ? value : undefined;
+export function listOrEmpty(heading: string, lines: readonly string[], empty: string): string {
+  if (lines.length === 0) return empty;
+  return `${heading}\n${lines.join('\n')}`;
+}
+
+export function truncate(value: unknown, max = 160): string {
+  const text = String(value ?? '')
+    .replace(/\s+/g, ' ')
+    .trim();
+  return text.length <= max ? text : `${text.slice(0, max - 1)}…`;
+}
+
+export function asArray<T = Row>(value: unknown): T[] {
+  return Array.isArray(value) ? (value as T[]) : [];
+}
+
+export function nameOf(row: Row): string {
+  for (const key of ['name', 'title', 'topic']) {
+    if (typeof row[key] === 'string' && (row[key] as string).length > 0) return row[key] as string;
+  }
+  return 'Untitled';
 }
