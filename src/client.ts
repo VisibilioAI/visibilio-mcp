@@ -1,14 +1,8 @@
-export interface TenantHeaders {
-  readonly 'X-User-Id': string;
-  readonly 'X-Organization-Id': string;
-  readonly 'X-Project-Id'?: string;
-}
+export type QueryParams = Record<string, string | number | boolean | undefined>;
 
 interface VisibilioClientOptions {
-  backendUrl: string;
   gatewayUrl: string;
-  userApiKey: string;
-  internalApiKey?: string;
+  credential: string;
   timeoutMs?: number;
   fetch?: typeof fetch;
 }
@@ -30,99 +24,55 @@ const BASE_DELAY_MS = 1000;
 const BREAKER_BASE_DELAY_MS = 2000;
 
 export class VisibilioClient {
-  private readonly backendUrl: string;
   private readonly gatewayUrl: string;
-  private readonly userApiKey: string;
-  private readonly internalApiKey: string | undefined;
+  private readonly credential: string;
   private readonly timeoutMs: number;
   private readonly fetchImpl: typeof fetch;
 
   constructor(options: VisibilioClientOptions) {
-    this.backendUrl = options.backendUrl.replace(/\/$/, '');
     this.gatewayUrl = options.gatewayUrl.replace(/\/$/, '');
-    this.userApiKey = options.userApiKey;
-    this.internalApiKey = options.internalApiKey;
+    this.credential = options.credential;
     this.timeoutMs = options.timeoutMs ?? 30_000;
     this.fetchImpl = options.fetch ?? globalThis.fetch;
   }
 
-  async backendGet(
-    path: string,
-    tenantHeaders: TenantHeaders,
-    params?: Record<string, string | number | undefined>
-  ): Promise<unknown> {
-    return this.request(
-      'GET',
-      this.backendUrl + path,
-      this.backendHeaders(tenantHeaders),
-      undefined,
-      params
-    );
+  get(path: string, params?: QueryParams): Promise<unknown> {
+    return this.request('GET', path, undefined, params);
   }
 
-  async backendPost(path: string, json: unknown, tenantHeaders: TenantHeaders): Promise<unknown> {
-    return this.request('POST', this.backendUrl + path, this.backendHeaders(tenantHeaders), json);
+  post(path: string, json?: unknown, params?: QueryParams): Promise<unknown> {
+    return this.request('POST', path, json ?? {}, params);
   }
 
-  async backendPut(path: string, json: unknown, tenantHeaders: TenantHeaders): Promise<unknown> {
-    return this.request('PUT', this.backendUrl + path, this.backendHeaders(tenantHeaders), json);
+  put(path: string, json: unknown): Promise<unknown> {
+    return this.request('PUT', path, json);
   }
 
-  async gatewayGet(
-    path: string,
-    params?: Record<string, string | number | undefined>
-  ): Promise<unknown> {
-    return this.request('GET', this.gatewayUrl + path, this.gatewayHeaders(), undefined, params);
+  patch(path: string, json: unknown): Promise<unknown> {
+    return this.request('PATCH', path, json);
   }
 
-  async gatewayPost(path: string, json: unknown): Promise<unknown> {
-    return this.request('POST', this.gatewayUrl + path, this.gatewayHeaders(), json);
-  }
-
-  async gatewayDelete(path: string): Promise<unknown> {
-    return this.request('DELETE', this.gatewayUrl + path, this.gatewayHeaders());
-  }
-
-  private backendHeaders(tenant: TenantHeaders): Record<string, string> {
-    const headers: Record<string, string> = {
-      'X-User-Id': tenant['X-User-Id'],
-      'X-Organization-Id': tenant['X-Organization-Id'],
-      Accept: 'application/json',
-    };
-    if (tenant['X-Project-Id']) headers['X-Project-Id'] = tenant['X-Project-Id'];
-    if (this.internalApiKey) headers['X-API-Key'] = this.internalApiKey;
-    return headers;
-  }
-
-  private gatewayHeaders(): Record<string, string> {
-    return {
-      'X-API-Key': this.userApiKey,
-      Accept: 'application/json',
-    };
+  delete(path: string, json?: unknown): Promise<unknown> {
+    return this.request('DELETE', path, json);
   }
 
   private async request(
     method: string,
-    url: string,
-    headers: Record<string, string>,
+    path: string,
     body?: unknown,
-    params?: Record<string, string | number | undefined>
+    params?: QueryParams
   ): Promise<unknown> {
-    if (params) {
-      const query = new URLSearchParams();
-      for (const [k, v] of Object.entries(params)) {
-        if (v !== undefined) query.set(k, String(v));
-      }
-      const qs = query.toString();
-      if (qs) url += (url.includes('?') ? '&' : '?') + qs;
-    }
-    const allHeaders = { ...headers };
+    const url = this.gatewayUrl + path + buildQuery(params);
+    const headers: Record<string, string> = {
+      Authorization: `Bearer ${this.credential}`,
+      Accept: 'application/json',
+    };
     let serializedBody: string | undefined;
     if (body !== undefined) {
       serializedBody = JSON.stringify(body);
-      allHeaders['Content-Type'] = 'application/json';
+      headers['Content-Type'] = 'application/json';
     }
-    return this.fetchWithBackoff(method, url, allHeaders, serializedBody, 0);
+    return this.fetchWithBackoff(method, url, headers, serializedBody, 0);
   }
 
   private async fetchWithBackoff(
@@ -142,8 +92,7 @@ export class VisibilioClient {
     }
 
     if (RETRYABLE_STATUSES.has(response.status) && attempt < MAX_RETRY_ATTEMPTS) {
-      const delay = computeBackoffDelay(response, attempt);
-      await sleep(delay);
+      await sleep(computeBackoffDelay(response, attempt));
       return this.fetchWithBackoff(method, url, headers, body, attempt + 1);
     }
 
@@ -156,12 +105,21 @@ export class VisibilioClient {
   }
 }
 
+function buildQuery(params?: QueryParams): string {
+  if (!params) return '';
+  const query = new URLSearchParams();
+  for (const [key, value] of Object.entries(params)) {
+    if (value !== undefined) query.set(key, String(value));
+  }
+  const qs = query.toString();
+  return qs ? `?${qs}` : '';
+}
+
 function computeBackoffDelay(response: Response, attempt: number): number {
   const retryAfterRaw = response.headers.get('Retry-After');
   const retryAfterMs = retryAfterRaw ? Number.parseInt(retryAfterRaw, 10) * 1000 : 0;
   const baseDelay = response.status === 503 ? BREAKER_BASE_DELAY_MS : BASE_DELAY_MS;
-  const expBackoff = baseDelay * Math.pow(2, attempt);
-  return Math.max(retryAfterMs, expBackoff);
+  return Math.max(retryAfterMs, baseDelay * Math.pow(2, attempt));
 }
 
 function sleep(ms: number): Promise<void> {

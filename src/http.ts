@@ -11,14 +11,11 @@ async function main(): Promise<void> {
     console.error(`[visibilio-mcp/http] listening on :${PORT}`);
   });
 
-  // Cloud Run sends SIGTERM on scale-down; drain sessions then exit.
   const shutdown = async (signal: string) => {
-    console.error(
-      `[visibilio-mcp/http] received ${signal}, draining ${sessions.size} session(s)...`
-    );
+    console.error(`[visibilio-mcp/http] received ${signal}, draining ${sessions.size} session(s)...`);
     server.close();
-    for (const transport of sessions.values()) {
-      await transport.close().catch(() => undefined);
+    for (const session of sessions.values()) {
+      await session.close().catch(() => undefined);
     }
     process.exit(0);
   };

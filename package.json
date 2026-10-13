@@ -1,7 +1,7 @@
 {
   "name": "@visibilio/mcp",
-  "version": "0.1.1",
-  "description": "MCP server for Visibilio AI content platform (TypeScript)",
+  "version": "0.2.0",
+  "description": "MCP server for the Visibilio AI content platform (Streamable HTTP + stdio, gateway-backed)",
   "type": "module",
   "bin": {
     "visibilio-mcp": "dist/cli.js"
@@ -10,7 +10,6 @@
   "types": "dist/server.d.ts",
   "files": [
     "dist",
-    "spec",
     "README.md",
     "GLOSSARY.md",
     "LICENSE"
@@ -28,7 +27,7 @@
     "prepublishOnly": "npm run build"
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.0.0",
+    "@modelcontextprotocol/sdk": "^1.32.1",
     "express": "^4.21.0",
     "zod": "^3.23.0"
   },

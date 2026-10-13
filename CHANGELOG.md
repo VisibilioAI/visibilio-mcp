@@ -1,5 +1,27 @@
 # Changelog
 
+## 0.2.0 — 2026-10-13
+
+Rebirth: the server now mirrors today's Visibilio and actually connects.
+
+### Fixed
+
+- **Every session failed at startup.** Identity was resolved through the backend `/api/v2/auth/resolve-key`, which has returned 500 (`column organizations.subscription_tier does not exist`) for every key. Identity now comes from the gateway `GET /api/v2/auth/me` with the caller's own credential.
+- **claude.ai could not connect.** The hosted server only spoke legacy SSE; claude.ai probes with a Streamable HTTP `POST`, got 404 and never started OAuth. `POST|GET|DELETE /mcp` (and `/sse`) now implement Streamable HTTP with proper `401` + `WWW-Authenticate` challenges; legacy SSE stays available.
+- **Gateway-backed tools answered 401.** Requires gateway hotfix `jwtAuth accepts vsk_/vat_ bearer credentials`; the server no longer sends `X-API-Key` or tenant headers.
+
+### Changed
+
+- The gateway is the only upstream. `VISIBILIO_BACKEND_URL`, `VISIBILIO_INTERNAL_API_KEY`, `VISIBILIO_OAUTH_CLIENT_ID/SECRET` are gone; `VISIBILIO_GATEWAY_URL` defaults to the production gateway.
+- The tool surface is rewritten against the current platform (products instead of projects, content items, briefs, content plans, audiences, knowledge, brand voice, publishing, signals, review, measurement, AI visibility): 89 tools with typed input schemas and read/write annotations, 10 resources. The 2026-05 bytecode-derived spec and its 20 `NotImplementedError` stubs are removed.
+- Sessions are bound to the credential hash; `set_active_organization` validates membership; every product-scoped tool accepts a `product_id` override.
+- `@modelcontextprotocol/sdk` 1.32.
+
+### Removed
+
+- Backend-direct writer tools (`write_linkedin_post` …): use `start_workflow` / `generate_from_brief` / `generate_from_signal`, then `create_content_item(source_execution_id)`.
+- `spec/mcp-tools.json`.
+
 ## 0.1.1 — 2026-05-05
 
 License correction. The npm metadata for `0.1.0` shipped as `UNLICENSED` because the artifact was built minutes before the proprietary → MIT switch. No code changes between `0.1.0` and `0.1.1` — bump exists only so the published tarball carries the correct `MIT` license string.

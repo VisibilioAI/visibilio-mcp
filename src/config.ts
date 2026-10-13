@@ -1,22 +1,17 @@
 import { z } from 'zod';
 
+const CREDENTIAL_PATTERN = /^(vsk_|vat_)/;
+const CREDENTIAL_MESSAGE = 'Credential must start with vsk_ or vat_ (personal API key or OAuth access token)';
+const DEFAULT_GATEWAY_URL = 'https://visibilio-api-gateway-prod.vercel.app';
+
 const baseSchema = z.object({
-  backendUrl: z.string().url(),
   gatewayUrl: z.string().url(),
-  // Browser-facing FE host. Used as the authorization_endpoint in
-  // RFC 8414 metadata (browser navigates here to consent screen).
   frontendUrl: z.string().url().optional(),
-  internalApiKey: z.string().optional(),
   timeoutMs: z.number().int().positive().default(30_000),
-  // OAuth introspection client credentials. When set, the MCP server
-  // will resolve Bearer vat_* tokens via /api/v2/oauth/introspect on
-  // the gateway. Without these, only vsk_* API keys work.
-  oauthClientId: z.string().optional(),
-  oauthClientSecret: z.string().optional(),
 });
 
 const settingsSchema = baseSchema.extend({
-  apiKey: z.string().regex(/^(vsk_|vat_)/, 'API key must start with vsk_ or vat_'),
+  credential: z.string().regex(CREDENTIAL_PATTERN, CREDENTIAL_MESSAGE),
 });
 
 export type BaseSettings = z.infer<typeof baseSchema>;
@@ -24,13 +19,9 @@ export type Settings = z.infer<typeof settingsSchema>;
 
 function readBase(env: NodeJS.ProcessEnv) {
   return {
-    backendUrl: env.VISIBILIO_BACKEND_URL ?? 'https://api.visibilio.ai',
-    gatewayUrl: env.VISIBILIO_GATEWAY_URL ?? 'https://gateway.visibilio.ai',
+    gatewayUrl: env.VISIBILIO_GATEWAY_URL ?? DEFAULT_GATEWAY_URL,
     frontendUrl: env.VISIBILIO_FRONTEND_URL,
-    internalApiKey: env.VISIBILIO_INTERNAL_API_KEY,
     timeoutMs: env.VISIBILIO_TIMEOUT_MS ? Number(env.VISIBILIO_TIMEOUT_MS) : undefined,
-    oauthClientId: env.VISIBILIO_OAUTH_CLIENT_ID,
-    oauthClientSecret: env.VISIBILIO_OAUTH_CLIENT_SECRET,
   };
 }
 
@@ -38,22 +29,17 @@ function formatIssues(error: z.ZodError): string {
   return error.issues.map((i) => `  • ${i.path.join('.')}: ${i.message}`).join('\n');
 }
 
-/**
- * Stdio mode: requires VISIBILIO_API_KEY in env.
- */
 export function loadSettings(env: NodeJS.ProcessEnv = process.env): Settings {
-  const parsed = settingsSchema.safeParse({ ...readBase(env), apiKey: env.VISIBILIO_API_KEY });
+  if (!env.VISIBILIO_API_KEY) {
+    throw new Error('VISIBILIO_API_KEY is required (a vsk_ API key or a vat_ OAuth access token)');
+  }
+  const parsed = settingsSchema.safeParse({ ...readBase(env), credential: env.VISIBILIO_API_KEY });
   if (!parsed.success) {
     throw new Error(`Invalid Visibilio MCP configuration:\n${formatIssues(parsed.error)}`);
   }
   return parsed.data;
 }
 
-/**
- * HTTP mode: API key comes from per-request Authorization header,
- * not from process env. This validates only the backend/gateway URLs
- * and timeout at startup.
- */
 export function loadBaseSettings(env: NodeJS.ProcessEnv = process.env): BaseSettings {
   const parsed = baseSchema.safeParse(readBase(env));
   if (!parsed.success) {
@@ -62,13 +48,10 @@ export function loadBaseSettings(env: NodeJS.ProcessEnv = process.env): BaseSett
   return parsed.data;
 }
 
-/**
- * Build full Settings from base + a runtime API key (used per-request in HTTP mode).
- */
-export function withApiKey(base: BaseSettings, apiKey: string): Settings {
-  const parsed = settingsSchema.safeParse({ ...base, apiKey });
+export function withCredential(base: BaseSettings, credential: string): Settings {
+  const parsed = settingsSchema.safeParse({ ...base, credential });
   if (!parsed.success) {
-    throw new Error(`Invalid API key:\n${formatIssues(parsed.error)}`);
+    throw new Error(`Invalid credential:\n${formatIssues(parsed.error)}`);
   }
   return parsed.data;
 }
