@@ -83,7 +83,7 @@ function describeItem(item: Row, includeBody: boolean): string {
   return `${head}\n\nBody:\n${String(item.body ?? '')}`;
 }
 
-async function fetchItem(session: McpSession, itemId: number): Promise<Row> {
+export async function fetchItem(session: McpSession, itemId: number): Promise<Row> {
   return unwrapData<Row>(await session.client.get(`/api/v2/content-items/${itemId}`));
 }
 
