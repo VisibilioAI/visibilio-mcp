@@ -109,6 +109,23 @@ describe('products', () => {
     expect(text).toMatch(/not a member/);
     expect(session.organizationId).toBe(7);
   });
+
+  it('every gateway call carries the active organization as X-Organization-Id', async () => {
+    const products = {
+      match: pathMatcher('GET', '/api/v2/products'),
+      body: { data: [PRODUCT], total: 1 },
+    };
+    const { session, calls } = buildSession([products, products]);
+
+    await (await findTool('list_products')).handler({}, session);
+    await (await findTool('set_active_organization')).handler({ organization_id: 8 }, session);
+    await (await findTool('list_products')).handler({}, session);
+
+    const headerOf = (call: { init?: RequestInit } | undefined) =>
+      (call?.init?.headers as Record<string, string>)['X-Organization-Id'];
+    expect(headerOf(calls[0])).toBe('7');
+    expect(headerOf(calls[1])).toBe('8');
+  });
 });
 
 describe('audiences', () => {

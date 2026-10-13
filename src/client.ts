@@ -28,12 +28,17 @@ export class VisibilioClient {
   private readonly credential: string;
   private readonly timeoutMs: number;
   private readonly fetchImpl: typeof fetch;
+  private activeOrganizationId: number | null = null;
 
   constructor(options: VisibilioClientOptions) {
     this.gatewayUrl = options.gatewayUrl.replace(/\/$/, '');
     this.credential = options.credential;
     this.timeoutMs = options.timeoutMs ?? 30_000;
     this.fetchImpl = options.fetch ?? globalThis.fetch;
+  }
+
+  setActiveOrganization(organizationId: number | null): void {
+    this.activeOrganizationId = organizationId;
   }
 
   get(path: string, params?: QueryParams): Promise<unknown> {
@@ -67,6 +72,9 @@ export class VisibilioClient {
       Authorization: `Bearer ${this.credential}`,
       Accept: 'application/json',
     };
+    if (this.activeOrganizationId !== null) {
+      headers['X-Organization-Id'] = String(this.activeOrganizationId);
+    }
     let serializedBody: string | undefined;
     if (body !== undefined) {
       serializedBody = JSON.stringify(body);

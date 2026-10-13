@@ -15,6 +15,7 @@ export class McpSession {
     public readonly client: VisibilioClient
   ) {
     this.activeOrganizationId = auth.organizationId;
+    client.setActiveOrganization(auth.organizationId);
   }
 
   get userId(): number {
@@ -50,6 +51,7 @@ export class McpSession {
     }
     this.activeOrganizationId = id;
     this.activeProduct = null;
+    this.client.setActiveOrganization(id);
     return membership;
   }
 

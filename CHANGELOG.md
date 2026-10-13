@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.2.1 — 2026-10-13
+
+### Fixed
+
+- **`set_active_organization` changed nothing but the label.** Every gateway call ran in the organization the credential was created in, so `list_products` and every other tool showed the same products whichever organization was active. The server now sends `X-Organization-Id` with every request. Requires the gateway hotfix `jwtAuth honours X-Organization-Id for vsk_/vat_ credentials`; the gateway verifies membership and answers 403 for any other organization.
+
 ## 0.2.0 — 2026-10-13
 
 Rebirth: the server now mirrors today's Visibilio and actually connects.

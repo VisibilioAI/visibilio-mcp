@@ -8,7 +8,7 @@ import { allResources } from './resources/index.js';
 import { ToolError } from './tools/_define.js';
 
 export const SERVER_NAME = '@visibilio/mcp';
-export const SERVER_VERSION = '0.2.0';
+export const SERVER_VERSION = '0.2.1';
 
 export interface BuildServerOptions {
   settings?: Settings;
