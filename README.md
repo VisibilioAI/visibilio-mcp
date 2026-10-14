@@ -12,6 +12,8 @@ The same URL works in Claude Desktop, Claude mobile, Claude Code (`claude mcp ad
 
 **ChatGPT:** Settings → Apps → Advanced settings → Developer mode, then Settings → Apps → Create with the same URL and OAuth. Full tool access needs a Business, Enterprise or Edu workspace; Pro gets the read-only tools. Outside developer mode ChatGPT uses only `search` and `fetch`, which search the content items of the active organization and return them with citation URLs.
 
+**Codex (CLI, VS Code, Desktop):** `codex mcp add visibilio --url https://mcp.visibilio.ai/mcp`, then `codex mcp login visibilio` to sign in with OAuth. For a `vsk_` key instead, add `bearer_token_env_var = "VISIBILIO_API_KEY"` under `[mcp_servers.visibilio]` in `~/.codex/config.toml`. In the VS Code extension: gear → MCP servers → Add server → Streamable HTTP with the same URL. `codex mcp list` shows the result.
+
 ## Run locally (stdio)
 
 ```bash

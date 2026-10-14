@@ -14,6 +14,7 @@ Other clients:
 - **Cursor / any Streamable HTTP client:** server URL `https://mcp.visibilio.ai/mcp`; when the client asks for a token, paste a `vsk_` key (see below).
 - **Legacy SSE clients:** `https://mcp.visibilio.ai/sse`.
 - **ChatGPT:** Settings → Apps → Advanced settings → Developer mode (Business: admins only), then Settings → Apps → Create: name `Visibilio`, server URL `https://mcp.visibilio.ai/mcp`, authentication OAuth. Full tool access needs a Business, Enterprise or Edu workspace; Pro gets read-only tools; without developer mode ChatGPT uses only `search` and `fetch`.
+- **Codex (CLI, VS Code, Desktop):** `codex mcp add visibilio --url https://mcp.visibilio.ai/mcp`, then `codex mcp login visibilio` (OAuth). For a `vsk_` key, put `bearer_token_env_var = "VISIBILIO_API_KEY"` under `[mcp_servers.visibilio]` in `~/.codex/config.toml`. VS Code: gear → MCP servers → Add server → Streamable HTTP, same URL. Verify with `codex mcp list`.
 
 ## Option B — local stdio with an API key
 
