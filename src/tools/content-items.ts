@@ -135,6 +135,25 @@ const getContentItem = defineTool({
   },
 });
 
+function piecesOf(finalOutput: unknown): Row[] {
+  const steps = (finalOutput as Row | null | undefined)?.steps;
+  if (!steps || typeof steps !== 'object') return [];
+  return Object.values(steps as Row).flatMap((step) =>
+    asArray<Row>(((step as Row | null)?.output as Row | null | undefined)?.content_pieces)
+  );
+}
+
+async function aeoAssetsOfRun(
+  session: McpSession,
+  executionId: string,
+  title: unknown
+): Promise<unknown> {
+  const status = (await session.client.get(`/api/v2/workflow/${executionId}/status`)) as Row;
+  const pieces = piecesOf(status.final_output);
+  const saved = pieces.length === 1 ? pieces[0] : pieces.find((piece) => piece.title === title);
+  return saved?.aeo_assets ?? undefined;
+}
+
 const createContentItem = defineTool({
   name: 'create_content_item',
   title: 'Create content item',
@@ -183,8 +202,15 @@ const createContentItem = defineTool({
       'body_format',
       'source_execution_id',
     ]);
+    const sourceExecutionId = stringArg(args, 'source_execution_id');
+    const aeoAssets = sourceExecutionId
+      ? await aeoAssetsOfRun(session, sourceExecutionId, args.title)
+      : undefined;
     const item = unwrapData<Row>(
-      await session.client.post(`/api/v2/products/${productId}/content-items`, payload)
+      await session.client.post(`/api/v2/products/${productId}/content-items`, {
+        ...payload,
+        ...(aeoAssets !== undefined && { aeo_assets: aeoAssets }),
+      })
     );
     return `Content item created.\n${describeItem(item, false)}`;
   },

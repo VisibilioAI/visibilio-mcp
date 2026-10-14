@@ -102,6 +102,10 @@ describe('content items — writing', () => {
   it('create_content_item posts to the product-scoped route with the editorial fields', async () => {
     const { session, calls } = buildSession([
       {
+        match: pathMatcher('GET', '/api/v2/workflow/exec-1/status'),
+        body: { execution_id: 'exec-1', state: 'completed', final_output: { steps: {} } },
+      },
+      {
         match: pathMatcher('POST', '/api/v2/products/147/content-items'),
         status: 201,
         body: { data: { ...ITEM, id: 777 } },
@@ -125,7 +129,7 @@ describe('content items — writing', () => {
       session
     );
 
-    expect(jsonBodyOf(calls[0])).toEqual({
+    expect(jsonBodyOf(calls[1])).toEqual({
       type: 'article',
       title: 'Why MCP matters',
       body: '<p>Body text</p>',
@@ -136,6 +140,88 @@ describe('content items — writing', () => {
       source_execution_id: 'exec-1',
     });
     expect(text).toContain('content_item_id: 777');
+  });
+
+  const AEO_ASSETS = {
+    faqs: [{ question: 'What does it cost?', answer: 'From 29 990 EUR.' }],
+    summary_bullets: ['Plug-in hybrid', '83 km electric range'],
+    sources: [{ url: 'https://example.com/a', title: 'Review', publisher: 'example.com' }],
+  };
+
+  const completedRun = (pieces: Array<Record<string, unknown>>) => ({
+    execution_id: '544',
+    state: 'completed',
+    is_complete: true,
+    final_output: {
+      steps: { content_1: { output: { content_pieces: pieces } } },
+      steps_completed: 1,
+    },
+  });
+
+  it('create_content_item saving a workflow run keeps the FAQ, summary bullets and sources it generated', async () => {
+    const { session, calls } = buildSession([
+      {
+        match: pathMatcher('GET', '/api/v2/workflow/544/status'),
+        body: completedRun([
+          { title: 'Geely Starray EM-i', body: '<p>Body</p>', aeo_assets: AEO_ASSETS },
+        ]),
+      },
+      {
+        match: pathMatcher('POST', '/api/v2/products/147/content-items'),
+        status: 201,
+        body: { data: { ...ITEM, id: 778 } },
+      },
+    ]);
+    session.setActiveProduct(147, 'Visibilio');
+
+    await (
+      await findTool('create_content_item')
+    ).handler(
+      {
+        type: 'article',
+        title: 'Geely Starray EM-i: what 29 990 EUR buys',
+        body: '<p>Body</p>',
+        source_execution_id: '544',
+      },
+      session
+    );
+
+    expect(jsonBodyOf(calls[1])).toMatchObject({
+      source_execution_id: '544',
+      aeo_assets: AEO_ASSETS,
+    });
+  });
+
+  it('create_content_item takes the assets of the piece it saves when the run produced several', async () => {
+    const { session, calls } = buildSession([
+      {
+        match: pathMatcher('GET', '/api/v2/workflow/544/status'),
+        body: completedRun([
+          { title: 'LinkedIn teaser', body: 'Short post', aeo_assets: null },
+          { title: 'Geely Starray EM-i', body: '<p>Body</p>', aeo_assets: AEO_ASSETS },
+        ]),
+      },
+      {
+        match: pathMatcher('POST', '/api/v2/products/147/content-items'),
+        status: 201,
+        body: { data: { ...ITEM, id: 779 } },
+      },
+    ]);
+    session.setActiveProduct(147, 'Visibilio');
+
+    await (
+      await findTool('create_content_item')
+    ).handler(
+      {
+        type: 'article',
+        title: 'Geely Starray EM-i',
+        body: '<p>Body</p>',
+        source_execution_id: '544',
+      },
+      session
+    );
+
+    expect(jsonBodyOf(calls[1])).toMatchObject({ aeo_assets: AEO_ASSETS });
   });
 
   it('update_content_item PUTs only the provided fields and marks the edit as agent-made', async () => {
