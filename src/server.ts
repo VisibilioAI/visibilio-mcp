@@ -1,5 +1,5 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import { McpAuth } from './auth.js';
+import { McpAuth, type AuthContext } from './auth.js';
 import { VisibilioClient } from './client.js';
 import { McpSession, type SessionContext } from './session.js';
 import { loadSettings, type Settings } from './config.js';
@@ -8,13 +8,13 @@ import { allResources } from './resources/index.js';
 import { ToolError, toCallToolResult } from './tools/_define.js';
 
 export const SERVER_NAME = '@visibilio/mcp';
-export const SERVER_VERSION = '0.2.4';
+export const SERVER_VERSION = '0.2.5';
 
 export interface BuildServerOptions {
   settings?: Settings;
   fetch?: typeof fetch;
-  initialContext?: SessionContext;
-  onContextChange?: (context: SessionContext) => void;
+  contextFor?: (auth: AuthContext) => SessionContext | undefined;
+  onContextChange?: (auth: AuthContext, context: SessionContext) => void;
 }
 
 export interface BuiltServer {
@@ -41,8 +41,8 @@ export async function buildServer(options: BuildServerOptions = {}): Promise<Bui
   });
 
   const session = new McpSession(context, client, {
-    initialContext: options.initialContext,
-    onContextChange: options.onContextChange,
+    initialContext: options.contextFor?.(context),
+    onContextChange: (next) => options.onContextChange?.(context, next),
   });
   const server = new McpServer(
     { name: SERVER_NAME, version: SERVER_VERSION },

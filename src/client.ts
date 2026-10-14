@@ -25,7 +25,7 @@ const BREAKER_BASE_DELAY_MS = 2000;
 
 export class VisibilioClient {
   private readonly gatewayUrl: string;
-  private readonly credential: string;
+  private credential: string;
   private readonly timeoutMs: number;
   private readonly fetchImpl: typeof fetch;
   private activeOrganizationId: number | null = null;
@@ -35,6 +35,11 @@ export class VisibilioClient {
     this.credential = options.credential;
     this.timeoutMs = options.timeoutMs ?? 30_000;
     this.fetchImpl = options.fetch ?? globalThis.fetch;
+  }
+
+  /** A renewed OAuth access token of the same user replaces the one this client was built with. */
+  setCredential(credential: string): void {
+    this.credential = credential;
   }
 
   setActiveOrganization(organizationId: number | null): void {

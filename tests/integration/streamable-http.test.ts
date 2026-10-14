@@ -141,8 +141,8 @@ describe('Streamable HTTP transport — session lifecycle', () => {
     expect(fetchImpl).toHaveBeenCalledTimes(1);
   });
 
-  it('a request with a session id but a different credential → 401 (session ids are not bearer tokens)', async () => {
-    const fetchImpl = gatewayFetch({ '/api/v2/auth/me': { body: ME } });
+  it("a request with a session id but another user's credential → 401 (session ids are not bearer tokens)", async () => {
+    const fetchImpl = gatewayFetchByUser({ vsk_valid: ME, vsk_other: OTHER_USER });
     const { app } = buildHttpApp({ baseSettings, fetch: fetchImpl });
     const { sessionId } = await initialize(app);
 
@@ -229,8 +229,20 @@ describe('Streamable HTTP transport — a new session resumes where the same cre
     expect(whoami).toContain('product_id: 284');
   });
 
-  it('another credential still starts in its own default organization', async () => {
+  it('a renewed token of the same user resumes there too (the context belongs to the user, not the token)', async () => {
     const fetchImpl = gatewayFetch({ '/api/v2/auth/me': { body: ME_TWO_ORGS } });
+    const { app } = buildHttpApp({ baseSettings, fetch: fetchImpl });
+    const first = await initializeAs(app, 'vat_old');
+    await callTool(app, first, 'vat_old', 'set_active_organization', { organization_id: 206 });
+
+    const renewed = await initializeAs(app, 'vat_new');
+    const whoami = await callTool(app, renewed, 'vat_new', 'whoami', {});
+
+    expect(whoami).toContain('organization_id: 206');
+  });
+
+  it("another user's credential still starts in its own default organization", async () => {
+    const fetchImpl = gatewayFetchByUser({ vsk_valid: ME_TWO_ORGS, vsk_other: OTHER_USER });
     const { app } = buildHttpApp({ baseSettings, fetch: fetchImpl });
     const first = await initializeAs(app, 'vsk_valid');
     await callTool(app, first, 'vsk_valid', 'set_active_organization', { organization_id: 206 });
@@ -239,6 +251,92 @@ describe('Streamable HTTP transport — a new session resumes where the same cre
     const whoami = await callTool(app, other, 'vsk_other', 'whoami', {});
 
     expect(whoami).toContain('organization_id: 158');
+  });
+});
+
+const OTHER_USER = {
+  user: { id: 99, email: 'other@example.com', name: 'Other User' },
+  organizations: [{ id: 158, name: 'Visibilio', role: 'member' }],
+  default_organization_id: 158,
+};
+
+function gatewayFetchByUser(usersByCredential: Record<string, unknown>): typeof fetch {
+  return vi.fn(async (url: string, init?: RequestInit) => {
+    const path = new URL(url).pathname;
+    const bearer = String(
+      (init?.headers as Record<string, string> | undefined)?.Authorization ?? ''
+    ).replace(/^Bearer /, '');
+    const me = usersByCredential[bearer];
+    const status =
+      path === '/api/v2/auth/me' ? (me ? 200 : 401) : path === '/api/v2/products' ? 200 : 404;
+    const body =
+      path === '/api/v2/auth/me'
+        ? (me ?? { error: 'Unauthorized' })
+        : path === '/api/v2/products'
+          ? { data: [] }
+          : {};
+    return {
+      ok: status >= 200 && status < 300,
+      status,
+      headers: { get: () => null },
+      text: async () => JSON.stringify(body),
+      json: async () => body,
+    } as unknown as Response;
+  }) as unknown as typeof fetch;
+}
+
+describe('Streamable HTTP transport — an OAuth token refresh does not end the session', () => {
+  it('a renewed token of the same user keeps the session and is used for the gateway from then on', async () => {
+    const fetchImpl = gatewayFetchByUser({ vat_old: ME_TWO_ORGS, vat_new: ME_TWO_ORGS });
+    const { app } = buildHttpApp({ baseSettings, fetch: fetchImpl });
+    const sessionId = await initializeAs(app, 'vat_old');
+    await callTool(app, sessionId, 'vat_old', 'set_active_organization', { organization_id: 206 });
+
+    const response = await post(app, '/mcp')
+      .set('Authorization', 'Bearer vat_new')
+      .set('Mcp-Session-Id', sessionId)
+      .send({
+        jsonrpc: '2.0',
+        id: 4,
+        method: 'tools/call',
+        params: { name: 'list_products', arguments: {} },
+      });
+
+    expect(response.status).toBe(200);
+    const calls = (fetchImpl as unknown as ReturnType<typeof vi.fn>).mock.calls as Array<
+      [string, RequestInit]
+    >;
+    const productsCall = calls.filter(([url]) => url.endsWith('/api/v2/products')).at(-1);
+    expect((productsCall?.[1].headers as Record<string, string>).Authorization).toBe(
+      'Bearer vat_new'
+    );
+    expect((productsCall?.[1].headers as Record<string, string>)['X-Organization-Id']).toBe('206');
+  });
+
+  it("a different user's credential on an existing session is still refused with 401", async () => {
+    const fetchImpl = gatewayFetchByUser({ vsk_valid: ME_TWO_ORGS, vsk_other: OTHER_USER });
+    const { app } = buildHttpApp({ baseSettings, fetch: fetchImpl });
+    const sessionId = await initializeAs(app, 'vsk_valid');
+
+    const response = await post(app, '/mcp')
+      .set('Authorization', 'Bearer vsk_other')
+      .set('Mcp-Session-Id', sessionId)
+      .send({ jsonrpc: '2.0', id: 4, method: 'tools/list', params: {} });
+
+    expect(response.status).toBe(401);
+  });
+
+  it('a credential the gateway rejects on an existing session is refused with 401', async () => {
+    const fetchImpl = gatewayFetchByUser({ vsk_valid: ME_TWO_ORGS });
+    const { app } = buildHttpApp({ baseSettings, fetch: fetchImpl });
+    const sessionId = await initializeAs(app, 'vsk_valid');
+
+    const response = await post(app, '/mcp')
+      .set('Authorization', 'Bearer vsk_expired')
+      .set('Mcp-Session-Id', sessionId)
+      .send({ jsonrpc: '2.0', id: 4, method: 'tools/list', params: {} });
+
+    expect(response.status).toBe(401);
   });
 });
 
