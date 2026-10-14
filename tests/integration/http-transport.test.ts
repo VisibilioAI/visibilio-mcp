@@ -115,7 +115,7 @@ describe('HTTP transport — RFC 8414 authorization-server metadata (MCP-host)',
     );
   });
 
-  it('authorization_endpoint points at the FE consent screen when frontendUrl is set', async () => {
+  it('authorization_endpoint stays on the issuer origin even when frontendUrl is set (Codex refuses a foreign origin)', async () => {
     const { app } = buildHttpApp({
       baseSettings: { ...baseSettings, frontendUrl: 'https://app.test' },
     });
@@ -123,7 +123,25 @@ describe('HTTP transport — RFC 8414 authorization-server metadata (MCP-host)',
       .get('/.well-known/oauth-authorization-server')
       .set('host', 'mcp.test')
       .set('x-forwarded-proto', 'https');
-    expect(response.body.authorization_endpoint).toBe('https://app.test/oauth/consent');
+    expect(response.body.authorization_endpoint).toBe('https://mcp.test/oauth/authorize');
+  });
+
+  it('GET /oauth/authorize redirects to the FE consent screen with the query string intact', async () => {
+    const { app } = buildHttpApp({
+      baseSettings: { ...baseSettings, frontendUrl: 'https://app.test/' },
+    });
+    const query =
+      'response_type=code&client_id=vco_x&redirect_uri=http%3A%2F%2F127.0.0.1%3A1455%2Fcallback&state=abc&code_challenge=xyz&code_challenge_method=S256&scope=mcp%3Aread';
+    const response = await request(app).get(`/oauth/authorize?${query}`);
+    expect(response.status).toBe(302);
+    expect(response.headers.location).toBe(`https://app.test/oauth/consent?${query}`);
+  });
+
+  it('GET /oauth/authorize without a configured frontend answers 503', async () => {
+    const { app } = buildHttpApp({ baseSettings });
+    const response = await request(app).get('/oauth/authorize?client_id=vco_x');
+    expect(response.status).toBe(503);
+    expect(response.body.error).toBe('consent_screen_not_configured');
   });
 });
 

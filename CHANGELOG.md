@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.2.3 — 2026-10-14
+
+### Fixed
+
+- **Codex could not sign in:** `codex mcp login` failed with "OAuth authorization endpoint origin does not match the authorization server origin without issuer-bound callbacks", because the metadata advertised the consent screen on the app's origin. `authorization_endpoint` is now `https://mcp.visibilio.ai/oauth/authorize` on the issuer's origin, which redirects to the consent screen in the app with the query string intact.
+
 ## 0.2.2 — 2026-10-13
 
 ### Added
