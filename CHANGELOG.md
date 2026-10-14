@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.2.4 — 2026-10-14
+
+### Fixed
+
+- **The active organization and product no longer vanish mid-conversation.** Every re-initialized session (server restart, scale-out, a client that opens a new session per turn) used to start in the credential's home organization, so tools suddenly answered 404 for the product the user had chosen. The server now remembers the last active organization and product per credential and restores them, membership permitting.
+- **A run that produced nothing is reported as such.** `get_workflow_status` used to dump `{"steps": {}}` for a completed execution with no steps; it now says the request could not be planned and how to rephrase it.
+
 ## 0.2.3 — 2026-10-14
 
 ### Fixed

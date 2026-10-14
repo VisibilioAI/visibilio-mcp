@@ -3,6 +3,7 @@ import express, { type Express, type Request, type Response } from 'express';
 import { SSEServerTransport } from '@modelcontextprotocol/sdk/server/sse.js';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import { buildServer } from './server.js';
+import type { SessionContext } from './session.js';
 import { withCredential, type BaseSettings, type Settings } from './config.js';
 import { AuthenticationError } from './auth.js';
 import { SERVER_NAME, SERVER_VERSION } from './server.js';
@@ -34,6 +35,14 @@ export function buildHttpApp(options: HttpAppOptions): HttpApp {
   const httpFetch: typeof fetch = fetchImpl ?? globalThis.fetch.bind(globalThis);
 
   const sessions = new Map<string, LiveSession>();
+  // Last active organization and product per credential: a client that re-initializes
+  // (restart, scale-out, new conversation turn) resumes where it left off instead of
+  // silently falling back to the credential's home organization.
+  const contexts = new Map<string, SessionContext>();
+  const serverOptionsFor = (credentialHash: string) => ({
+    initialContext: contexts.get(credentialHash),
+    onContextChange: (context: SessionContext) => contexts.set(credentialHash, context),
+  });
   const streamableTransports = new Map<string, StreamableHTTPServerTransport>();
   const sseTransports = new Map<string, SSEServerTransport>();
 
@@ -224,7 +233,11 @@ export function buildHttpApp(options: HttpAppOptions): HttpApp {
 
     let built;
     try {
-      built = await buildServer({ settings, fetch: fetchImpl });
+      built = await buildServer({
+        settings,
+        fetch: fetchImpl,
+        ...serverOptionsFor(credentialHash),
+      });
     } catch (err) {
       if (err instanceof AuthenticationError) {
         rejectAuthenticationFailure(req, res, err);
@@ -280,7 +293,11 @@ export function buildHttpApp(options: HttpAppOptions): HttpApp {
     let transport: SSEServerTransport | undefined;
     try {
       transport = new SSEServerTransport('/messages', res);
-      const { server } = await buildServer({ settings, fetch: fetchImpl });
+      const { server } = await buildServer({
+        settings,
+        fetch: fetchImpl,
+        ...serverOptionsFor(hashCredential(settings.credential)),
+      });
       const id = transport.sessionId;
       const t = transport;
       sseTransports.set(id, t);

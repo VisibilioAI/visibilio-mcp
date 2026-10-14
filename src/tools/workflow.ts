@@ -18,6 +18,16 @@ function describePlan(plan: unknown): string | null {
   return `plan: ${steps.map((s) => String(s.agent_type ?? s.name ?? s.description ?? 'step')).join(' → ')}`;
 }
 
+function producedNothing(output: unknown): boolean {
+  if (output === null || output === undefined) return true;
+  if (typeof output !== 'object') return false;
+  const row = output as Row;
+  const steps = row.steps;
+  const stepsEmpty =
+    !!steps && typeof steps === 'object' && Object.keys(steps as object).length === 0;
+  return row.steps_completed === 0 || stepsEmpty;
+}
+
 function renderOutput(output: unknown): string {
   if (output === null || output === undefined) return '(no output)';
   if (typeof output === 'string') return output;
@@ -143,6 +153,14 @@ const getWorkflowStatus = defineTool({
     ]);
     if (status.state !== 'completed') {
       return `${head}\n${status.is_complete ? 'The run has ended.' : 'Still running; poll again in a few seconds.'}`;
+    }
+    if (producedNothing(status.final_output)) {
+      return [
+        head,
+        '',
+        'The run completed but produced nothing: Visibilio planned no steps for the request.',
+        'Rephrase with an explicit content type and topic, e.g. "Write an article about …" or "Write a LinkedIn post about …", then start again.',
+      ].join('\n');
     }
     return [
       head,
