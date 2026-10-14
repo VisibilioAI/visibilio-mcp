@@ -73,13 +73,10 @@ export function buildHttpApp(options: HttpAppOptions): HttpApp {
 
   app.get('/.well-known/oauth-authorization-server', (req: Request, res: Response) => {
     const self = ownOrigin(req);
-    const authEndpoint = baseSettings.frontendUrl
-      ? `${baseSettings.frontendUrl.replace(/\/$/, '')}/oauth/consent`
-      : `${self}/oauth/authorize`;
     res.setHeader('Cache-Control', 'public, max-age=300');
     res.json({
       issuer: self,
-      authorization_endpoint: authEndpoint,
+      authorization_endpoint: `${self}/oauth/authorize`,
       token_endpoint: `${self}/oauth/token`,
       registration_endpoint: `${self}/register`,
       revocation_endpoint: `${self}/oauth/revoke`,
@@ -117,6 +114,22 @@ export function buildHttpApp(options: HttpAppOptions): HttpApp {
       }
     };
   };
+  // Clients such as Codex refuse an authorization endpoint on another origin than the issuer
+  // unless the server supports issuer-bound callbacks (RFC 9207). The consent screen lives in
+  // the app, so the issuer-origin endpoint forwards the request there untouched.
+  app.get('/oauth/authorize', (req: Request, res: Response) => {
+    if (!baseSettings.frontendUrl) {
+      res.status(503).json({
+        error: 'consent_screen_not_configured',
+        message: 'VISIBILIO_FRONTEND_URL is not set on this server',
+      });
+      return;
+    }
+    const queryStart = req.originalUrl.indexOf('?');
+    const query = queryStart === -1 ? '' : req.originalUrl.slice(queryStart);
+    res.redirect(302, `${baseSettings.frontendUrl.replace(/\/$/, '')}/oauth/consent${query}`);
+  });
+
   app.post('/register', proxyToGateway('/api/v2/oauth/register'));
   app.post('/oauth/token', proxyToGateway('/api/v2/oauth/token'));
   app.post('/oauth/revoke', proxyToGateway('/api/v2/oauth/revoke'));
