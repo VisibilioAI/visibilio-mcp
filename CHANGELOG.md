@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.2.5 — 2026-10-14
+
+### Fixed
+
+- **An OAuth token refresh no longer ends the session.** Access tokens live one hour. When claude.ai renewed one, the server refused the renewed token on the existing session (it was bound to the token hash), the client re-ran the whole OAuth flow and opened a new session in the home organization: this is what "the session switched back to Verto Digital by itself" was. A renewed token of the same user now keeps the session and is used for the gateway from then on; another user's token is still refused.
+- The last organization and product are remembered **per user**, not per token, so even a brand-new session after re-authentication resumes where the user left off.
+
 ## 0.2.4 — 2026-10-14
 
 ### Fixed

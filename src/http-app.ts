@@ -5,7 +5,7 @@ import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/
 import { buildServer } from './server.js';
 import type { SessionContext } from './session.js';
 import { withCredential, type BaseSettings, type Settings } from './config.js';
-import { AuthenticationError } from './auth.js';
+import { AuthenticationError, McpAuth, type AuthContext } from './auth.js';
 import { SERVER_NAME, SERVER_VERSION } from './server.js';
 
 export interface HttpAppOptions {
@@ -15,7 +15,9 @@ export interface HttpAppOptions {
 
 export interface LiveSession {
   readonly kind: 'streamable' | 'sse';
-  readonly credentialHash: string;
+  readonly userId: number;
+  credentialHash: string;
+  rebind(credential: string, credentialHash: string): void;
   close(): Promise<void>;
 }
 
@@ -35,14 +37,23 @@ export function buildHttpApp(options: HttpAppOptions): HttpApp {
   const httpFetch: typeof fetch = fetchImpl ?? globalThis.fetch.bind(globalThis);
 
   const sessions = new Map<string, LiveSession>();
-  // Last active organization and product per credential: a client that re-initializes
-  // (restart, scale-out, new conversation turn) resumes where it left off instead of
-  // silently falling back to the credential's home organization.
-  const contexts = new Map<string, SessionContext>();
-  const serverOptionsFor = (credentialHash: string) => ({
-    initialContext: contexts.get(credentialHash),
-    onContextChange: (context: SessionContext) => contexts.set(credentialHash, context),
-  });
+  // Last active organization and product per user: a client that re-initializes (new
+  // session per turn, re-authentication after a token refresh, server restart) resumes
+  // where it left off instead of silently falling back to the home organization.
+  const contexts = new Map<number, SessionContext>();
+  const serverOptions = {
+    contextFor: (auth: AuthContext) => contexts.get(auth.userId),
+    onContextChange: (auth: AuthContext, context: SessionContext) =>
+      contexts.set(auth.userId, context),
+  };
+  const resolveUserId = async (settings: Settings): Promise<number> => {
+    const auth = new McpAuth({
+      credential: settings.credential,
+      gatewayUrl: settings.gatewayUrl,
+      fetch: fetchImpl,
+    });
+    return (await auth.resolve()).userId;
+  };
   const streamableTransports = new Map<string, StreamableHTTPServerTransport>();
   const sseTransports = new Map<string, SSEServerTransport>();
 
@@ -211,14 +222,29 @@ export function buildHttpApp(options: HttpAppOptions): HttpApp {
         return;
       }
       if (live.credentialHash !== credentialHash) {
-        setBearerChallenge(req, res, {
-          error: 'invalid_token',
-          description: 'Credential does not match the session',
-        });
-        res
-          .status(401)
-          .json({ error: 'invalid_credential', message: 'Credential does not match the session' });
-        return;
+        // OAuth access tokens expire hourly; a renewed token of the same user keeps the session.
+        let sameUser = false;
+        try {
+          sameUser = (await resolveUserId(settings)) === live.userId;
+        } catch (err) {
+          if (err instanceof AuthenticationError) {
+            rejectAuthenticationFailure(req, res, err);
+            return;
+          }
+          throw err;
+        }
+        if (!sameUser) {
+          setBearerChallenge(req, res, {
+            error: 'invalid_token',
+            description: 'Credential does not match the session',
+          });
+          res.status(401).json({
+            error: 'invalid_credential',
+            message: 'Credential does not match the session',
+          });
+          return;
+        }
+        live.rebind(settings.credential, credentialHash);
       }
       await transport.handleRequest(req, res, req.body);
       return;
@@ -233,11 +259,7 @@ export function buildHttpApp(options: HttpAppOptions): HttpApp {
 
     let built;
     try {
-      built = await buildServer({
-        settings,
-        fetch: fetchImpl,
-        ...serverOptionsFor(credentialHash),
-      });
+      built = await buildServer({ settings, fetch: fetchImpl, ...serverOptions });
     } catch (err) {
       if (err instanceof AuthenticationError) {
         rejectAuthenticationFailure(req, res, err);
@@ -255,11 +277,17 @@ export function buildHttpApp(options: HttpAppOptions): HttpApp {
       enableJsonResponse: true,
       onsessioninitialized: (id) => {
         streamableTransports.set(id, transport);
-        sessions.set(id, {
+        const live: LiveSession = {
           kind: 'streamable',
+          userId: built.session.userId,
           credentialHash,
+          rebind(credential, hash) {
+            built.session.client.setCredential(credential);
+            live.credentialHash = hash;
+          },
           close: () => transport.close(),
-        });
+        };
+        sessions.set(id, live);
       },
       onsessionclosed: (id) => {
         streamableTransports.delete(id);
@@ -293,25 +321,27 @@ export function buildHttpApp(options: HttpAppOptions): HttpApp {
     let transport: SSEServerTransport | undefined;
     try {
       transport = new SSEServerTransport('/messages', res);
-      const { server } = await buildServer({
-        settings,
-        fetch: fetchImpl,
-        ...serverOptionsFor(hashCredential(settings.credential)),
-      });
+      const built = await buildServer({ settings, fetch: fetchImpl, ...serverOptions });
       const id = transport.sessionId;
       const t = transport;
       sseTransports.set(id, t);
-      sessions.set(id, {
+      const live: LiveSession = {
         kind: 'sse',
+        userId: built.session.userId,
         credentialHash: hashCredential(settings.credential),
+        rebind(credential, hash) {
+          built.session.client.setCredential(credential);
+          live.credentialHash = hash;
+        },
         close: () => t.close(),
-      });
+      };
+      sessions.set(id, live);
       res.on('close', () => {
         sseTransports.delete(id);
         sessions.delete(id);
         void t.close().catch(() => undefined);
       });
-      await server.connect(transport);
+      await built.server.connect(transport);
     } catch (err) {
       if (transport) {
         sseTransports.delete(transport.sessionId);
