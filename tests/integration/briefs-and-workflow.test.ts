@@ -108,7 +108,7 @@ describe('workflow', () => {
         },
       },
     ]);
-    session.setActiveProduct(147, 'Visibilio');
+    await session.setActiveProduct(147, 'Visibilio');
 
     const text = await (
       await findTool('start_workflow')

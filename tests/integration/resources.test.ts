@@ -11,7 +11,7 @@ function resource(uri: string) {
 describe('resources', () => {
   it('visibilio://organization describes the user, the active organization and the active product', async () => {
     const { session } = buildSession([]);
-    session.setActiveProduct(147, 'Visibilio');
+    await session.setActiveProduct(147, 'Visibilio');
 
     const text = await resource('visibilio://organization').read(session);
 
@@ -28,7 +28,7 @@ describe('resources', () => {
         body: { data: { id: 147, name: 'Visibilio', description: 'AI content platform' } },
       },
     ]);
-    session.setActiveProduct(147, 'Visibilio');
+    await session.setActiveProduct(147, 'Visibilio');
 
     const text = await resource('visibilio://product').read(session);
 
@@ -57,7 +57,7 @@ describe('resources', () => {
         },
       },
     ]);
-    session.setActiveProduct(147, 'Visibilio');
+    await session.setActiveProduct(147, 'Visibilio');
 
     const text = await resource('visibilio://knowledge/market_intelligence').read(session);
 

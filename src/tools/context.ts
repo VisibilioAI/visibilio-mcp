@@ -94,7 +94,7 @@ const setActiveOrganization = defineTool({
         `You are not a member of organization ${organizationId}. Call list_organizations to see your organizations.`
       );
     }
-    const membership = session.setActiveOrganization(organizationId);
+    const membership = await session.setActiveOrganization(organizationId);
     return `Active organization set to ${membership.name || membership.id} (organization_id: ${membership.id}). Active product cleared — call list_products to pick one.`;
   },
 });
@@ -138,7 +138,7 @@ const setActiveProduct = defineTool({
       const product = unwrapData<ProductShape>(
         await session.client.get(`/api/v2/products/${productId}`)
       );
-      session.setActiveProduct(product.id, product.name ?? null);
+      await session.setActiveProduct(product.id, product.name ?? null);
       return `Active product set: ${product.name ?? 'Unnamed'} (product_id: ${product.id}). Product tools now default to it.`;
     } catch (err) {
       return describeError(`Could not activate product ${productId}`, err);

@@ -14,13 +14,13 @@ export interface SessionContext {
 
 interface McpSessionOptions {
   readonly initialContext?: SessionContext;
-  readonly onContextChange?: (context: SessionContext) => void;
+  readonly onContextChange?: (context: SessionContext) => Promise<void> | void;
 }
 
 export class McpSession {
   private activeOrganizationId: number;
   private activeProduct: ActiveProduct | null = null;
-  private readonly onContextChange: (context: SessionContext) => void;
+  private readonly onContextChange: (context: SessionContext) => Promise<void> | void;
 
   constructor(
     public readonly auth: AuthContext,
@@ -65,7 +65,7 @@ export class McpSession {
     return this.activeProduct?.id ?? null;
   }
 
-  setActiveOrganization(id: number): OrganizationMembership {
+  async setActiveOrganization(id: number): Promise<OrganizationMembership> {
     const membership = this.auth.organizations.find((org) => org.id === id);
     if (!membership) {
       throw new Error(
@@ -75,12 +75,12 @@ export class McpSession {
     this.activeOrganizationId = id;
     this.activeProduct = null;
     this.client.setActiveOrganization(id);
-    this.onContextChange(this.context);
+    await this.onContextChange(this.context);
     return membership;
   }
 
-  setActiveProduct(id: number, name: string | null = null): void {
+  async setActiveProduct(id: number, name: string | null = null): Promise<void> {
     this.activeProduct = { id, name };
-    this.onContextChange(this.context);
+    await this.onContextChange(this.context);
   }
 }

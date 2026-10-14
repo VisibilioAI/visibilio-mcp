@@ -6,6 +6,8 @@ import { buildServer } from './server.js';
 import type { SessionContext } from './session.js';
 import { withCredential, type BaseSettings, type Settings } from './config.js';
 import { AuthenticationError, McpAuth, type AuthContext } from './auth.js';
+import type { VisibilioClient } from './client.js';
+import { loadRememberedContext, rememberContext } from './remembered-context.js';
 import { SERVER_NAME, SERVER_VERSION } from './server.js';
 
 export interface HttpAppOptions {
@@ -38,13 +40,21 @@ export function buildHttpApp(options: HttpAppOptions): HttpApp {
 
   const sessions = new Map<string, LiveSession>();
   // Last active organization and product per user: a client that re-initializes (new
-  // session per turn, re-authentication after a token refresh, server restart) resumes
-  // where it left off instead of silently falling back to the home organization.
+  // session per turn, re-authentication after a token refresh) resumes where it left off
+  // instead of silently falling back to the home organization. The gateway keeps them
+  // too, so a fresh server after a restart resumes there as well (meta#785).
   const contexts = new Map<number, SessionContext>();
   const serverOptions = {
-    contextFor: (auth: AuthContext) => contexts.get(auth.userId),
-    onContextChange: (auth: AuthContext, context: SessionContext) =>
-      contexts.set(auth.userId, context),
+    contextFor: async (auth: AuthContext, client: VisibilioClient) =>
+      contexts.get(auth.userId) ?? (await loadRememberedContext(client)),
+    onContextChange: async (
+      auth: AuthContext,
+      client: VisibilioClient,
+      context: SessionContext
+    ) => {
+      contexts.set(auth.userId, context);
+      await rememberContext(client, context);
+    },
   };
   const resolveUserId = async (settings: Settings): Promise<number> => {
     const auth = new McpAuth({

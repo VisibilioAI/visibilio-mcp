@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.2.7 — 2026-10-14
+
+### Fixed
+
+- **A server restart no longer drops you into your home organization.** 0.2.5 remembered the last organization and product per user, but only in the server's memory, so every deploy or instance replacement forgot them and new sessions started in the home organization again; `get_workflow_status` then answered 404 for executions of the organization you had been working in. The gateway now keeps them (`GET` / `PUT /api/v2/mcp/context`): `set_active_organization` and `set_active_product` save the choice before they answer, and a session on a fresh server starts where the user left off, membership permitting. If the gateway cannot store the choice, the server behaves as before.
+
 ## 0.2.6 — 2026-10-14
 
 ### Fixed

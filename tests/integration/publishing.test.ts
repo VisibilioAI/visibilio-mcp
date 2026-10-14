@@ -40,7 +40,7 @@ describe('publishing — channels and social', () => {
         },
       },
     ]);
-    session.setActiveProduct(147, 'Visibilio');
+    await session.setActiveProduct(147, 'Visibilio');
 
     const text = await (await findTool('list_product_channels')).handler({}, session);
 
@@ -106,7 +106,7 @@ describe('publishing — hubs and schedules', () => {
         },
       },
     ]);
-    session.setActiveProduct(147, 'Visibilio');
+    await session.setActiveProduct(147, 'Visibilio');
 
     const text = await (await findTool('list_content_hubs')).handler({}, session);
 
@@ -194,7 +194,7 @@ describe('publishing — hubs and schedules', () => {
         },
       },
     ]);
-    session.setActiveProduct(147, 'Visibilio');
+    await session.setActiveProduct(147, 'Visibilio');
 
     const text = await (
       await findTool('list_schedules')
@@ -238,7 +238,7 @@ describe('publishing — hubs and schedules', () => {
         },
       },
     ]);
-    session.setActiveProduct(147, 'Visibilio');
+    await session.setActiveProduct(147, 'Visibilio');
 
     const text = await (
       await findTool('get_published_feed')

@@ -25,7 +25,7 @@ describe('content items — listing and reading', () => {
     const { session, calls } = buildSession([
       { match: pathMatcher('GET', '/api/v2/products/147/content-items'), body: { data: [ITEM] } },
     ]);
-    session.setActiveProduct(147, 'Visibilio');
+    await session.setActiveProduct(147, 'Visibilio');
 
     const text = await (
       await findTool('list_content_items')
@@ -48,7 +48,7 @@ describe('content items — listing and reading', () => {
     const { session, calls } = buildSession([
       { match: pathMatcher('GET', '/api/v2/products/9/content-items'), body: { data: [] } },
     ]);
-    session.setActiveProduct(147, 'Visibilio');
+    await session.setActiveProduct(147, 'Visibilio');
 
     const text = await (await findTool('list_content_items')).handler({ product_id: 9 }, session);
 
@@ -111,7 +111,7 @@ describe('content items — writing', () => {
         body: { data: { ...ITEM, id: 777 } },
       },
     ]);
-    session.setActiveProduct(147, 'Visibilio');
+    await session.setActiveProduct(147, 'Visibilio');
 
     const text = await (
       await findTool('create_content_item')
@@ -172,7 +172,7 @@ describe('content items — writing', () => {
         body: { data: { ...ITEM, id: 778 } },
       },
     ]);
-    session.setActiveProduct(147, 'Visibilio');
+    await session.setActiveProduct(147, 'Visibilio');
 
     await (
       await findTool('create_content_item')
@@ -207,7 +207,7 @@ describe('content items — writing', () => {
         body: { data: { ...ITEM, id: 779 } },
       },
     ]);
-    session.setActiveProduct(147, 'Visibilio');
+    await session.setActiveProduct(147, 'Visibilio');
 
     await (
       await findTool('create_content_item')

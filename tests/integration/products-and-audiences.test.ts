@@ -19,7 +19,7 @@ describe('products', () => {
         body: { data: [PRODUCT, { ...PRODUCT, id: 148, name: 'Kondevs' }], total: 2 },
       },
     ]);
-    session.setActiveProduct(148, 'Kondevs');
+    await session.setActiveProduct(148, 'Kondevs');
 
     const text = await (await findTool('list_products')).handler({}, session);
 
@@ -146,7 +146,7 @@ describe('audiences', () => {
         },
       },
     ]);
-    session.setActiveProduct(147, 'Visibilio');
+    await session.setActiveProduct(147, 'Visibilio');
 
     const text = await (await findTool('list_audiences')).handler({}, session);
 
@@ -164,7 +164,7 @@ describe('audiences', () => {
         body: { audience: { id: '10', name: 'CTOs', description: 'Technical buyers' } },
       },
     ]);
-    session.setActiveProduct(147, 'Visibilio');
+    await session.setActiveProduct(147, 'Visibilio');
 
     const text = await (
       await findTool('create_audience')
