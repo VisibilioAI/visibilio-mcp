@@ -1,6 +1,6 @@
 {
   "name": "@visibilio/mcp",
-  "version": "0.2.5",
+  "version": "0.2.6",
   "description": "MCP server for the Visibilio AI content platform (Streamable HTTP + stdio, gateway-backed)",
   "type": "module",
   "bin": {

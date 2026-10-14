@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.2.6 — 2026-10-14
+
+### Fixed
+
+- **Articles saved from a generation keep their FAQ, summary bullets and sources.** `create_content_item(source_execution_id)` sent only the fields the model passed, and it has no field for the answer-engine assets, so every article saved through MCP arrived without them although the run had generated them (prod item 4387: 5 FAQs, 5 bullets and 58 sources generated, none stored). The tool now reads the run and sends the saved piece's `aeo_assets`: the only piece, or the one whose title matches when the run produced several.
+
 ## 0.2.5 — 2026-10-14
 
 ### Fixed
