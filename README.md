@@ -56,7 +56,7 @@ Every tool is scoped to the active organization and product. Start with `whoami`
 
 Resources: `visibilio://organization`, `visibilio://product`, `visibilio://knowledge/{company_profile|market_intelligence|audience_data|content_strategy|historical_outputs|scoring_profile|hub_config|person_profile}`.
 
-Generated content (`start_workflow`, `generate_from_brief`, `generate_from_signal`) is returned by `get_workflow_status` and saved only when you call `create_content_item` with `source_execution_id` — the model decides what to keep.
+Generated content (`start_workflow`, `generate_from_brief`, `generate_from_signal`) is returned by `get_workflow_status`, which waits up to 40 seconds per call for a running execution to finish. It is saved only when you call `create_content_item` with `type` and `source_execution_id`; the title, text, SEO meta, FAQ and summary are taken from the run unless you pass your own — the model decides what to keep.
 
 ## Architecture
 

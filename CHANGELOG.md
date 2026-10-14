@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.2.8 — 2026-10-14
+
+### Changed
+
+- **Saving a generated piece no longer makes the model copy it.** `create_content_item(type, source_execution_id)` now takes the title, text, format, platform, excerpt, subtitle, SEO meta, FAQ and summary from the run; anything the model passes still wins. When a run produced several pieces, the title or platform picks one, and with neither the tool lists the pieces instead of guessing. Measured on prod item 4387: 31 seconds passed between the model seeing the finished run and the item being saved: time spent reading a 32 KB result and re-typing about 5,000 characters of HTML as tool arguments.
+- **`get_workflow_status` waits for a running execution**, up to 40 seconds per call, and answers as soon as it finishes. Models used to poll about once a minute, so a finished article sat unnoticed for up to that long. 40 seconds stays inside the 60-second request timeout MCP clients commonly use.
+- **A finished run is shown as its pieces**: title, platform, word count, FAQ, summary and source counts, and the text. The research payload (search queries, validation, the 58 source URLs of a typical article) is no longer dumped into the conversation; for item 4387 that was about 27 of the 32 KB.
+
 ## 0.2.7 — 2026-10-14
 
 ### Fixed

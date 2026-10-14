@@ -96,7 +96,7 @@ const generateFromSignal = defineTool({
   name: 'generate_from_signal',
   title: 'Generate from signal',
   description:
-    'Turn a signal into content (e.g. output_types ["linkedin_post","blog_article"]). Returns an execution id; poll get_workflow_status, then save with create_content_item(source_execution_id).',
+    'Turn a signal into content (e.g. output_types ["linkedin_post","blog_article"]). Returns an execution id; follow it with get_workflow_status, then save with create_content_item(type, source_execution_id).',
   inputSchema: {
     signal_id: z.number().int(),
     output_types: z
@@ -115,7 +115,7 @@ const generateFromSignal = defineTool({
         pick(args, ['output_types', 'additional_context', 'language'])
       )
     );
-    return `Generation started from signal ${signalId}: execution_id ${String(result.execution_id)} (${String(result.state)}). Poll get_workflow_status(execution_id).`;
+    return `Generation started from signal ${signalId}: execution_id ${String(result.execution_id)} (${String(result.state)}). Call get_workflow_status(execution_id) until it completes; each call waits up to 40 seconds.`;
   },
 });
 
