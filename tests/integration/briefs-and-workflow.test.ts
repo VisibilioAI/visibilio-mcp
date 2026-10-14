@@ -123,6 +123,30 @@ describe('workflow', () => {
     expect(text).toContain('running');
   });
 
+  it('get_workflow_status says plainly when a completed run produced nothing', async () => {
+    const { session } = buildSession([
+      {
+        match: pathMatcher('GET', '/api/v2/workflow/exec-9/status'),
+        body: {
+          execution_id: 'exec-9',
+          state: 'completed',
+          is_complete: true,
+          steps: [],
+          total_cost_usd: 0,
+          final_output: { steps: {}, steps_completed: 0, total_cost_usd: 0 },
+        },
+      },
+    ]);
+
+    const text = await (
+      await findTool('get_workflow_status')
+    ).handler({ execution_id: 'exec-9' }, session);
+
+    expect(text).toMatch(/produced nothing/i);
+    expect(text).toMatch(/rephrase|content type/i);
+    expect(text).not.toContain('create_content_item');
+  });
+
   it('get_workflow_status renders the final output and explains how to persist it', async () => {
     const { session } = buildSession([
       {

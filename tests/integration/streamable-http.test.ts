@@ -182,6 +182,66 @@ describe('Streamable HTTP transport — session lifecycle', () => {
   });
 });
 
+const ME_TWO_ORGS = {
+  ...ME,
+  organizations: [
+    { id: 158, name: 'Visibilio', role: 'owner' },
+    { id: 206, name: 'Dobra kola', role: 'admin' },
+  ],
+};
+
+async function initializeAs(app: ReturnType<typeof buildHttpApp>['app'], credential: string) {
+  const response = await post(app, '/mcp')
+    .set('Authorization', `Bearer ${credential}`)
+    .send(initializeRequest);
+  return response.headers['mcp-session-id'] as string;
+}
+
+async function callTool(
+  app: ReturnType<typeof buildHttpApp>['app'],
+  sessionId: string,
+  credential: string,
+  name: string,
+  args: Record<string, unknown>
+): Promise<string> {
+  const response = await post(app, '/mcp')
+    .set('Authorization', `Bearer ${credential}`)
+    .set('Mcp-Session-Id', sessionId)
+    .send({ jsonrpc: '2.0', id: 3, method: 'tools/call', params: { name, arguments: args } });
+  return response.body.result.content[0].text as string;
+}
+
+describe('Streamable HTTP transport — a new session resumes where the same credential left off', () => {
+  it('after set_active_organization and set_active_product, a re-initialized session starts there', async () => {
+    const fetchImpl = gatewayFetch({
+      '/api/v2/auth/me': { body: ME_TWO_ORGS },
+      '/api/v2/products/284': { body: { data: { id: 284, name: 'dobrakola.bg' } } },
+    });
+    const { app } = buildHttpApp({ baseSettings, fetch: fetchImpl });
+    const first = await initializeAs(app, 'vsk_valid');
+    await callTool(app, first, 'vsk_valid', 'set_active_organization', { organization_id: 206 });
+    await callTool(app, first, 'vsk_valid', 'set_active_product', { product_id: 284 });
+
+    const second = await initializeAs(app, 'vsk_valid');
+    const whoami = await callTool(app, second, 'vsk_valid', 'whoami', {});
+
+    expect(whoami).toContain('organization_id: 206');
+    expect(whoami).toContain('product_id: 284');
+  });
+
+  it('another credential still starts in its own default organization', async () => {
+    const fetchImpl = gatewayFetch({ '/api/v2/auth/me': { body: ME_TWO_ORGS } });
+    const { app } = buildHttpApp({ baseSettings, fetch: fetchImpl });
+    const first = await initializeAs(app, 'vsk_valid');
+    await callTool(app, first, 'vsk_valid', 'set_active_organization', { organization_id: 206 });
+
+    const other = await initializeAs(app, 'vsk_other');
+    const whoami = await callTool(app, other, 'vsk_other', 'whoami', {});
+
+    expect(whoami).toContain('organization_id: 158');
+  });
+});
+
 describe('Streamable HTTP transport — landing', () => {
   it('GET / describes the server instead of returning 404', async () => {
     const { app } = buildHttpApp({ baseSettings });
