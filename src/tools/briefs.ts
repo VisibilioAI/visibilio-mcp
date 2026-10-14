@@ -174,7 +174,7 @@ const generateFromBrief = defineTool({
   name: 'generate_from_brief',
   title: 'Generate from brief',
   description:
-    'Start AI generation for a brief (needs a topic or title). Returns an execution id; poll get_workflow_status, then save the result with create_content_item(source_execution_id).',
+    'Start AI generation for a brief (needs a topic or title). Returns an execution id; follow it with get_workflow_status, then save the result with create_content_item(type, source_execution_id).',
   inputSchema: { brief_id: z.number().int() },
   annotations: mutating,
   handler: async (args, session) => {
@@ -182,7 +182,7 @@ const generateFromBrief = defineTool({
     const result = unwrapData<Row>(await session.client.post(`/api/v2/briefs/${briefId}/generate`));
     return [
       `Generation started for brief ${briefId}: execution_id ${String(result.execution_id)} (status ${String(result.status)}).`,
-      `Poll get_workflow_status(execution_id: "${String(result.execution_id)}") until it completes (usually 1-3 minutes).`,
+      `Call get_workflow_status(execution_id: "${String(result.execution_id)}") until it completes; each call waits up to 40 seconds (an article usually takes 4-7 minutes, a post about 2).`,
     ].join('\n');
   },
 });

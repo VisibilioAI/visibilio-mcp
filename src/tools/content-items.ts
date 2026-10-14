@@ -9,10 +9,12 @@ import {
   requireNumberArg,
   resolveProductId,
   stringArg,
+  ToolError,
   unwrapData,
   type ToolDefinition,
 } from './_define.js';
 import { asArray, fields, line, listOrEmpty, nameOf, truncate, type Row } from './_format.js';
+import { pickPiece, piecesOf } from './_run.js';
 
 const CONTENT_TYPES = ['article', 'social_post', 'newsletter'] as const;
 const STATUSES = [
@@ -135,30 +137,44 @@ const getContentItem = defineTool({
   },
 });
 
-function piecesOf(finalOutput: unknown): Row[] {
-  const steps = (finalOutput as Row | null | undefined)?.steps;
-  if (!steps || typeof steps !== 'object') return [];
-  return Object.values(steps as Row).flatMap((step) =>
-    asArray<Row>(((step as Row | null)?.output as Row | null | undefined)?.content_pieces)
-  );
-}
+const GENERATED_FIELDS = [
+  'title',
+  'body',
+  'body_format',
+  'platform',
+  'excerpt',
+  'subtitle',
+  'seo_meta',
+  'aeo_assets',
+] as const;
 
-async function aeoAssetsOfRun(
+async function generatedFieldsOfRun(
   session: McpSession,
   executionId: string,
-  title: unknown
-): Promise<unknown> {
+  args: Record<string, unknown>
+): Promise<Row> {
   const status = (await session.client.get(`/api/v2/workflow/${executionId}/status`)) as Row;
   const pieces = piecesOf(status.final_output);
-  const saved = pieces.length === 1 ? pieces[0] : pieces.find((piece) => piece.title === title);
-  return saved?.aeo_assets ?? undefined;
+  const piece = pickPiece(pieces, { title: args.title, platform: args.platform });
+  if (!piece && pieces.length > 1 && args.body === undefined) {
+    const choices = pieces.map((p) => `${String(p.platform)}: "${String(p.title)}"`).join('; ');
+    throw new ToolError(
+      `Run ${executionId} produced ${pieces.length} pieces (${choices}). Pass the title or platform of the one to save.`
+    );
+  }
+  if (!piece) return {};
+  return Object.fromEntries(
+    GENERATED_FIELDS.filter(
+      (key) => args[key] === undefined && piece[key] !== undefined && piece[key] !== null
+    ).map((key) => [key, piece[key]])
+  );
 }
 
 const createContentItem = defineTool({
   name: 'create_content_item',
   title: 'Create content item',
   description:
-    'Create a content item in a product as a draft. Use it to save text you wrote, or to persist a generated workflow result by passing source_execution_id (idempotent per execution).',
+    'Create a content item in a product as a draft. Use it to save text you wrote, or to save a generated workflow result: pass type and source_execution_id, and the title, text, SEO meta, FAQ and summary come from the run unless you pass your own (idempotent per execution).',
   inputSchema: {
     product_id: z.number().int().optional().describe('Defaults to the active product'),
     type: z.enum(CONTENT_TYPES),
@@ -203,13 +219,13 @@ const createContentItem = defineTool({
       'source_execution_id',
     ]);
     const sourceExecutionId = stringArg(args, 'source_execution_id');
-    const aeoAssets = sourceExecutionId
-      ? await aeoAssetsOfRun(session, sourceExecutionId, args.title)
-      : undefined;
+    const generated = sourceExecutionId
+      ? await generatedFieldsOfRun(session, sourceExecutionId, args)
+      : {};
     const item = unwrapData<Row>(
       await session.client.post(`/api/v2/products/${productId}/content-items`, {
         ...payload,
-        ...(aeoAssets !== undefined && { aeo_assets: aeoAssets }),
+        ...generated,
       })
     );
     return `Content item created.\n${describeItem(item, false)}`;

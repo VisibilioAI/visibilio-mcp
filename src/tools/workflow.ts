@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import type { McpSession } from '../session.js';
 import {
   defineTool,
   destructive,
@@ -10,6 +11,7 @@ import {
   type ToolDefinition,
 } from './_define.js';
 import { asArray, fields, type Row } from './_format.js';
+import { piecesOf } from './_run.js';
 
 function describePlan(plan: unknown): string | null {
   if (!plan || typeof plan !== 'object') return null;
@@ -60,7 +62,7 @@ const startWorkflow = defineTool({
   name: 'start_workflow',
   title: 'Start workflow',
   description:
-    'Ask Visibilio to produce content from a natural-language request (e.g. "Write a LinkedIn post about our MCP launch"). The workflow planner picks the right writer and uses the product knowledge, brand voice and audiences. Returns an execution id to poll with get_workflow_status.',
+    'Ask Visibilio to produce content from a natural-language request (e.g. "Write a LinkedIn post about our MCP launch"). The workflow planner picks the right writer and uses the product knowledge, brand voice and audiences. Returns an execution id to follow with get_workflow_status.',
   inputSchema: {
     user_request: z.string().min(10).max(5000),
     product_id: z.number().int().optional().describe('Defaults to the active product'),
@@ -95,7 +97,7 @@ const startWorkflow = defineTool({
       result.requires_confirmation
         ? 'The plan awaits your confirmation: call confirm_workflow.'
         : null,
-      `Poll get_workflow_status(execution_id: "${String(result.execution_id)}") every few seconds until it completes.`,
+      `Call get_workflow_status(execution_id: "${String(result.execution_id)}") until it completes; each call waits up to 40 seconds.`,
     ]
       .filter((s): s is string => s !== null)
       .join('\n');
@@ -128,16 +130,60 @@ const confirmWorkflow = defineTool({
   },
 });
 
+const WAIT_BUDGET_MS = 40_000;
+const POLL_INTERVAL_MS = 4_000;
+
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+async function settledStatus(
+  session: McpSession,
+  executionId: string,
+  deadline: number
+): Promise<Row> {
+  const status = (await session.client.get(`/api/v2/workflow/${executionId}/status`)) as Row;
+  if (status.is_complete === true || Date.now() + POLL_INTERVAL_MS > deadline) return status;
+  await sleep(POLL_INTERVAL_MS);
+  return settledStatus(session, executionId, deadline);
+}
+
+function count(value: unknown): number {
+  return asArray(value).length;
+}
+
+function describePiece(piece: Row, index: number): string {
+  const assets = (piece.aeo_assets ?? {}) as Row;
+  return [
+    `Piece ${index + 1}: ${String(piece.title ?? 'Untitled')}`,
+    fields([
+      ['platform', piece.platform],
+      ['words', piece.word_count],
+      ['FAQ', count(assets.faqs)],
+      ['summary bullets', count(assets.summary_bullets)],
+      ['sources', count(assets.sources)],
+    ]),
+    '',
+    String(piece.body ?? ''),
+  ].join('\n');
+}
+
+function describePieces(pieces: readonly Row[], executionId: string): string {
+  return [
+    pieces.map(describePiece).join('\n\n'),
+    '',
+    `To keep a piece, call create_content_item(type, source_execution_id: "${executionId}"): its title, text, SEO meta, FAQ and summary come from the run.${pieces.length > 1 ? ' With several pieces, also pass the title or platform of the one to keep.' : ''}`,
+  ].join('\n');
+}
+
 const getWorkflowStatus = defineTool({
   name: 'get_workflow_status',
   title: 'Get workflow status',
   description:
-    'Check a workflow execution: state, progress, cost and (when completed) the generated output. Generated output is NOT saved automatically: persist it with create_content_item(source_execution_id).',
+    'Check a workflow execution: state, progress, cost and (when completed) the generated pieces. While the run is going, the call waits up to 40 seconds for it to finish, so call it again only when it says the run is still going. Generated output is NOT saved automatically: persist it with create_content_item(type, source_execution_id).',
   inputSchema: { execution_id: z.string() },
   annotations: readOnly,
   handler: async (args, session) => {
     const executionId = requireStringArg(args, 'execution_id');
-    const status = (await session.client.get(`/api/v2/workflow/${executionId}/status`)) as Row;
+    const status = await settledStatus(session, executionId, Date.now() + WAIT_BUDGET_MS);
     const head = fields([
       ['execution_id', status.execution_id ?? executionId],
       ['state', status.state],
@@ -152,7 +198,7 @@ const getWorkflowStatus = defineTool({
       ['error', status.error],
     ]);
     if (status.state !== 'completed') {
-      return `${head}\n${status.is_complete ? 'The run has ended.' : 'Still running; poll again in a few seconds.'}`;
+      return `${head}\n${status.is_complete ? 'The run has ended.' : 'Still running; call get_workflow_status again (it waits up to 40 seconds).'}`;
     }
     if (producedNothing(status.final_output)) {
       return [
@@ -161,6 +207,10 @@ const getWorkflowStatus = defineTool({
         'The run completed but produced nothing: Visibilio planned no steps for the request.',
         'Rephrase with an explicit content type and topic, e.g. "Write an article about …" or "Write a LinkedIn post about …", then start again.',
       ].join('\n');
+    }
+    const pieces = piecesOf(status.final_output);
+    if (pieces.length > 0) {
+      return [head, '', 'Output:', describePieces(pieces, executionId)].join('\n');
     }
     return [
       head,
