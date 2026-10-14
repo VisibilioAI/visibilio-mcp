@@ -19,7 +19,7 @@ describe('measurement', () => {
         },
       },
     ]);
-    session.setActiveProduct(147, 'Visibilio');
+    await session.setActiveProduct(147, 'Visibilio');
 
     const text = await (
       await findTool('get_measurement_overview')
@@ -42,7 +42,7 @@ describe('measurement', () => {
         body: { error: 'Not Found' },
       },
     ]);
-    session.setActiveProduct(147, 'Visibilio');
+    await session.setActiveProduct(147, 'Visibilio');
 
     const text = await (await findTool('get_measurement_overview')).handler({}, session);
 
@@ -66,7 +66,7 @@ describe('measurement', () => {
         },
       },
     ]);
-    session.setActiveProduct(147, 'Visibilio');
+    await session.setActiveProduct(147, 'Visibilio');
 
     const text = await (
       await findTool('list_measurement_recommendations')
@@ -101,7 +101,7 @@ describe('AI visibility (answer engine)', () => {
         },
       },
     ]);
-    session.setActiveProduct(147, 'Visibilio');
+    await session.setActiveProduct(147, 'Visibilio');
 
     const text = await (
       await findTool('get_ai_visibility_metrics')
@@ -136,7 +136,7 @@ describe('AI visibility (answer engine)', () => {
         },
       },
     ]);
-    session.setActiveProduct(147, 'Visibilio');
+    await session.setActiveProduct(147, 'Visibilio');
 
     const text = await (await findTool('list_ai_visibility_recommendations')).handler({}, session);
 
@@ -160,7 +160,7 @@ describe('AI visibility (answer engine)', () => {
         },
       },
     ]);
-    session.setActiveProduct(147, 'Visibilio');
+    await session.setActiveProduct(147, 'Visibilio');
 
     const text = await (
       await findTool('list_ai_visibility_answers')

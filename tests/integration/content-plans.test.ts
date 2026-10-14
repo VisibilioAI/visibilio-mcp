@@ -34,7 +34,7 @@ describe('content plans', () => {
     const { session, calls } = buildSession([
       { match: pathMatcher('GET', '/api/v2/products/147/content-plans'), body: { data: [PLAN] } },
     ]);
-    session.setActiveProduct(147, 'Visibilio');
+    await session.setActiveProduct(147, 'Visibilio');
 
     const text = await (
       await findTool('list_content_plans')
@@ -52,7 +52,7 @@ describe('content plans', () => {
     const { session } = buildSession([
       { match: pathMatcher('GET', '/api/v2/products/147/content-plans/12'), body: { data: PLAN } },
     ]);
-    session.setActiveProduct(147, 'Visibilio');
+    await session.setActiveProduct(147, 'Visibilio');
 
     const text = await (await findTool('get_content_plan')).handler({ plan_id: 12 }, session);
 
@@ -70,7 +70,7 @@ describe('content plans', () => {
         body: { data: { ...PLAN, id: 13, status: 'pending' } },
       },
     ]);
-    session.setActiveProduct(147, 'Visibilio');
+    await session.setActiveProduct(147, 'Visibilio');
 
     const text = await (
       await findTool('create_content_plan')
@@ -96,7 +96,7 @@ describe('content plans', () => {
         body: { data: { execution_id: 'exec-7', status: 'processing', message: 'started' } },
       },
     ]);
-    session.setActiveProduct(147, 'Visibilio');
+    await session.setActiveProduct(147, 'Visibilio');
 
     const text = await (
       await findTool('generate_content_plan')
@@ -134,7 +134,7 @@ describe('content plans', () => {
         },
       },
     ]);
-    session.setActiveProduct(147, 'Visibilio');
+    await session.setActiveProduct(147, 'Visibilio');
 
     const text = await (
       await findTool('get_content_plan_status')
@@ -162,7 +162,7 @@ describe('content plans', () => {
         },
       },
     ]);
-    session.setActiveProduct(147, 'Visibilio');
+    await session.setActiveProduct(147, 'Visibilio');
 
     const text = await (
       await findTool('list_planned_topics')

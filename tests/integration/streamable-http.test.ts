@@ -132,13 +132,17 @@ describe('Streamable HTTP transport — session lifecycle', () => {
     const fetchImpl = gatewayFetch({ '/api/v2/auth/me': { body: ME } });
     const { app } = buildHttpApp({ baseSettings, fetch: fetchImpl });
     const { sessionId } = await initialize(app);
+    const gatewayCalls = () =>
+      vi.mocked(fetchImpl).mock.calls.map(([url]) => new URL(String(url)).pathname);
+    const callsAfterInitialize = gatewayCalls().length;
 
     await post(app, '/mcp')
       .set('Authorization', 'Bearer vsk_valid')
       .set('Mcp-Session-Id', sessionId!)
       .send({ jsonrpc: '2.0', id: 2, method: 'tools/list', params: {} });
 
-    expect(fetchImpl).toHaveBeenCalledTimes(1);
+    expect(gatewayCalls().filter((path) => path === '/api/v2/auth/me')).toHaveLength(1);
+    expect(gatewayCalls()).toHaveLength(callsAfterInitialize);
   });
 
   it("a request with a session id but another user's credential → 401 (session ids are not bearer tokens)", async () => {
@@ -348,5 +352,114 @@ describe('Streamable HTTP transport — landing', () => {
 
     expect(response.status).toBe(200);
     expect(response.body).toMatchObject({ service: '@visibilio/mcp', mcp_endpoint: '/mcp' });
+  });
+});
+
+function respond(status: number, body: unknown): Response {
+  return {
+    ok: status >= 200 && status < 300,
+    status,
+    headers: { get: () => null },
+    text: async () => JSON.stringify(body),
+    json: async () => body,
+  } as unknown as Response;
+}
+
+function contextGateway(remembered: unknown, write: { status?: number; delayMs?: number } = {}) {
+  const writes: unknown[] = [];
+  const events: string[] = [];
+  const fetchImpl = vi.fn(async (url: string, init?: RequestInit) => {
+    const method = (init?.method ?? 'GET').toUpperCase();
+    const path = new URL(url).pathname;
+    if (path === '/api/v2/mcp/context' && method === 'PUT') {
+      await new Promise((resolve) => setTimeout(resolve, write.delayMs ?? 0));
+      writes.push(JSON.parse(String(init?.body)));
+      events.push('context written');
+      return respond(write.status ?? 200, { data: {} });
+    }
+    if (path === '/api/v2/mcp/context') {
+      return remembered === undefined
+        ? respond(404, { error: 'not_found' })
+        : respond(200, remembered);
+    }
+    if (path === '/api/v2/auth/me') return respond(200, ME_TWO_ORGS);
+    if (path === '/api/v2/products/284') {
+      return respond(200, { data: { id: 284, name: 'dobrakola.bg' } });
+    }
+    return respond(404, { error: 'not_found' });
+  }) as unknown as typeof fetch;
+  return { fetchImpl, writes, events };
+}
+
+describe('Streamable HTTP transport — the context outlives a server restart (meta#785)', () => {
+  it('a fresh server resumes the organization and product the gateway remembers', async () => {
+    const { fetchImpl } = contextGateway({
+      data: { organization_id: 206, product_id: 284, product_name: 'dobrakola.bg' },
+    });
+    const { app } = buildHttpApp({ baseSettings, fetch: fetchImpl });
+
+    const session = await initializeAs(app, 'vat_after_restart');
+    const whoami = await callTool(app, session, 'vat_after_restart', 'whoami', {});
+
+    expect(whoami).toContain('organization_id: 206');
+    expect(whoami).toContain('dobrakola.bg (product_id: 284)');
+  });
+
+  it('switching organization and product is saved with the gateway before the tool answers', async () => {
+    const { fetchImpl, writes, events } = contextGateway({ data: null }, { delayMs: 20 });
+    const { app } = buildHttpApp({ baseSettings, fetch: fetchImpl });
+    const session = await initializeAs(app, 'vsk_valid');
+
+    await callTool(app, session, 'vsk_valid', 'set_active_organization', { organization_id: 206 });
+    events.push('organization tool answered');
+    await callTool(app, session, 'vsk_valid', 'set_active_product', { product_id: 284 });
+    events.push('product tool answered');
+
+    expect(writes).toEqual([
+      { organization_id: 206, product_id: null },
+      { organization_id: 206, product_id: 284 },
+    ]);
+    expect(events).toEqual([
+      'context written',
+      'organization tool answered',
+      'context written',
+      'product tool answered',
+    ]);
+  });
+
+  it('a remembered organization the user has left is ignored', async () => {
+    const { fetchImpl } = contextGateway({
+      data: { organization_id: 999, product_id: null, product_name: null },
+    });
+    const { app } = buildHttpApp({ baseSettings, fetch: fetchImpl });
+
+    const session = await initializeAs(app, 'vsk_valid');
+    const whoami = await callTool(app, session, 'vsk_valid', 'whoami', {});
+
+    expect(whoami).toContain('organization_id: 158');
+  });
+
+  it('without the gateway route a session starts in the home organization, as before', async () => {
+    const { fetchImpl } = contextGateway(undefined);
+    const { app } = buildHttpApp({ baseSettings, fetch: fetchImpl });
+
+    const session = await initializeAs(app, 'vsk_valid');
+    const whoami = await callTool(app, session, 'vsk_valid', 'whoami', {});
+
+    expect(whoami).toContain('organization_id: 158');
+  });
+
+  it('a failed write does not undo the switch', async () => {
+    const { fetchImpl } = contextGateway({ data: null }, { status: 500 });
+    const { app } = buildHttpApp({ baseSettings, fetch: fetchImpl });
+    const session = await initializeAs(app, 'vsk_valid');
+
+    const answer = await callTool(app, session, 'vsk_valid', 'set_active_organization', {
+      organization_id: 206,
+    });
+    const whoami = await callTool(app, session, 'vsk_valid', 'whoami', {});
+
+    expect(answer).toContain('Active organization set to Dobra kola');
+    expect(whoami).toContain('organization_id: 206');
   });
 });

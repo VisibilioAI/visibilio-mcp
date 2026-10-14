@@ -22,7 +22,7 @@ describe('signals and sources', () => {
     const { session, calls } = buildSession([
       { match: pathMatcher('GET', '/api/v2/signals'), body: { data: [SIGNAL] } },
     ]);
-    session.setActiveProduct(147, 'Visibilio');
+    await session.setActiveProduct(147, 'Visibilio');
 
     const text = await (
       await findTool('list_signals')
@@ -88,7 +88,7 @@ describe('signals and sources', () => {
         body: { data: { items_found: 12, items_new: 3, source_id: 5 } },
       },
     ]);
-    session.setActiveProduct(147, 'Visibilio');
+    await session.setActiveProduct(147, 'Visibilio');
 
     const text = await (await findTool('scan_source')).handler({ source_id: 5 }, session);
 
@@ -138,7 +138,7 @@ describe('overview', () => {
         },
       },
     ]);
-    session.setActiveProduct(147, 'Visibilio');
+    await session.setActiveProduct(147, 'Visibilio');
 
     const text = await (await findTool('get_daily_briefing')).handler({}, session);
 
@@ -168,7 +168,7 @@ describe('overview', () => {
         },
       },
     ]);
-    session.setActiveProduct(147, 'Visibilio');
+    await session.setActiveProduct(147, 'Visibilio');
 
     const text = await (await findTool('get_review_queue')).handler({}, session);
 

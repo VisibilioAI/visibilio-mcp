@@ -17,7 +17,7 @@ describe('knowledge', () => {
         },
       },
     ]);
-    session.setActiveProduct(147, 'Visibilio');
+    await session.setActiveProduct(147, 'Visibilio');
 
     const text = await (
       await findTool('get_knowledge')
@@ -73,7 +73,7 @@ describe('knowledge', () => {
         },
       },
     ]);
-    session.setActiveProduct(147, 'Visibilio');
+    await session.setActiveProduct(147, 'Visibilio');
 
     const text = await (
       await findTool('update_knowledge')
@@ -156,7 +156,7 @@ describe('brand voice', () => {
         body: { document: DOCUMENT, legacy_text: null, has_structured: true },
       },
     ]);
-    session.setActiveProduct(147, 'Visibilio');
+    await session.setActiveProduct(147, 'Visibilio');
 
     const text = await (await findTool('get_brand_voice')).handler({}, session);
 
@@ -175,7 +175,7 @@ describe('brand voice', () => {
         body: { document: DOCUMENT, has_structured: true, version: { version_number: 7 } },
       },
     ]);
-    session.setActiveProduct(147, 'Visibilio');
+    await session.setActiveProduct(147, 'Visibilio');
 
     const text = await (
       await findTool('update_brand_voice')
@@ -203,7 +203,7 @@ describe('brand voice', () => {
         },
       },
     ]);
-    session.setActiveProduct(147, 'Visibilio');
+    await session.setActiveProduct(147, 'Visibilio');
 
     const started = await (
       await findTool('analyze_brand_voice_text')
