@@ -123,6 +123,60 @@ describe('workflow', () => {
     expect(text).toContain('running');
   });
 
+  it('start_workflow sends the resolved product as the X-Product-ID header (so the backend scopes the run)', async () => {
+    const { session, calls } = buildSession([
+      {
+        match: pathMatcher('POST', '/api/v2/workflow/start'),
+        body: { execution_id: 'exec-1', state: 'running', requires_confirmation: false },
+      },
+    ]);
+    await session.setActiveProduct(147, 'Visibilio');
+
+    await (
+      await findTool('start_workflow')
+    ).handler({ user_request: 'Write a LinkedIn post about our MCP launch' }, session);
+
+    const headers = (calls[0]!.init!.headers ?? {}) as Record<string, string>;
+    expect(headers['X-Product-ID']).toBe('147');
+  });
+
+  it('start_workflow passes an explicit product_id arg as the X-Product-ID header', async () => {
+    const { session, calls } = buildSession([
+      {
+        match: pathMatcher('POST', '/api/v2/workflow/start'),
+        body: { execution_id: 'exec-1', state: 'running' },
+      },
+    ]);
+
+    await (
+      await findTool('start_workflow')
+    ).handler(
+      { user_request: 'Write a LinkedIn post about our MCP launch', product_id: 234 },
+      session
+    );
+
+    const headers = (calls[0]!.init!.headers ?? {}) as Record<string, string>;
+    expect(headers['X-Product-ID']).toBe('234');
+    expect(jsonBodyOf(calls[0]).product_id).toBe(234);
+  });
+
+  it('start_workflow sends no X-Product-ID header when no product is resolved (byte-identical to today)', async () => {
+    const { session, calls } = buildSession([
+      {
+        match: pathMatcher('POST', '/api/v2/workflow/start'),
+        body: { execution_id: 'exec-2', state: 'running' },
+      },
+    ]);
+
+    await (
+      await findTool('start_workflow')
+    ).handler({ user_request: 'Write a LinkedIn post about our MCP launch' }, session);
+
+    const headers = (calls[0]!.init!.headers ?? {}) as Record<string, string>;
+    expect(headers['X-Product-ID']).toBeUndefined();
+    expect(jsonBodyOf(calls[0])).not.toHaveProperty('product_id');
+  });
+
   it('get_workflow_status says plainly when a completed run produced nothing', async () => {
     const { session } = buildSession([
       {

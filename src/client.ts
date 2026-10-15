@@ -50,8 +50,13 @@ export class VisibilioClient {
     return this.request('GET', path, undefined, params);
   }
 
-  post(path: string, json?: unknown, params?: QueryParams): Promise<unknown> {
-    return this.request('POST', path, json ?? {}, params);
+  post(
+    path: string,
+    json?: unknown,
+    params?: QueryParams,
+    headers?: Record<string, string>
+  ): Promise<unknown> {
+    return this.request('POST', path, json ?? {}, params, headers);
   }
 
   put(path: string, json: unknown): Promise<unknown> {
@@ -70,7 +75,8 @@ export class VisibilioClient {
     method: string,
     path: string,
     body?: unknown,
-    params?: QueryParams
+    params?: QueryParams,
+    extraHeaders?: Record<string, string>
   ): Promise<unknown> {
     const url = this.gatewayUrl + path + buildQuery(params);
     const headers: Record<string, string> = {
@@ -85,6 +91,7 @@ export class VisibilioClient {
       serializedBody = JSON.stringify(body);
       headers['Content-Type'] = 'application/json';
     }
+    if (extraHeaders) Object.assign(headers, extraHeaders);
     return this.fetchWithBackoff(method, url, headers, serializedBody, 0);
   }
 

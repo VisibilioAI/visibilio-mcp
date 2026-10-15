@@ -90,7 +90,13 @@ const startWorkflow = defineTool({
     if (Array.isArray(args.audience_ids) && args.audience_ids.length) {
       payload.selected_segment_ids = args.audience_ids;
     }
-    const result = (await session.client.post('/api/v2/workflow/start', payload)) as Row;
+    const headers = productId !== undefined ? { 'X-Product-ID': String(productId) } : undefined;
+    const result = (await session.client.post(
+      '/api/v2/workflow/start',
+      payload,
+      undefined,
+      headers
+    )) as Row;
     return [
       `Workflow started: execution_id ${String(result.execution_id)}, state ${String(result.state)}.`,
       describePlan(result.plan),
