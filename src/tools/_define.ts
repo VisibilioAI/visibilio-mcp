@@ -86,7 +86,7 @@ export function defineTool<TShape extends ZodRawShape>(
       try {
         return await input.handler(args ?? {}, session);
       } catch (err) {
-        if (err instanceof ToolError) return `Error: ${err.message}`;
+        if (err instanceof ToolError) return toolFailure(`Error: ${err.message}`);
         if (err instanceof HttpError) {
           return toolFailure(describeError(`${input.title} failed`, err));
         }
