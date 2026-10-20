@@ -68,6 +68,23 @@ describe('a tool call over the MCP protocol reports its failure with isError', (
     await client.close();
   });
 
+  it('a ToolError returns isError: true with the text the tool returned before', async () => {
+    const client = await connectedClient({});
+
+    const result = await client.callTool({ name: 'list_content_items', arguments: {} });
+
+    expect(result).toEqual({
+      content: [
+        {
+          type: 'text',
+          text: 'Error: No active product. Call list_products, then set_active_product (or pass product_id).',
+        },
+      ],
+      isError: true,
+    });
+    await client.close();
+  });
+
   // Regression guard — already passes; locks in current behavior so future refactors cannot regress.
   it('a successful call returns its text without isError', async () => {
     const client = await connectedClient({});

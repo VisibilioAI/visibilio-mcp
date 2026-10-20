@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { buildSession, findTool, jsonBodyOf, pathMatcher } from './_helpers.js';
+import { buildSession, callTool, findTool, jsonBodyOf, pathMatcher, textOf } from './_helpers.js';
 
 const PRODUCT = {
   id: 147,
@@ -99,14 +99,15 @@ describe('products', () => {
     expect(listed).toMatch(/Second Org.*← active/);
   });
 
-  it('set_active_organization refuses an organization the user is not a member of', async () => {
+  it('set_active_organization fails for an organization the user is not a member of', async () => {
     const { session } = buildSession([]);
 
-    const text = await (
-      await findTool('set_active_organization')
-    ).handler({ organization_id: 999 }, session);
+    const result = await callTool('set_active_organization', { organization_id: 999 }, session);
 
-    expect(text).toMatch(/not a member/);
+    expect(result.isError).toBe(true);
+    expect(textOf(result)).toBe(
+      'Error: You are not a member of organization 999. Call list_organizations to see your organizations.'
+    );
     expect(session.organizationId).toBe(7);
   });
 

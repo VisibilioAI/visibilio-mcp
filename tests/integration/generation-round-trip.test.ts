@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { buildSession, findTool, jsonBodyOf, pathMatcher } from './_helpers.js';
+import { buildSession, callTool, findTool, jsonBodyOf, pathMatcher, textOf } from './_helpers.js';
 
 const STATUS = pathMatcher('GET', '/api/v2/workflow/544/status');
 const CREATE = pathMatcher('POST', '/api/v2/products/147/content-items');
@@ -189,18 +189,22 @@ describe('generation round trip — saving a run', () => {
     });
   });
 
-  it('create_content_item asks which piece to save when several match and nothing tells them apart', async () => {
+  it('create_content_item fails and asks which piece to save when several match and nothing tells them apart', async () => {
     const { session, calls } = buildSession([
       { match: STATUS, body: run('completed', [LINKEDIN_POST, ARTICLE]) },
     ]);
     await session.setActiveProduct(147, 'Visibilio');
 
-    const text = await (
-      await findTool('create_content_item')
-    ).handler({ type: 'article', source_execution_id: '544' }, session);
+    const result = await callTool(
+      'create_content_item',
+      { type: 'article', source_execution_id: '544' },
+      session
+    );
 
     expect(calls).toHaveLength(1);
-    expect(text).toContain('2 pieces');
-    expect(text).toMatch(/title|platform/);
+    expect(result.isError).toBe(true);
+    expect(textOf(result)).toBe(
+      'Error: Run 544 produced 2 pieces (linkedin: "Geely teaser"; blog: "Geely Starray EM-i"). Pass the title or platform of the one to save.'
+    );
   });
 });

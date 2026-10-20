@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { buildSession, findTool, jsonBodyOf, pathMatcher } from './_helpers.js';
+import { buildSession, callTool, findTool, jsonBodyOf, pathMatcher, textOf } from './_helpers.js';
 
 describe('knowledge', () => {
   it('get_knowledge reads the product-scoped domain when a product is active', async () => {
@@ -54,9 +54,10 @@ describe('knowledge', () => {
   it('get_knowledge rejects an unknown domain before calling the gateway', async () => {
     const { session, calls } = buildSession([]);
 
-    const text = await (await findTool('get_knowledge')).handler({ domain: 'secrets' }, session);
+    const result = await callTool('get_knowledge', { domain: 'secrets' }, session);
 
-    expect(text).toMatch(/Invalid domain/);
+    expect(result.isError).toBe(true);
+    expect(textOf(result)).toMatch(/^Error: Invalid domain "secrets"\. Valid domains: /);
     expect(calls).toHaveLength(0);
   });
 

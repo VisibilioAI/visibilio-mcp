@@ -56,13 +56,15 @@ describe('content items — listing and reading', () => {
     expect(text).toMatch(/No content items/);
   });
 
-  it('list_content_items without any product explains how to pick one', async () => {
+  it('list_content_items without any product fails and explains how to pick one', async () => {
     const { session, calls } = buildSession([]);
 
-    const text = await (await findTool('list_content_items')).handler({}, session);
+    const result = await callTool('list_content_items', {}, session);
 
-    expect(text).toMatch(/No active product/);
-    expect(text).toContain('set_active_product');
+    expect(result.isError).toBe(true);
+    expect(textOf(result)).toBe(
+      'Error: No active product. Call list_products, then set_active_product (or pass product_id).'
+    );
     expect(calls).toHaveLength(0);
   });
 
