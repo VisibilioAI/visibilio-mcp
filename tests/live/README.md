@@ -46,6 +46,15 @@ The `live-journeys` job in `.github/workflows/ci.yml` runs the journeys after th
 - GitHub gives no secrets to a pull request from a fork. For such a pull request, the job is skipped, and the skip shows in the checks list.
 - Only one `live-journeys` job runs at a time, because all runs share one fixture organization.
 
+## Release and deploy gate
+
+`release.yml` (npm publish) and `deploy-cloud-run.yml` (hosted server) do not run the journeys again. They run `scripts/require-checks.sh` before they publish or deploy. The script stops the workflow unless these CI checks passed on the same commit: `gitleaks`, `test (18.x)`, `test (20.x)`, `test (22.x)` and `live-journeys`.
+
+- The workflows do not run the journeys again, because two runs of J3 at the same time change the context of the same fixture user and can fail.
+- The deploy and CI start together on a push to `main`. The deploy waits until the CI checks complete (maximum 20 minutes).
+- A check that is missing on the commit counts as not passed. Thus a tag on a commit that CI did not check is not published.
+- `release.yml` also stops when the tag is not `v` plus the `package.json` version.
+
 ## Keep personal data out of the logs
 
 The CI logs of this repository are public. A failed assertion prints the value that it received. Thus assert on the smallest value that proves the result, for example one line of a tool's text. Do not assert on the full text of `whoami`, because it contains the name and e-mail address of the account.

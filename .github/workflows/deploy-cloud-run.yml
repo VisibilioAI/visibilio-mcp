@@ -25,6 +25,7 @@ on:
 permissions:
   contents: read
   id-token: write
+  checks: read
 
 jobs:
   deploy:
@@ -42,6 +43,11 @@ jobs:
       FRONTEND_URL: ${{ github.event.inputs.target == 'staging' && 'https://visibilio-frontend-v2-staging.vercel.app' || 'https://app.visibilio.ai' }}
     steps:
       - uses: actions/checkout@v4
+
+      - name: CI passed on this commit
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: ./scripts/require-checks.sh "$GITHUB_SHA" gitleaks "test (18.x)" "test (20.x)" "test (22.x)" live-journeys
 
       - name: Authenticate to GCP
         uses: google-github-actions/auth@v2
