@@ -119,7 +119,7 @@ const listProducts = defineTool({
       );
       return `Products:\n${lines.join('\n')}`;
     } catch (err) {
-      return describeError('Error listing products', err);
+      return toolFailure(describeError('Error listing products', err));
     }
   },
 });
