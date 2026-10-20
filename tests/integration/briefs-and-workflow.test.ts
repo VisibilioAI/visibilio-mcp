@@ -47,6 +47,30 @@ describe('briefs', () => {
     expect(text).toContain('brief_id: 31');
   });
 
+  it('create_brief sends the active product, so the brief belongs to it', async () => {
+    const { session, calls } = buildSession([
+      { match: pathMatcher('POST', '/api/v2/briefs'), status: 201, body: { data: BRIEF } },
+    ]);
+    await session.setActiveProduct(147, 'Visibilio');
+
+    await (await findTool('create_brief')).handler({ title: 'Launch post' }, session);
+
+    expect(jsonBodyOf(calls[0])).toEqual({ title: 'Launch post', product_id: 147 });
+  });
+
+  it('create_brief sends an explicit product_id instead of the active product', async () => {
+    const { session, calls } = buildSession([
+      { match: pathMatcher('POST', '/api/v2/briefs'), status: 201, body: { data: BRIEF } },
+    ]);
+    await session.setActiveProduct(147, 'Visibilio');
+
+    await (
+      await findTool('create_brief')
+    ).handler({ title: 'Launch post', product_id: 200 }, session);
+
+    expect(jsonBodyOf(calls[0])).toEqual({ title: 'Launch post', product_id: 200 });
+  });
+
   it('list_briefs filters by status and content type and lists compact lines', async () => {
     const { session, calls } = buildSession([
       { match: pathMatcher('GET', '/api/v2/briefs'), body: { data: [BRIEF] } },
