@@ -1,6 +1,6 @@
 {
   "name": "@visibilio/mcp",
-  "version": "0.2.8",
+  "version": "0.2.9",
   "description": "MCP server for the Visibilio AI content platform (Streamable HTTP + stdio, gateway-backed)",
   "type": "module",
   "bin": {
@@ -20,6 +20,7 @@
     "build": "tsup",
     "test": "vitest run",
     "test:watch": "vitest",
+    "test:live": "npm run build && vitest run --config vitest.live.config.ts",
     "lint": "eslint . --ext .ts && prettier --check 'src/**/*.ts' 'tests/**/*.ts'",
     "lint:fix": "eslint . --ext .ts --fix && prettier --write 'src/**/*.ts' 'tests/**/*.ts'",
     "typecheck": "tsc --noEmit",

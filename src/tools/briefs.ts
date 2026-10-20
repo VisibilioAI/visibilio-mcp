@@ -3,6 +3,7 @@ import {
   defineTool,
   destructive,
   mutating,
+  optionalProductId,
   pick,
   readOnly,
   requireNumberArg,
@@ -111,18 +112,20 @@ const createBrief = defineTool({
     notes: z.string().optional(),
     channel_id: z.number().int().optional(),
     language: z.enum(LANGUAGES).optional(),
+    product_id: z.number().int().optional().describe('Defaults to the active product'),
   },
   annotations: mutating,
   handler: async (args, session) => {
     requireStringArg(args, 'title');
+    const productId = optionalProductId(args, session);
     const brief = unwrapData<Row>(
-      await session.client.post(
-        '/api/v2/briefs',
-        pick(
+      await session.client.post('/api/v2/briefs', {
+        ...pick(
           args,
           BRIEF_FIELDS.filter((f) => f !== 'status')
-        )
-      )
+        ),
+        ...(productId !== undefined ? { product_id: productId } : {}),
+      })
     );
     return `Brief created.\n${describeBrief(brief)}\nNext: generate_from_brief(brief_id: ${String(brief.id)}).`;
   },
