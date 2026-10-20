@@ -20,11 +20,15 @@ The product that product-scoped tools operate on when no `product_id` argument i
 
 ## ToolDefinition
 
-The MCP-protocol metadata of one tool: `name`, `title`, `description`, `inputSchema` (a zod shape, converted to JSON Schema by the SDK), `annotations` (`readOnlyHint`, `destructiveHint`) and the `handler`. Handlers return plain text for the model; a `ToolError` or an upstream `HttpError` is rendered as an error message instead of failing the protocol call.
+The MCP-protocol metadata of one tool: `name`, `title`, `description`, `inputSchema` (a zod shape, converted to JSON Schema by the SDK), `annotations` (`readOnlyHint`, `destructiveHint`) and the `handler`. Handlers return plain text for the model; a `ToolError` or an upstream `HttpError` is returned as a `ToolFailure` instead of failing the protocol call.
 
 ## ToolError
 
-An expected, user-facing failure raised inside a handler (missing argument, no active product, not a member of the organization). Rendered as `Error: <message>`.
+An expected, user-facing failure raised inside a handler (missing argument, no active product, not a member of the organization). Returned as a `ToolFailure` with the text `Error: <message>`.
+
+## ToolFailure
+
+What a handler returns when the tool call failed: the text for the model. The client receives it as a result with `isError: true` and that text. `defineTool` returns one for a `ToolError` and for an upstream `HttpError` (`<title> failed (HTTP <status>): <message>`); a handler that catches an error itself returns one with `toolFailure(text)`. Any other error that a handler throws also reaches the client with `isError: true`, through the SDK.
 
 ## Resource
 
