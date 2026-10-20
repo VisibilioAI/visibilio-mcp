@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.2.9 — 2026-10-20
+
+### Fixed
+
+- **A brief now belongs to the active product.** `create_brief` sent no product, so the gateway stored the brief without one. `generate_from_brief` then ran without the product's knowledge, brand voice and audiences, and long articles failed. `create_brief` now sends the active product, or the `product_id` that you pass, with the same rule as `start_workflow`.
+
+### Added
+
+- **Live journeys.** `npm run test:live` runs the built server against a deployed gateway and checks real results. The first journey checks that a new brief belongs to the active product. See `tests/live/README.md`.
+
 ## 0.2.8 — 2026-10-14
 
 ### Changed
