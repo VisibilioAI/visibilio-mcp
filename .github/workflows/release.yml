@@ -11,6 +11,7 @@ jobs:
     permissions:
       contents: read
       id-token: write
+      checks: read
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -18,6 +19,18 @@ jobs:
           node-version: 24.x
           registry-url: 'https://registry.npmjs.org'
           cache: npm
+      - name: The tag matches package.json
+        run: |
+          EXPECTED="v$(node -p "require('./package.json').version")"
+          if [ "$GITHUB_REF_NAME" != "$EXPECTED" ]; then
+            echo "✗ tag ${GITHUB_REF_NAME} does not match package.json (${EXPECTED})" >&2
+            exit 1
+          fi
+          echo "✓ tag ${GITHUB_REF_NAME} matches package.json"
+      - name: CI passed on this commit
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: ./scripts/require-checks.sh "$GITHUB_SHA" gitleaks "test (18.x)" "test (20.x)" "test (22.x)" live-journeys
       - run: npm ci
       - run: npm run lint
       - run: npm run typecheck
