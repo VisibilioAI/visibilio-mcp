@@ -44,7 +44,7 @@ describe('J2 (paid): a brief generates an article that is saved under the active
             await mcp.call('create_brief', {
               title: `J2 live journey ${new Date().toISOString()}`,
               content_type: 'article',
-              topic: 'Three practical checks before you publish a technical blog article',
+              topic: 'Three practical checks before you publish a technical blog article in 2026',
               language: 'en',
             })
           )
