@@ -23,3 +23,24 @@ jobs:
       - run: npm run typecheck
       - run: npm run test
       - run: npm run build
+
+  live-journeys:
+    if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
+    needs: test
+    runs-on: ubuntu-latest
+    concurrency:
+      group: live-journeys
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.x
+          cache: npm
+      - run: npm ci
+      - run: npm run test:live
+        env:
+          VISIBILIO_LIVE_GATEWAY_URL: ${{ secrets.VISIBILIO_LIVE_GATEWAY_URL }}
+          VISIBILIO_LIVE_API_KEY: ${{ secrets.VISIBILIO_LIVE_API_KEY }}
+          VISIBILIO_LIVE_ORGANIZATION_ID: ${{ secrets.VISIBILIO_LIVE_ORGANIZATION_ID }}
+          VISIBILIO_LIVE_PRODUCT_ID: ${{ secrets.VISIBILIO_LIVE_PRODUCT_ID }}
