@@ -6,6 +6,7 @@ import {
   readOnly,
   requireNumberArg,
   ToolError,
+  toolFailure,
   unwrapData,
   type ToolDefinition,
 } from './_define.js';
@@ -141,7 +142,7 @@ const setActiveProduct = defineTool({
       await session.setActiveProduct(product.id, product.name ?? null);
       return `Active product set: ${product.name ?? 'Unnamed'} (product_id: ${product.id}). Product tools now default to it.`;
     } catch (err) {
-      return describeError(`Could not activate product ${productId}`, err);
+      return toolFailure(describeError(`Could not activate product ${productId}`, err));
     }
   },
 });
