@@ -5,17 +5,21 @@ import {
   pick,
   readOnly,
   resolveProductId,
+  toolFailure,
   unwrapData,
   type ToolDefinition,
+  type ToolFailure,
 } from './_define.js';
 import { asArray, fields, line, listOrEmpty, nameOf, type Row } from './_format.js';
 
-async function gated<T>(feature: string, call: () => Promise<T>): Promise<T | string> {
+async function gated<T>(feature: string, call: () => Promise<T>): Promise<T | ToolFailure> {
   try {
     return await call();
   } catch (err) {
     if (err instanceof HttpError && err.status === 404) {
-      return `${feature} is not enabled for this organization yet (gateway returned 404).`;
+      return toolFailure(
+        `${feature} is not enabled for this organization yet (gateway returned 404).`
+      );
     }
     throw err;
   }
