@@ -1,7 +1,10 @@
 import { describe, it, expect, vi } from 'vitest';
+import { z, type ZodTypeAny } from 'zod';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory.js';
 import { buildServer } from '../../src/server.js';
+import { allTools, type ToolDefinition } from '../../src/tools/index.js';
+import { buildSession, callTool } from './_helpers.js';
 
 interface GatewayReply {
   readonly status: number;
@@ -112,4 +115,51 @@ describe('a tool call over the MCP protocol reports its failure with isError', (
     expect(result).toEqual({ content: [{ type: 'text', text: 'fetch failed' }], isError: true });
     await client.close();
   });
+});
+
+function sampleOf(schema: ZodTypeAny): unknown {
+  if (schema instanceof z.ZodNumber) return 1;
+  if (schema instanceof z.ZodString) return 'x';
+  if (schema instanceof z.ZodBoolean) return true;
+  if (schema instanceof z.ZodEnum) return schema.options[0];
+  if (schema instanceof z.ZodArray) return [sampleOf(schema.element)];
+  if (schema instanceof z.ZodRecord) return { key: 'value' };
+  if (schema instanceof z.ZodObject) return requiredSamplesOf(schema.shape);
+  throw new Error(`No sample value for a required ${schema._def.typeName} argument`);
+}
+
+function requiredSamplesOf(shape: Record<string, ZodTypeAny>): Record<string, unknown> {
+  return Object.fromEntries(
+    Object.entries(shape)
+      .filter(([, schema]) => !schema.isOptional())
+      .map(([key, schema]) => [key, sampleOf(schema)])
+  );
+}
+
+async function outcomeOf(tool: ToolDefinition, status: number) {
+  const { session, calls } = buildSession([
+    { match: () => true, status, body: { error: 'GATEWAY_ERROR', message: 'Gateway failure' } },
+  ]);
+  await session.setActiveProduct(1, 'Product');
+  const result = await callTool(tool.name, requiredSamplesOf(tool.inputSchema), session);
+  return { name: tool.name, reachedGateway: calls.length > 0, isError: result.isError === true };
+}
+
+// Regression guard — already passes; locks in current behavior so future refactors cannot regress.
+// It catches a tool that turns a gateway error status into a normal result. It does not catch a
+// tool that turns a successful gateway answer into failure-looking text, or a failure that never
+// reaches the gateway.
+describe('every tool reports a gateway error with isError', () => {
+  it.each([404, 422, 500])(
+    'each tool that reaches the gateway and gets HTTP %i returns isError: true',
+    async (status) => {
+      const outcomes = await Promise.all(allTools.map((tool) => outcomeOf(tool, status)));
+      const reached = outcomes.filter((outcome) => outcome.reachedGateway);
+
+      expect(reached.length).toBeGreaterThan(allTools.length * 0.9);
+      expect(reached.filter((outcome) => !outcome.isError).map((outcome) => outcome.name)).toEqual(
+        []
+      );
+    }
+  );
 });
