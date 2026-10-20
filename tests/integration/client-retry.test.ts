@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { buildSession, findTool, pathMatcher } from './_helpers.js';
+import { buildSession, findTool, pathMatcher, textOf } from './_helpers.js';
 import { HttpError } from '../../src/client.js';
+import { toCallToolResult } from '../../src/tools/_define.js';
 
 const PRODUCTS = pathMatcher('GET', '/api/v2/products');
 
@@ -70,7 +71,7 @@ describe('VisibilioClient retry behavior', () => {
     expect(fetch).toHaveBeenCalledTimes(2);
   });
 
-  it('gives up after 3 retry attempts; the tool reports the final status to the model', async () => {
+  it('gives up after 3 retry attempts; the tool reports the final status to the model as a failure', async () => {
     const { session, fetch } = buildSession([
       { match: PRODUCTS, status: 429, body: { error: 'r' } },
       { match: PRODUCTS, status: 429, body: { error: 'r' } },
@@ -80,10 +81,10 @@ describe('VisibilioClient retry behavior', () => {
     const tool = await findTool('list_products');
     const promise = tool.handler({}, session);
     await vi.runAllTimersAsync();
-    const text = await promise;
+    const result = toCallToolResult(await promise);
     expect(fetch).toHaveBeenCalledTimes(4);
-    expect(text).toMatch(/Error listing products/);
-    expect(text).toContain('429');
+    expect(result.isError).toBe(true);
+    expect(textOf(result)).toBe('Error listing products (HTTP 429): r');
   });
 
   it('succeeds on first try without consulting the timer', async () => {

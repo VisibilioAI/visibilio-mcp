@@ -27,6 +27,21 @@ describe('products', () => {
     expect(text).toMatch(/Kondevs \(product_id: 148\).*← active/);
   });
 
+  it('list_products fails with the gateway message when the gateway fails', async () => {
+    const { session } = buildSession([
+      {
+        match: pathMatcher('GET', '/api/v2/products'),
+        status: 500,
+        body: { error: 'INTERNAL_ERROR', message: 'Something went wrong' },
+      },
+    ]);
+
+    const result = await callTool('list_products', {}, session);
+
+    expect(result.isError).toBe(true);
+    expect(textOf(result)).toBe('Error listing products (HTTP 500): Something went wrong');
+  });
+
   it('set_active_product verifies the product exists and scopes the session', async () => {
     const { session } = buildSession([
       { match: pathMatcher('GET', '/api/v2/products/147'), body: { data: PRODUCT } },
