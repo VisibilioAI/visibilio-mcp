@@ -25,5 +25,5 @@
     "no-console": ["warn", { "allow": ["warn", "error"] }],
     "prefer-const": "warn"
   },
-  "ignorePatterns": ["node_modules/", "dist/", "tsup.config.ts", "vitest.config.ts", "vitest.live.config.ts"]
+  "ignorePatterns": ["node_modules/", "dist/", "tsup.config.ts", "vitest.config.ts", "vitest.live.config.ts", "vitest.live-paid.config.ts"]
 }

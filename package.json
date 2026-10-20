@@ -21,6 +21,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:live": "npm run build && vitest run --config vitest.live.config.ts",
+    "test:live:paid": "npm run build && vitest run --config vitest.live-paid.config.ts",
     "lint": "eslint . --ext .ts && prettier --check 'src/**/*.ts' 'tests/**/*.ts'",
     "lint:fix": "eslint . --ext .ts --fix && prettier --write 'src/**/*.ts' 'tests/**/*.ts'",
     "typecheck": "tsc --noEmit",
