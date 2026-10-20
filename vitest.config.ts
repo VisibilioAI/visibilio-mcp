@@ -1,4 +1,4 @@
-import { defineConfig } from 'vitest/config';
+import { configDefaults, defineConfig } from 'vitest/config';
 
 export default defineConfig({
   css: { postcss: { plugins: [] } },
@@ -6,6 +6,7 @@ export default defineConfig({
     globals: true,
     environment: 'node',
     include: ['tests/**/*.test.ts'],
+    exclude: [...configDefaults.exclude, 'tests/live/**'],
     coverage: {
       provider: 'v8',
       reporter: ['text', 'html'],
