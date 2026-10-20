@@ -30,6 +30,7 @@ export interface HttpApp {
 
 const SESSION_HEADER = 'mcp-session-id';
 const STREAMABLE_PATHS = ['/mcp', '/sse'] as const;
+const DOCUMENTATION_URL = 'https://github.com/VisibilioAI/visibilio-mcp/blob/main/docs/install.md';
 
 export function buildHttpApp(options: HttpAppOptions): HttpApp {
   const { baseSettings, fetch: fetchImpl } = options;
@@ -88,13 +89,14 @@ export function buildHttpApp(options: HttpAppOptions): HttpApp {
 
   const protectedResourceHandler = (req: Request, res: Response) => {
     const self = ownOrigin(req);
+    const resourcePath = req.path.endsWith('/sse') ? '/sse' : '/mcp';
     res.setHeader('Cache-Control', 'public, max-age=300');
     res.json({
-      resource: self,
+      resource: `${self}${resourcePath}`,
       authorization_servers: [self],
       bearer_methods_supported: ['header'],
       scopes_supported: ['mcp:read', 'mcp:write', 'mcp:admin'],
-      resource_documentation: 'https://visibilio.ai/docs/mcp',
+      resource_documentation: DOCUMENTATION_URL,
     });
   };
   app.get('/.well-known/oauth-protected-resource', protectedResourceHandler);
@@ -113,9 +115,9 @@ export function buildHttpApp(options: HttpAppOptions): HttpApp {
       response_types_supported: ['code'],
       grant_types_supported: ['authorization_code', 'refresh_token'],
       token_endpoint_auth_methods_supported: ['none', 'client_secret_basic', 'client_secret_post'],
-      code_challenge_methods_supported: ['S256', 'plain'],
+      code_challenge_methods_supported: ['S256'],
       scopes_supported: ['mcp:read', 'mcp:write', 'mcp:admin'],
-      service_documentation: 'https://visibilio.ai/docs/mcp',
+      service_documentation: DOCUMENTATION_URL,
     });
   });
 
@@ -415,7 +417,8 @@ function setBearerChallenge(
   res: Response,
   options: { error: string; description: string }
 ): void {
-  const resourceMetadata = `${ownOrigin(req)}/.well-known/oauth-protected-resource`;
+  const resourcePath = req.path === '/sse' ? '/sse' : '/mcp';
+  const resourceMetadata = `${ownOrigin(req)}/.well-known/oauth-protected-resource${resourcePath}`;
   const sanitize = (v: string) =>
     v
       .replace(/[^\x20-\x7E]/g, ' ')

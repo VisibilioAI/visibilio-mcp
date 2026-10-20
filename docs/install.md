@@ -4,6 +4,9 @@ The Visibilio MCP server lets LLM clients work inside your Visibilio workspace. 
 
 ## Option A — hosted connector (recommended)
 
+For prerequisites, examples, workspace selection, publishing and revocation, see
+[Connect Visibilio to Claude](claude.md).
+
 1. In claude.ai open **Settings → Connectors → Add custom connector**.
 2. Name: `Visibilio`. Server URL: `https://mcp.visibilio.ai/mcp`.
 3. Click **Connect**. You are sent to Visibilio to sign in and approve the connection (OAuth); afterwards the Visibilio tools appear in every conversation where the connector is enabled.
@@ -56,15 +59,15 @@ visibilio-mcp
 
 ## Verify it works
 
-Ask: *"Who am I in Visibilio and which products do I have?"* — the model calls `whoami` and `list_products`. Then: *"Set the active product to <name> and list the last 5 content items."*
+Ask: _"Who am I in Visibilio and which products do I have?"_ — the model calls `whoami` and `list_products`. Then: _"Set the active product to <name> and list the last 5 content items."_
 
 ## Environment variables (local only)
 
-| Variable | Required | Default | What it does |
-|---|---|---|---|
-| `VISIBILIO_API_KEY` | yes | — | Your `vsk_*` key (or a `vat_*` OAuth access token) |
-| `VISIBILIO_GATEWAY_URL` | no | `https://visibilio-api-gateway-prod.vercel.app` | Gateway base URL — override only for staging |
-| `VISIBILIO_TIMEOUT_MS` | no | `30000` | HTTP timeout per request |
+| Variable                | Required | Default                                         | What it does                                       |
+| ----------------------- | -------- | ----------------------------------------------- | -------------------------------------------------- |
+| `VISIBILIO_API_KEY`     | yes      | —                                               | Your `vsk_*` key (or a `vat_*` OAuth access token) |
+| `VISIBILIO_GATEWAY_URL` | no       | `https://visibilio-api-gateway-prod.vercel.app` | Gateway base URL — override only for staging       |
+| `VISIBILIO_TIMEOUT_MS`  | no       | `30000`                                         | HTTP timeout per request                           |
 
 ## Troubleshooting
 

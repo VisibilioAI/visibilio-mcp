@@ -187,7 +187,7 @@ const getContentPlanStatus = defineTool({
   description:
     'Poll a generating content plan. When generation is done this call finalizes the plan and returns its posts.',
   inputSchema: { plan_id: z.number().int(), product_id: z.number().int().optional() },
-  annotations: readOnly,
+  annotations: mutating,
   handler: async (args, session) => {
     const productId = resolveProductId(args, session);
     const planId = requireNumberArg(args, 'plan_id');
@@ -248,7 +248,7 @@ const getPlannedTopicBrief = defineTool({
   title: 'Get planned topic brief',
   description: 'Read (or compose, on first call) the writing brief for a planned topic.',
   inputSchema: { topic_id: z.number().int(), product_id: z.number().int().optional() },
-  annotations: readOnly,
+  annotations: mutating,
   handler: async (args, session) => {
     const productId = resolveProductId(args, session);
     const topicId = requireNumberArg(args, 'topic_id');

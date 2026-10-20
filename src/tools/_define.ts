@@ -51,7 +51,7 @@ interface DefineToolInput<TShape extends ZodRawShape> {
 }
 
 export const readOnly: ToolAnnotations = { readOnlyHint: true, destructiveHint: false };
-export const mutating: ToolAnnotations = { readOnlyHint: false, destructiveHint: false };
+export const mutating: ToolAnnotations = { readOnlyHint: false, destructiveHint: true };
 export const destructive: ToolAnnotations = { readOnlyHint: false, destructiveHint: true };
 
 export class ToolError extends Error {
