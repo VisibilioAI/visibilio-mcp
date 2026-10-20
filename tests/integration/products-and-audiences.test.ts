@@ -38,6 +38,22 @@ describe('products', () => {
     expect(text).toContain('Visibilio');
   });
 
+  it('set_active_product fails for a product the gateway does not find and keeps no active product', async () => {
+    const { session } = buildSession([
+      {
+        match: pathMatcher('GET', '/api/v2/products/999'),
+        status: 404,
+        body: { error: 'NOT_FOUND', message: 'Product not found' },
+      },
+    ]);
+
+    const result = await callTool('set_active_product', { product_id: 999 }, session);
+
+    expect(result.isError).toBe(true);
+    expect(textOf(result)).toBe('Could not activate product 999 (HTTP 404): Product not found');
+    expect(session.productId).toBeNull();
+  });
+
   it('get_product renders the product details', async () => {
     const { session } = buildSession([
       { match: pathMatcher('GET', '/api/v2/products/147'), body: { data: PRODUCT } },
