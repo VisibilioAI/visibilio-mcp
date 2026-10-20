@@ -2,6 +2,7 @@ import { vi } from 'vitest';
 import type { AuthContext } from '../../src/auth.js';
 import { VisibilioClient } from '../../src/client.js';
 import { McpSession } from '../../src/session.js';
+import { toCallToolResult, type CallToolResult } from '../../src/tools/_define.js';
 
 export interface MockResponse {
   match: (url: string, init?: RequestInit) => boolean;
@@ -75,4 +76,17 @@ export function findTool(name: string) {
     if (!tool) throw new Error(`tool ${name} not registered`);
     return tool;
   });
+}
+
+export async function callTool(
+  name: string,
+  args: Record<string, unknown>,
+  session: McpSession
+): Promise<CallToolResult> {
+  const tool = await findTool(name);
+  return toCallToolResult(await tool.handler(args, session));
+}
+
+export function textOf(result: CallToolResult): string {
+  return result.content.map((part) => part.text).join('\n');
 }

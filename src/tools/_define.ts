@@ -14,18 +14,30 @@ export interface StructuredResult {
   readonly structuredContent: Record<string, unknown>;
 }
 
-export type ToolOutput = string | StructuredResult;
+export interface ToolFailure {
+  readonly failure: string;
+}
+
+export function toolFailure(text: string): ToolFailure {
+  return { failure: text };
+}
+
+export type ToolOutput = string | StructuredResult | ToolFailure;
 export type ToolHandler = (args: ToolArgs, session: McpSession) => Promise<ToolOutput>;
 
 export interface CallToolResult {
   [key: string]: unknown;
   content: Array<{ type: 'text'; text: string }>;
   structuredContent?: Record<string, unknown>;
+  isError?: boolean;
 }
 
 /** A plain string becomes one text item; a structured result also carries the same JSON as text (ChatGPT reads both). */
 export function toCallToolResult(output: ToolOutput): CallToolResult {
   if (typeof output === 'string') return { content: [{ type: 'text', text: output }] };
+  if ('failure' in output) {
+    return { content: [{ type: 'text', text: output.failure }], isError: true };
+  }
   return {
     content: [{ type: 'text', text: JSON.stringify(output.structuredContent) }],
     structuredContent: output.structuredContent,
@@ -74,8 +86,10 @@ export function defineTool<TShape extends ZodRawShape>(
       try {
         return await input.handler(args ?? {}, session);
       } catch (err) {
-        if (err instanceof ToolError) return `Error: ${err.message}`;
-        if (err instanceof HttpError) return describeError(`${input.title} failed`, err);
+        if (err instanceof ToolError) return toolFailure(`Error: ${err.message}`);
+        if (err instanceof HttpError) {
+          return toolFailure(describeError(`${input.title} failed`, err));
+        }
         throw err;
       }
     },

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { buildSession, findTool, pathMatcher } from './_helpers.js';
+import { buildSession, callTool, findTool, pathMatcher, textOf } from './_helpers.js';
 
 describe('measurement', () => {
   it('get_measurement_overview passes productId and the window and renders headline totals', async () => {
@@ -34,7 +34,7 @@ describe('measurement', () => {
     expect(text).toContain('2026-10-06');
   });
 
-  it('a feature-flag 404 is explained instead of surfacing as a bare error', async () => {
+  it('a feature-flag 404 is explained instead of surfacing as a bare error, as a failed result', async () => {
     const { session } = buildSession([
       {
         match: pathMatcher('GET', '/api/v2/measurement/overview'),
@@ -44,9 +44,12 @@ describe('measurement', () => {
     ]);
     await session.setActiveProduct(147, 'Visibilio');
 
-    const text = await (await findTool('get_measurement_overview')).handler({}, session);
+    const result = await callTool('get_measurement_overview', {}, session);
 
-    expect(text).toMatch(/not enabled/i);
+    expect(result.isError).toBe(true);
+    expect(textOf(result)).toBe(
+      'Measurement overview is not enabled for this organization yet (gateway returned 404).'
+    );
   });
 
   it('list_measurement_recommendations forwards state and product', async () => {

@@ -5,7 +5,7 @@ import { McpSession, type SessionContext } from './session.js';
 import { loadSettings, type Settings } from './config.js';
 import { allTools } from './tools/index.js';
 import { allResources } from './resources/index.js';
-import { ToolError, toCallToolResult } from './tools/_define.js';
+import { toCallToolResult } from './tools/_define.js';
 
 export const SERVER_NAME = '@visibilio/mcp';
 export const SERVER_VERSION = '0.2.9';
@@ -71,16 +71,8 @@ export async function buildServer(options: BuildServerOptions = {}): Promise<Bui
         inputSchema: tool.inputSchema,
         annotations: tool.annotations,
       },
-      async (args: Record<string, unknown>) => {
-        try {
-          return toCallToolResult(await tool.handler(args ?? {}, session));
-        } catch (err) {
-          if (err instanceof ToolError) {
-            return { content: [{ type: 'text', text: `Error: ${err.message}` }], isError: true };
-          }
-          throw err;
-        }
-      }
+      async (args: Record<string, unknown>) =>
+        toCallToolResult(await tool.handler(args ?? {}, session))
     );
   }
 

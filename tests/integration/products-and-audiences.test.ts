@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { buildSession, findTool, jsonBodyOf, pathMatcher } from './_helpers.js';
+import { buildSession, callTool, findTool, jsonBodyOf, pathMatcher, textOf } from './_helpers.js';
 
 const PRODUCT = {
   id: 147,
@@ -27,6 +27,21 @@ describe('products', () => {
     expect(text).toMatch(/Kondevs \(product_id: 148\).*← active/);
   });
 
+  it('list_products fails with the gateway message when the gateway fails', async () => {
+    const { session } = buildSession([
+      {
+        match: pathMatcher('GET', '/api/v2/products'),
+        status: 500,
+        body: { error: 'INTERNAL_ERROR', message: 'Something went wrong' },
+      },
+    ]);
+
+    const result = await callTool('list_products', {}, session);
+
+    expect(result.isError).toBe(true);
+    expect(textOf(result)).toBe('Error listing products (HTTP 500): Something went wrong');
+  });
+
   it('set_active_product verifies the product exists and scopes the session', async () => {
     const { session } = buildSession([
       { match: pathMatcher('GET', '/api/v2/products/147'), body: { data: PRODUCT } },
@@ -36,6 +51,22 @@ describe('products', () => {
 
     expect(session.productId).toBe(147);
     expect(text).toContain('Visibilio');
+  });
+
+  it('set_active_product fails for a product the gateway does not find and keeps no active product', async () => {
+    const { session } = buildSession([
+      {
+        match: pathMatcher('GET', '/api/v2/products/999'),
+        status: 404,
+        body: { error: 'NOT_FOUND', message: 'Product not found' },
+      },
+    ]);
+
+    const result = await callTool('set_active_product', { product_id: 999 }, session);
+
+    expect(result.isError).toBe(true);
+    expect(textOf(result)).toBe('Could not activate product 999 (HTTP 404): Product not found');
+    expect(session.productId).toBeNull();
   });
 
   it('get_product renders the product details', async () => {
@@ -99,14 +130,15 @@ describe('products', () => {
     expect(listed).toMatch(/Second Org.*← active/);
   });
 
-  it('set_active_organization refuses an organization the user is not a member of', async () => {
+  it('set_active_organization fails for an organization the user is not a member of', async () => {
     const { session } = buildSession([]);
 
-    const text = await (
-      await findTool('set_active_organization')
-    ).handler({ organization_id: 999 }, session);
+    const result = await callTool('set_active_organization', { organization_id: 999 }, session);
 
-    expect(text).toMatch(/not a member/);
+    expect(result.isError).toBe(true);
+    expect(textOf(result)).toBe(
+      'Error: You are not a member of organization 999. Call list_organizations to see your organizations.'
+    );
     expect(session.organizationId).toBe(7);
   });
 

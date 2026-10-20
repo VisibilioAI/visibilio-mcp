@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { buildSession, findTool, jsonBodyOf, pathMatcher } from './_helpers.js';
+import { buildSession, callTool, findTool, jsonBodyOf, pathMatcher, textOf } from './_helpers.js';
 
 describe('publishing — channels and social', () => {
   it('list_channels lists every org channel with platform and active state', async () => {
@@ -66,7 +66,7 @@ describe('publishing — channels and social', () => {
     expect(text).toContain('schedule_id: 90');
   });
 
-  it('publish_social_post surfaces a reconnection conflict as text', async () => {
+  it('publish_social_post surfaces a reconnection conflict as a failed result with the gateway message', async () => {
     const { session } = buildSession([
       {
         match: pathMatcher('POST', '/api/v2/content-items/501/publish-social'),
@@ -79,12 +79,16 @@ describe('publishing — channels and social', () => {
       },
     ]);
 
-    const text = await (
-      await findTool('publish_social_post')
-    ).handler({ content_item_id: 501, channel_id: 22 }, session);
+    const result = await callTool(
+      'publish_social_post',
+      { content_item_id: 501, channel_id: 22 },
+      session
+    );
 
-    expect(text).toMatch(/HTTP 409/);
-    expect(text).toContain('Reconnect LinkedIn');
+    expect(result.isError).toBe(true);
+    expect(textOf(result)).toBe(
+      'Publish social post failed (HTTP 409): Reconnect LinkedIn in Settings'
+    );
   });
 });
 

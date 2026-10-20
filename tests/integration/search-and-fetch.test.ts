@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { buildSession, findTool, pathMatcher } from './_helpers.js';
+import { buildSession, callTool, findTool, pathMatcher, textOf } from './_helpers.js';
 import { toCallToolResult } from '../../src/tools/_define.js';
 
 const PRODUCTS = {
@@ -92,12 +92,15 @@ describe('fetch (ChatGPT connector contract)', () => {
     });
   });
 
-  it('rejects an id that is not a content item reference', async () => {
+  it('fails for an id that is not a content item reference', async () => {
     const { session, fetch } = buildSession([]);
 
-    const result = await (await findTool('fetch')).handler({ id: 'brief:3' }, session);
+    const result = await callTool('fetch', { id: 'brief:3' }, session);
 
-    expect(result).toMatch(/content-item:<id>/);
+    expect(result.isError).toBe(true);
+    expect(textOf(result)).toBe(
+      'Error: Unknown id "brief:3". Expected content-item:<id> as returned by search.'
+    );
     expect(fetch).not.toHaveBeenCalled();
   });
 });

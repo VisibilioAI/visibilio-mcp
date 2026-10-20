@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { buildSession, findTool, jsonBodyOf, pathMatcher } from './_helpers.js';
+import { buildSession, callTool, findTool, jsonBodyOf, pathMatcher, textOf } from './_helpers.js';
 
 const ITEM = {
   id: 501,
@@ -56,13 +56,15 @@ describe('content items — listing and reading', () => {
     expect(text).toMatch(/No content items/);
   });
 
-  it('list_content_items without any product explains how to pick one', async () => {
+  it('list_content_items without any product fails and explains how to pick one', async () => {
     const { session, calls } = buildSession([]);
 
-    const text = await (await findTool('list_content_items')).handler({}, session);
+    const result = await callTool('list_content_items', {}, session);
 
-    expect(text).toMatch(/No active product/);
-    expect(text).toContain('set_active_product');
+    expect(result.isError).toBe(true);
+    expect(textOf(result)).toBe(
+      'Error: No active product. Call list_products, then set_active_product (or pass product_id).'
+    );
     expect(calls).toHaveLength(0);
   });
 
@@ -80,7 +82,7 @@ describe('content items — listing and reading', () => {
     expect(text).toContain('Founders');
   });
 
-  it('a gateway 404 is reported to the model as an error message, not thrown', async () => {
+  it('a gateway 404 is reported to the model as a failed result with the gateway message, not thrown', async () => {
     const { session } = buildSession([
       {
         match: pathMatcher('GET', '/api/v2/content-items/999'),
@@ -89,12 +91,10 @@ describe('content items — listing and reading', () => {
       },
     ]);
 
-    const text = await (
-      await findTool('get_content_item')
-    ).handler({ content_item_id: 999 }, session);
+    const result = await callTool('get_content_item', { content_item_id: 999 }, session);
 
-    expect(text).toMatch(/HTTP 404/);
-    expect(text).toContain('Content item not found');
+    expect(result.isError).toBe(true);
+    expect(textOf(result)).toBe('Get content item failed (HTTP 404): Content item not found');
   });
 });
 
@@ -245,7 +245,7 @@ describe('content items — writing', () => {
     expect(text).toContain('review');
   });
 
-  it('delete_content_item issues DELETE and reports a published-elsewhere conflict verbatim', async () => {
+  it('delete_content_item issues DELETE and reports a published-elsewhere conflict verbatim as a failed result', async () => {
     const { session } = buildSession([
       {
         match: pathMatcher('DELETE', '/api/v2/content-items/501'),
@@ -258,12 +258,10 @@ describe('content items — writing', () => {
       },
     ]);
 
-    const text = await (
-      await findTool('delete_content_item')
-    ).handler({ content_item_id: 501 }, session);
+    const result = await callTool('delete_content_item', { content_item_id: 501 }, session);
 
-    expect(text).toMatch(/HTTP 409/);
-    expect(text).toContain('Unpublish first');
+    expect(result.isError).toBe(true);
+    expect(textOf(result)).toBe('Delete content item failed (HTTP 409): Unpublish first');
   });
 
   it('restore_content_item_version posts the version id', async () => {
