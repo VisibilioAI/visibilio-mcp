@@ -7,13 +7,18 @@ The live journeys run the built MCP server against a deployed Visibilio gateway.
 | ID | File | Checks |
 |---|---|---|
 | J1 | `brief-carries-active-product.test.ts` | A brief that `create_brief` makes belongs to the active product. |
+| J2 (paid) | `brief-generates-article.paid.test.ts` | `generate_from_brief` completes an article, and `create_content_item` saves it in the active product. |
 | J3 | `context-survives-restart.test.ts` | The hosted HTTP server keeps the active organization and product after a restart. |
 
-J1 uses the stdio server (`dist/cli.js`). J3 uses the HTTP server (`dist/http.js`), because only the HTTP server stores the active context at the gateway.
+J1 and J2 use the stdio server (`dist/cli.js`). J3 uses the HTTP server (`dist/http.js`), because only the HTTP server stores the active context at the gateway.
+
+J2 costs money: one real article generation (about $1) and 4 to 8 minutes. Thus a file name that ends in `.paid.test.ts` does not run in `npm run test:live` or in pull request CI. It runs in `npm run test:live:paid` and in a scheduled run outside this repository. J2 deletes the content item and the brief that it makes.
 
 ## Fixture
 
 The journeys use one test organization. The organization has one product and one `vsk_` API key with the `mcp` scope. Mark the organization as a test fixture, so that scheduled jobs do not spend money on it.
+
+J2 also needs a product with a knowledge base: complete the onboarding of the product one time. Without a knowledge base, the generation stops at once with `Knowledge not initialized`.
 
 ## Environment variables
 
@@ -34,6 +39,8 @@ Set these four variables before you run the journeys. Do not commit the values.
    ```bash
    npm run test:live
    ```
+
+3. To run the paid journey, run `npm run test:live:paid`.
 
 A journey fails when a variable is missing. It does not skip, because a skipped journey looks like a passed journey.
 
