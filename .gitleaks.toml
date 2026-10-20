@@ -1,0 +1,24 @@
+title = "visibilio-mcp gitleaks config"
+
+# Keep all built-in provider-token rules (AWS, GitHub PATs, Stripe, GCP, Slack, etc.)
+# and add the Visibilio rule below. Same rules as the GitHUB_VisibilioAI meta repo.
+[extend]
+useDefault = true
+
+# Catch a password/secret/token assigned to a variable in code. The default rules
+# are tuned for high-entropy provider tokens and miss a plaintext password such as
+# const PASSWORD = '...'.
+[[rules]]
+id = "hardcoded-password-assignment"
+description = "Password/secret/token assigned to a variable in code"
+regex = '''(?i)\b(password|passwd|pwd|secret|token)\b\s*[:=]\s*['"][^'"\s]{6,}['"]'''
+tags = ["password", "visibilio"]
+
+[allowlist]
+description = "Redaction placeholder token"
+# <REDACTED> is the scrub token that replaces a removed secret. A line that
+# contains it is not a finding.
+regexTarget = "line"
+regexes = [
+  '''<REDACTED>''',
+]
