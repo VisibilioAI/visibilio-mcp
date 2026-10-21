@@ -26,7 +26,7 @@ const STATUSES = [
   'published',
   'archived',
 ] as const;
-const LANGUAGES = ['en', 'bg', 'de'] as const;
+export const LANGUAGES = ['en', 'bg', 'de'] as const;
 const REMIX_STRATEGIES = ['adapt', 'split', 'expand', 'summarize', 'remix'] as const;
 
 const EDITORIAL_FIELDS = [
