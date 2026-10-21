@@ -83,7 +83,7 @@ const startWorkflow = defineTool({
     requireStringArg(args, 'user_request');
     const productId = optionalProductId(args, session);
     const payload: Record<string, unknown> = {
-      ...pick(args, ['user_request', 'source_url', 'source_content', 'include_cta']),
+      ...pick(args, ['user_request', 'source_url', 'source_content', 'include_cta', 'language']),
       ...(productId !== undefined ? { product_id: productId } : {}),
       auto_confirm: args.auto_confirm !== false,
     };
