@@ -12,6 +12,7 @@ import {
 } from './_define.js';
 import { asArray, fields, type Row } from './_format.js';
 import { piecesOf } from './_run.js';
+import { LANGUAGES } from './content-items.js';
 
 function describePlan(plan: unknown): string | null {
   if (!plan || typeof plan !== 'object') return null;
@@ -62,7 +63,7 @@ const startWorkflow = defineTool({
   name: 'start_workflow',
   title: 'Start workflow',
   description:
-    'Ask Visibilio to produce content from a natural-language request (e.g. "Write a LinkedIn post about our MCP launch"). The workflow planner picks the right writer and uses the product knowledge, brand voice and audiences. Returns an execution id to follow with get_workflow_status.',
+    'Ask Visibilio to produce content from a natural-language request (e.g. "Write a LinkedIn post about our MCP launch"). The workflow planner picks the right writer and uses the product knowledge, brand voice and audiences. Returns an execution id to follow with get_workflow_status. When language is omitted, Visibilio uses the product\'s default language.',
   inputSchema: {
     user_request: z.string().min(10).max(5000),
     product_id: z.number().int().optional().describe('Defaults to the active product'),
@@ -77,13 +78,14 @@ const startWorkflow = defineTool({
     source_url: z.string().url().optional().describe('A page to base the content on'),
     source_content: z.string().optional().describe('Raw text to base the content on'),
     include_cta: z.boolean().optional(),
+    language: z.enum(LANGUAGES).optional(),
   },
   annotations: mutating,
   handler: async (args, session) => {
     requireStringArg(args, 'user_request');
     const productId = optionalProductId(args, session);
     const payload: Record<string, unknown> = {
-      ...pick(args, ['user_request', 'source_url', 'source_content', 'include_cta']),
+      ...pick(args, ['user_request', 'source_url', 'source_content', 'include_cta', 'language']),
       ...(productId !== undefined ? { product_id: productId } : {}),
       auto_confirm: args.auto_confirm !== false,
     };

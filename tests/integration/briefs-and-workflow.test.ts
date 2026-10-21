@@ -1,5 +1,11 @@
 import { describe, it, expect } from 'vitest';
+import { z, type ZodTypeAny } from 'zod';
 import { buildSession, findTool, jsonBodyOf, pathMatcher } from './_helpers.js';
+
+function enumValuesOf(schema: ZodTypeAny | undefined): readonly string[] | undefined {
+  const inner = schema instanceof z.ZodOptional ? schema.unwrap() : schema;
+  return inner instanceof z.ZodEnum ? inner.options : undefined;
+}
 
 const BRIEF = {
   id: 31,
@@ -145,6 +151,57 @@ describe('workflow', () => {
     });
     expect(text).toContain('exec-1');
     expect(text).toContain('running');
+  });
+
+  it('start_workflow sends the language that the caller chooses', async () => {
+    const { session, calls } = buildSession([
+      {
+        match: pathMatcher('POST', '/api/v2/workflow/start'),
+        body: { execution_id: 'exec-2', state: 'running', requires_confirmation: false },
+      },
+    ]);
+    await session.setActiveProduct(147, 'Visibilio');
+
+    await (
+      await findTool('start_workflow')
+    ).handler({ user_request: 'Write an article about our MCP launch', language: 'de' }, session);
+
+    expect(jsonBodyOf(calls[0])).toEqual({
+      user_request: 'Write an article about our MCP launch',
+      product_id: 147,
+      auto_confirm: true,
+      language: 'de',
+    });
+  });
+
+  // Regression guard — already passes; locks in current behavior so future refactors cannot regress.
+  it('start_workflow without a language sends no language, so the gateway uses the product default', async () => {
+    const { session, calls } = buildSession([
+      {
+        match: pathMatcher('POST', '/api/v2/workflow/start'),
+        body: { execution_id: 'exec-3', state: 'running', requires_confirmation: false },
+      },
+    ]);
+    await session.setActiveProduct(147, 'Visibilio');
+
+    await (
+      await findTool('start_workflow')
+    ).handler({ user_request: 'Write an article about our MCP launch' }, session);
+
+    expect(jsonBodyOf(calls[0])).not.toHaveProperty('language');
+  });
+
+  it('start_workflow advertises an optional language with the values of create_content_item and states the default', async () => {
+    const startWorkflow = await findTool('start_workflow');
+    const createContentItem = await findTool('create_content_item');
+    const savedLanguages = enumValuesOf(createContentItem.inputSchema.language);
+
+    expect(savedLanguages).toBeDefined();
+    expect(startWorkflow.inputSchema.language?.isOptional()).toBe(true);
+    expect(enumValuesOf(startWorkflow.inputSchema.language)).toEqual(savedLanguages);
+    expect(startWorkflow.description).toContain(
+      "When language is omitted, Visibilio uses the product's default language."
+    );
   });
 
   it('get_workflow_status says plainly when a completed run produced nothing', async () => {
