@@ -69,7 +69,7 @@ export async function buildServer(options: BuildServerOptions = {}): Promise<Bui
         title: tool.title,
         description: tool.description,
         inputSchema: tool.inputSchema,
-        annotations: tool.annotations,
+        annotations: { ...tool.annotations, title: tool.title },
       },
       async (args: Record<string, unknown>) =>
         toCallToolResult(await tool.handler(args ?? {}, session))

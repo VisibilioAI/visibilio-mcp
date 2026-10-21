@@ -67,7 +67,7 @@ describe('Streamable HTTP transport — unauthenticated probe', () => {
       expect(response.status).toBe(401);
       expect(response.headers['www-authenticate']).toMatch(/^Bearer /);
       expect(response.headers['www-authenticate']).toContain(
-        '/.well-known/oauth-protected-resource'
+        `/.well-known/oauth-protected-resource${path}"`
       );
     }
   );
@@ -126,6 +126,45 @@ describe('Streamable HTTP transport — session lifecycle', () => {
     const names = (response.body.result.tools as Array<{ name: string }>).map((t) => t.name);
     expect(names).toContain('list_products');
     expect(names).toContain('whoami');
+  });
+
+  it('publishes display titles in annotations and marks tools that change state', async () => {
+    const fetchImpl = gatewayFetch({ '/api/v2/auth/me': { body: ME } });
+    const { app } = buildHttpApp({ baseSettings, fetch: fetchImpl });
+    const { sessionId } = await initialize(app);
+    const response = await post(app, '/mcp')
+      .set('Authorization', 'Bearer vsk_valid')
+      .set('Mcp-Session-Id', sessionId!)
+      .send({ jsonrpc: '2.0', id: 2, method: 'tools/list', params: {} });
+
+    const tools = response.body.result.tools as Array<{
+      name: string;
+      title: string;
+      annotations: { title?: string; readOnlyHint?: boolean; destructiveHint?: boolean };
+    }>;
+    expect(tools.length).toBeGreaterThan(0);
+    for (const tool of tools) {
+      expect(tool.annotations.title, tool.name).toBe(tool.title);
+      expect(tool.annotations.title?.trim().length, tool.name).toBeGreaterThan(0);
+      if (!tool.annotations.readOnlyHint) {
+        expect(tool.annotations.destructiveHint, tool.name).toBe(true);
+      }
+    }
+    for (const name of [
+      'update_content_item',
+      'publish_social_post',
+      'get_content_plan_status',
+      'get_planned_topic_brief',
+    ]) {
+      expect(tools.find((tool) => tool.name === name)?.annotations, name).toMatchObject({
+        readOnlyHint: false,
+        destructiveHint: true,
+      });
+    }
+    expect(tools.find((tool) => tool.name === 'get_content_item')?.annotations).toMatchObject({
+      readOnlyHint: true,
+      destructiveHint: false,
+    });
   });
 
   it('authenticates the gateway once per session, not once per request', async () => {

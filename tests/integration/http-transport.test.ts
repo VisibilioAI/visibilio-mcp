@@ -64,33 +64,36 @@ describe('HTTP transport — auth gate', () => {
 });
 
 describe('HTTP transport — RFC 9728 protected resource metadata', () => {
-  it('GET /.well-known/oauth-protected-resource resource = own host, AS = own host', async () => {
+  it('root resource metadata identifies the full canonical MCP URL and the issuer origin', async () => {
     const { app } = buildHttpApp({ baseSettings });
     const response = await request(app)
       .get('/.well-known/oauth-protected-resource')
       .set('host', 'mcp.test')
       .set('x-forwarded-proto', 'https');
     expect(response.status).toBe(200);
-    expect(response.body.resource).toBe('https://mcp.test');
+    expect(response.body.resource).toBe('https://mcp.test/mcp');
     expect(response.body.authorization_servers).toEqual(['https://mcp.test']);
     expect(response.body.bearer_methods_supported).toEqual(['header']);
     expect(response.body.scopes_supported).toEqual(['mcp:read', 'mcp:write', 'mcp:admin']);
     expect(response.headers['cache-control']).toBe('public, max-age=300');
+    expect(response.body.resource_documentation).toBe(
+      'https://github.com/VisibilioAI/visibilio-mcp/blob/main/docs/install.md'
+    );
   });
 
-  it('GET /.well-known/oauth-protected-resource/sse returns the same payload (path-aware alias)', async () => {
-    const { app } = buildHttpApp({ baseSettings });
-    const a = await request(app)
-      .get('/.well-known/oauth-protected-resource')
-      .set('host', 'mcp.test')
-      .set('x-forwarded-proto', 'https');
-    const b = await request(app)
-      .get('/.well-known/oauth-protected-resource/sse')
-      .set('host', 'mcp.test')
-      .set('x-forwarded-proto', 'https');
-    expect(b.status).toBe(200);
-    expect(b.body).toEqual(a.body);
-  });
+  it.each(['/mcp', '/sse'])(
+    'path-aware discovery identifies the complete %s resource',
+    async (path) => {
+      const { app } = buildHttpApp({ baseSettings });
+      const b = await request(app)
+        .get(`/.well-known/oauth-protected-resource${path}`)
+        .set('host', 'mcp.test')
+        .set('x-forwarded-proto', 'https');
+      expect(b.status).toBe(200);
+      expect(b.body.resource).toBe(`https://mcp.test${path}`);
+      expect(b.body.authorization_servers).toEqual(['https://mcp.test']);
+    }
+  );
 });
 
 describe('HTTP transport — RFC 8414 authorization-server metadata (MCP-host)', () => {
@@ -109,7 +112,10 @@ describe('HTTP transport — RFC 8414 authorization-server metadata (MCP-host)',
     expect(response.body.grant_types_supported).toEqual(
       expect.arrayContaining(['authorization_code', 'refresh_token'])
     );
-    expect(response.body.code_challenge_methods_supported).toContain('S256');
+    expect(response.body.code_challenge_methods_supported).toEqual(['S256']);
+    expect(response.body.service_documentation).toBe(
+      'https://github.com/VisibilioAI/visibilio-mcp/blob/main/docs/install.md'
+    );
     expect(response.body.scopes_supported).toEqual(
       expect.arrayContaining(['mcp:read', 'mcp:write'])
     );
