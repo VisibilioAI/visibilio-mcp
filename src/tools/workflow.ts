@@ -81,30 +81,47 @@ const startWorkflow = defineTool({
     language: z.enum(LANGUAGES).optional(),
   },
   annotations: mutating,
-  handler: async (args, session) => {
-    requireStringArg(args, 'user_request');
-    const productId = optionalProductId(args, session);
-    const payload: Record<string, unknown> = {
-      ...pick(args, ['user_request', 'source_url', 'source_content', 'include_cta', 'language']),
-      ...(productId !== undefined ? { product_id: productId } : {}),
-      auto_confirm: args.auto_confirm !== false,
-    };
-    if (Array.isArray(args.audience_ids) && args.audience_ids.length) {
-      payload.selected_segment_ids = args.audience_ids;
-    }
-    const result = (await session.client.post('/api/v2/workflow/start', payload)) as Row;
-    return [
-      `Workflow started: execution_id ${String(result.execution_id)}, state ${String(result.state)}.`,
-      describePlan(result.plan),
-      result.requires_confirmation
-        ? 'The plan awaits your confirmation: call confirm_workflow.'
-        : null,
-      `Call get_workflow_status(execution_id: "${String(result.execution_id)}") until it completes; each call waits up to 40 seconds.`,
-    ]
-      .filter((s): s is string => s !== null)
-      .join('\n');
-  },
+  handler: (args, session) => startWorkflowRequest(args, session, '/api/v2/workflow/start'),
 });
+
+async function startWorkflowRequest(
+  args: Record<string, unknown>,
+  session: McpSession,
+  endpoint: string
+): Promise<string> {
+  requireStringArg(args, 'user_request');
+  const productId = optionalProductId(args, session);
+  const payload: Record<string, unknown> = {
+    ...pick(args, ['user_request', 'source_url', 'source_content', 'include_cta', 'language']),
+    ...(productId !== undefined ? { product_id: productId } : {}),
+    auto_confirm: args.auto_confirm !== false,
+  };
+  if (Array.isArray(args.audience_ids) && args.audience_ids.length) {
+    payload.selected_segment_ids = args.audience_ids;
+  }
+  const result = (await session.client.post(endpoint, payload)) as Row;
+  return [
+    `Workflow started: execution_id ${String(result.execution_id)}, state ${String(result.state)}.`,
+    describePlan(result.plan),
+    result.requires_confirmation
+      ? 'The plan awaits your confirmation: call confirm_workflow.'
+      : null,
+    `Call get_workflow_status(execution_id: "${String(result.execution_id)}") until it completes; each call waits up to 40 seconds.`,
+  ]
+    .filter((s): s is string => s !== null)
+    .join('\n');
+}
+
+export const textOnlyStartWorkflow: ToolDefinition = {
+  ...startWorkflow,
+  description:
+    'Ask Visibilio to generate written content using the product knowledge, brand voice and audience. This endpoint enforces text-only generation and returns an execution id; get_workflow_status returns the generated text. Image, video and audio generation are unavailable.',
+  inputSchema: Object.fromEntries(
+    Object.entries(startWorkflow.inputSchema).filter(([name]) => name !== 'auto_confirm')
+  ),
+  handler: (args, session) =>
+    startWorkflowRequest({ ...args, auto_confirm: true }, session, '/api/v2/workflow/start-text'),
+};
 
 const confirmWorkflow = defineTool({
   name: 'confirm_workflow',
