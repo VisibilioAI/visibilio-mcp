@@ -8,7 +8,10 @@ For prerequisites, examples, workspace selection, publishing and revocation, see
 [Connect Visibilio to Claude](claude.md).
 
 1. In claude.ai open **Settings → Connectors → Add custom connector**.
-2. Name: `Visibilio`. Server URL: `https://mcp.visibilio.ai/mcp`.
+2. Name: `Visibilio`. For the Claude directory capability set, use
+   `https://mcp.visibilio.ai/claude/mcp`. Visibilio generates text and returns it to
+   Claude; image generation and publication workflows are excluded. The general
+   endpoint `https://mcp.visibilio.ai/mcp` retains the complete tool catalog.
 3. Click **Connect**. You are sent to Visibilio to sign in and approve the connection (OAuth); afterwards the Visibilio tools appear in every conversation where the connector is enabled.
 
 Other clients:

@@ -99,7 +99,7 @@ const createBrief = defineTool({
   name: 'create_brief',
   title: 'Create brief',
   description:
-    'Create a content brief (topic, audience, tone, key messages). Then call generate_from_brief to have Visibilio write the piece.',
+    'Create a content brief with a topic, audience, tone and key messages for a piece of content.',
   inputSchema: {
     title: z.string().min(1),
     content_type: z.enum(CONTENT_TYPES).optional().describe('Default article'),
@@ -124,7 +124,7 @@ const createBrief = defineTool({
         )
       )
     );
-    return `Brief created.\n${describeBrief(brief)}\nNext: generate_from_brief(brief_id: ${String(brief.id)}).`;
+    return `Brief created.\n${describeBrief(brief)}`;
   },
 });
 

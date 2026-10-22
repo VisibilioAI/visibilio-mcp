@@ -57,7 +57,7 @@ async function initialize(app: ReturnType<typeof buildHttpApp>['app'], path = '/
 }
 
 describe('Streamable HTTP transport — unauthenticated probe', () => {
-  it.each(['/mcp', '/sse'])(
+  it.each(['/mcp', '/sse', '/claude/mcp'])(
     'POST %s without Authorization → 401 with an RFC 9728 WWW-Authenticate challenge',
     async (path) => {
       const { app } = buildHttpApp({ baseSettings });
@@ -83,6 +83,159 @@ describe('Streamable HTTP transport — unauthenticated probe', () => {
     expect(response.status).toBe(401);
     expect(response.headers['www-authenticate']).toMatch(/^Bearer /);
     expect(sessions.size).toBe(0);
+  });
+});
+
+describe('Claude directory endpoint — restricted capability set', () => {
+  const excluded = [
+    'generate_cover_image',
+    'confirm_workflow',
+    'generate_from_brief',
+    'generate_from_signal',
+    'repurpose_content_item',
+    'quick_repurpose_content_item',
+    'translate_content_item',
+    'generate_seo_meta',
+    'generate_content_plan',
+    'get_content_plan_status',
+    'get_planned_topic_brief',
+    'analyze_brand_voice_text',
+    'scan_source',
+    'publish_to_hub',
+    'publish_social_post',
+    'schedule_content_item',
+  ];
+
+  it('offers content operations and the enforced text workflow without media routes', async () => {
+    const { app } = buildHttpApp({
+      baseSettings,
+      fetch: gatewayFetch({ '/api/v2/auth/me': { body: ME } }),
+    });
+    const { response: initialized, sessionId } = await initialize(app, '/claude/mcp');
+    expect(initialized.status).toBe(200);
+    const response = await post(app, '/claude/mcp')
+      .set('Authorization', 'Bearer vsk_valid')
+      .set('Mcp-Session-Id', sessionId!)
+      .send({ jsonrpc: '2.0', id: 2, method: 'tools/list', params: {} });
+    const names = response.body.result.tools.map((tool: { name: string }) => tool.name);
+    expect(names).toHaveLength(75);
+    expect(names).toEqual(
+      expect.arrayContaining([
+        'search',
+        'get_knowledge',
+        'create_content_item',
+        'update_content_item',
+        'get_review_queue',
+        'start_workflow',
+      ])
+    );
+    for (const name of excluded) expect(names).not.toContain(name);
+  });
+
+  it('starts generation in Visibilio through the text endpoint and returns its generated text', async () => {
+    const fetchImpl = gatewayFetch({
+      '/api/v2/auth/me': { body: ME },
+      'POST /api/v2/workflow/start-text': { body: { execution_id: 77, state: 'processing' } },
+      '/api/v2/workflow/77/status': {
+        body: {
+          state: 'completed',
+          is_complete: true,
+          final_output: { title: 'Review checklist', body: 'Text written by Visibilio.' },
+        },
+      },
+    });
+    const { app } = buildHttpApp({ baseSettings, fetch: fetchImpl });
+    const { response: initialized, sessionId } = await initialize(app, '/claude/mcp');
+    expect(initialized.status).toBe(200);
+    const started = await post(app, '/claude/mcp')
+      .set('Authorization', 'Bearer vsk_valid')
+      .set('Mcp-Session-Id', sessionId!)
+      .send({
+        jsonrpc: '2.0',
+        id: 2,
+        method: 'tools/call',
+        params: {
+          name: 'start_workflow',
+          arguments: {
+            product_id: 9,
+            user_request: 'Write a review checklist',
+            auto_confirm: false,
+            include_image: true,
+          },
+        },
+      });
+    expect(started.body.result.isError).not.toBe(true);
+    expect(JSON.stringify(started.body)).toContain('execution_id 77');
+    const calls = vi.mocked(fetchImpl).mock.calls;
+    const startCall = calls.find(([url]) => String(url).endsWith('/api/v2/workflow/start-text'));
+    expect(startCall).toBeDefined();
+    expect(JSON.parse(String(startCall![1]?.body))).toMatchObject({
+      user_request: 'Write a review checklist',
+      product_id: 9,
+      auto_confirm: true,
+    });
+    expect(JSON.parse(String(startCall![1]?.body))).not.toHaveProperty('include_image');
+    expect(calls.some(([url]) => String(url).endsWith('/api/v2/workflow/start'))).toBe(false);
+
+    const completed = await post(app, '/claude/mcp')
+      .set('Authorization', 'Bearer vsk_valid')
+      .set('Mcp-Session-Id', sessionId!)
+      .send({
+        jsonrpc: '2.0',
+        id: 3,
+        method: 'tools/call',
+        params: { name: 'get_workflow_status', arguments: { execution_id: '77' } },
+      });
+    expect(JSON.stringify(completed.body)).toContain('Text written by Visibilio.');
+  });
+
+  it.each(excluded)('rejects a direct call to %s without invoking the gateway', async (name) => {
+    const fetchImpl = gatewayFetch({ '/api/v2/auth/me': { body: ME } });
+    const { app } = buildHttpApp({ baseSettings, fetch: fetchImpl });
+    const { response: initialized, sessionId } = await initialize(app, '/claude/mcp');
+    expect(initialized.status).toBe(200);
+    vi.mocked(fetchImpl).mockClear();
+    const response = await post(app, '/claude/mcp')
+      .set('Authorization', 'Bearer vsk_valid')
+      .set('Mcp-Session-Id', sessionId!)
+      .send({ jsonrpc: '2.0', id: 3, method: 'tools/call', params: { name, arguments: {} } });
+    expect(response.body.result?.isError ?? Boolean(response.body.error)).toBe(true);
+    expect(JSON.stringify(response.body)).toContain(`Tool ${name} not found`);
+    expect(fetchImpl).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ['/mcp', '/claude/mcp'],
+    ['/claude/mcp', '/mcp'],
+    ['/claude/mcp', '/sse'],
+  ])('cannot reuse a session from %s at %s', async (source, destination) => {
+    const { app } = buildHttpApp({
+      baseSettings,
+      fetch: gatewayFetch({ '/api/v2/auth/me': { body: ME } }),
+    });
+    const { response: initialized, sessionId } = await initialize(app, source);
+    expect(initialized.status).toBe(200);
+    const response = await post(app, destination)
+      .set('Authorization', 'Bearer vsk_valid')
+      .set('Mcp-Session-Id', sessionId!)
+      .send({ jsonrpc: '2.0', id: 2, method: 'tools/list', params: {} });
+    expect(response.status).toBe(404);
+  });
+
+  it('keeps the complete catalog available at the existing endpoint', async () => {
+    const { app } = buildHttpApp({
+      baseSettings,
+      fetch: gatewayFetch({ '/api/v2/auth/me': { body: ME } }),
+    });
+    const { sessionId } = await initialize(app);
+    const response = await post(app, '/mcp')
+      .set('Authorization', 'Bearer vsk_valid')
+      .set('Mcp-Session-Id', sessionId!)
+      .send({ jsonrpc: '2.0', id: 2, method: 'tools/list', params: {} });
+    expect(response.body.result.tools).toHaveLength(91);
+    expect(response.body.result.tools.map((tool: { name: string }) => tool.name)).toEqual(
+      expect.arrayContaining(excluded)
+    );
   });
 });
 

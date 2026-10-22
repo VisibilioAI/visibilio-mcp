@@ -16,7 +16,7 @@ const listAudiences = defineTool({
   name: 'list_audiences',
   title: 'List audiences',
   description:
-    'List the audience segments of a product (id, name, description, whether a persona exists). Audience ids are used by create_content_item, start_workflow and repurpose_content_item.',
+    'List the audience segments of a product (id, name, description, whether a persona exists). Audience ids identify the intended readers for content creation and generation.',
   inputSchema: {
     product_id: z.number().int().optional().describe('Defaults to the active product'),
   },
