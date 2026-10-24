@@ -77,6 +77,7 @@ function describeItem(item: Row, includeBody: boolean): string {
     ['seo_meta', item.seo_meta],
     ['canonical_url', item.canonical_url],
     ['featured_image_url', item.featured_image_url],
+    ['author_name', item.author_name],
     ['body_format', item.body_format],
     ['version', item.version],
     ['updated_at', item.updated_at],
