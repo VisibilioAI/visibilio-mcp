@@ -1,5 +1,4 @@
 import { z } from 'zod';
-import type { McpSession } from '../session.js';
 import {
   defineTool,
   destructive,
@@ -99,7 +98,7 @@ const startWorkflow = defineTool({
       result.requires_confirmation
         ? 'The plan awaits your confirmation: call confirm_workflow.'
         : null,
-      `Call get_workflow_status(execution_id: "${String(result.execution_id)}") until it completes; each call waits up to 40 seconds.`,
+      `Call get_workflow_status(execution_id: "${String(result.execution_id)}") to follow it; it returns at once, so call it again while it reports the run is still going.`,
     ]
       .filter((s): s is string => s !== null)
       .join('\n');
@@ -131,22 +130,6 @@ const confirmWorkflow = defineTool({
     return `Workflow ${executionId} is now ${String(result.state)}.${result.message ? ` ${String(result.message)}` : ''}`;
   },
 });
-
-const WAIT_BUDGET_MS = 40_000;
-const POLL_INTERVAL_MS = 4_000;
-
-const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
-
-async function settledStatus(
-  session: McpSession,
-  executionId: string,
-  deadline: number
-): Promise<Row> {
-  const status = (await session.client.get(`/api/v2/workflow/${executionId}/status`)) as Row;
-  if (status.is_complete === true || Date.now() + POLL_INTERVAL_MS > deadline) return status;
-  await sleep(POLL_INTERVAL_MS);
-  return settledStatus(session, executionId, deadline);
-}
 
 function count(value: unknown): number {
   return asArray(value).length;
@@ -180,12 +163,12 @@ const getWorkflowStatus = defineTool({
   name: 'get_workflow_status',
   title: 'Get workflow status',
   description:
-    'Check a workflow execution: state, progress, cost and (when completed) the generated pieces. While the run is going, the call waits up to 40 seconds for it to finish, so call it again only when it says the run is still going. Generated output is NOT saved automatically: persist it with create_content_item(type, source_execution_id).',
+    'Check a workflow execution: state, progress, cost and (when completed) the generated pieces. Returns at once; while the run is still going, call it again to keep polling (an article usually takes 4-7 minutes, a post about 2). Generated output is NOT saved automatically: persist it with create_content_item(type, source_execution_id).',
   inputSchema: { execution_id: z.string() },
   annotations: readOnly,
   handler: async (args, session) => {
     const executionId = requireStringArg(args, 'execution_id');
-    const status = await settledStatus(session, executionId, Date.now() + WAIT_BUDGET_MS);
+    const status = (await session.client.get(`/api/v2/workflow/${executionId}/status`)) as Row;
     const head = fields([
       ['execution_id', status.execution_id ?? executionId],
       ['state', status.state],
@@ -200,7 +183,7 @@ const getWorkflowStatus = defineTool({
       ['error', status.error],
     ]);
     if (status.state !== 'completed') {
-      return `${head}\n${status.is_complete ? 'The run has ended.' : 'Still running; call get_workflow_status again (it waits up to 40 seconds).'}`;
+      return `${head}\n${status.is_complete ? 'The run has ended.' : 'Still running; call get_workflow_status again to keep polling.'}`;
     }
     if (producedNothing(status.final_output)) {
       return [
