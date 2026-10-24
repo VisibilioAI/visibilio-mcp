@@ -27,6 +27,7 @@ const EXPECTED_TOOLS = [
   'quick_repurpose_content_item',
   'translate_content_item',
   'generate_cover_image',
+  'get_generation_job_status',
   'list_briefs',
   'get_brief',
   'create_brief',

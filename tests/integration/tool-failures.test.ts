@@ -122,6 +122,7 @@ function sampleOf(schema: ZodTypeAny): unknown {
   if (schema instanceof z.ZodString) return 'x';
   if (schema instanceof z.ZodBoolean) return true;
   if (schema instanceof z.ZodEnum) return schema.options[0];
+  if (schema instanceof z.ZodUnion) return sampleOf(schema.options[0] as ZodTypeAny);
   if (schema instanceof z.ZodArray) return [sampleOf(schema.element)];
   if (schema instanceof z.ZodRecord) return { key: 'value' };
   if (schema instanceof z.ZodObject) return requiredSamplesOf(schema.shape);

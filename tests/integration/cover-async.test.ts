@@ -25,7 +25,7 @@ describe('generate_cover_image — starts an async job and returns the job id', 
       session
     );
 
-    expect(calls[0].url).toContain('/api/v2/content-items/501/generate-cover-async');
+    expect(String(calls[0]?.url)).toContain('/api/v2/content-items/501/generate-cover-async');
     expect(jsonBodyOf(calls[0])).toEqual({ prompt: 'a calm ledger' });
     const text = textOf(result);
     expect(text).toContain('777');
@@ -41,11 +41,7 @@ describe('generate_cover_image — starts an async job and returns the job id', 
       },
     ]);
 
-    await callTool(
-      'generate_cover_image',
-      { content_item_id: 501, user_initiated: true },
-      session
-    );
+    await callTool('generate_cover_image', { content_item_id: 501, user_initiated: true }, session);
 
     expect(jsonBodyOf(calls[0])).toEqual({ user_initiated: true });
   });
@@ -70,7 +66,7 @@ describe('get_generation_job_status — polls the shared generation-jobs status'
 
     const result = await callTool('get_generation_job_status', { job_id: 777 }, session);
 
-    expect(calls[0].url).toContain('/api/v2/generation-jobs/777');
+    expect(String(calls[0]?.url)).toContain('/api/v2/generation-jobs/777');
     const text = textOf(result);
     expect(text).toMatch(/running/i);
     expect(text).toContain('get_generation_job_status');
