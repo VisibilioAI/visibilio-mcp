@@ -249,3 +249,55 @@ describe('overview', () => {
     expect(marked).toMatch(/read/);
   });
 });
+
+describe('add_signal_to_plan reporting', () => {
+  it('reports the signal was NOT added, and why, when the plan has no open slot', async () => {
+    const { session } = buildSession([
+      {
+        match: pathMatcher('POST', '/api/v2/signals/70/add-to-plan'),
+        body: { data: { action: 'capped', plannedTopicId: null } },
+      },
+    ]);
+
+    const text = await (
+      await findTool('add_signal_to_plan')
+    ).handler({ signal_id: 70, pillar: 'Thought leadership' }, session);
+
+    expect(text).not.toMatch(/capped into the plan/i);
+    expect(text).toMatch(/not added|nothing (was )?created/i);
+  });
+
+  it('reports a newly inserted planned topic and where to view it', async () => {
+    const { session, calls } = buildSession([
+      {
+        match: pathMatcher('POST', '/api/v2/signals/70/add-to-plan'),
+        body: { data: { action: 'inserted', plannedTopicId: '555' } },
+      },
+    ]);
+
+    const text = await (
+      await findTool('add_signal_to_plan')
+    ).handler({ signal_id: 70, pillar: 'Thought leadership' }, session);
+
+    expect(jsonBodyOf(calls[0])).toEqual({ pillar: 'Thought leadership' });
+    expect(text).toContain('topic_id: 555');
+    expect(text).toContain('list_planned_topics');
+  });
+
+  it('reports a replaced placeholder topic and where to view it', async () => {
+    const { session } = buildSession([
+      {
+        match: pathMatcher('POST', '/api/v2/signals/70/add-to-plan'),
+        body: { data: { action: 'replaced', plannedTopicId: '556' } },
+      },
+    ]);
+
+    const text = await (
+      await findTool('add_signal_to_plan')
+    ).handler({ signal_id: 70, pillar: 'Thought leadership' }, session);
+
+    expect(text).toMatch(/replac/i);
+    expect(text).toContain('topic_id: 556');
+    expect(text).toContain('list_planned_topics');
+  });
+});
