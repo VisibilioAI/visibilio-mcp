@@ -114,7 +114,7 @@ const getContentPlan = defineTool({
 const createContentPlan = defineTool({
   name: 'create_content_plan',
   title: 'Create content plan',
-  description: 'Create an empty content plan for a product. Fill it with generate_content_plan.',
+  description: 'Create an empty content plan for a product.',
   inputSchema: {
     product_id: z.number().int().optional(),
     name: z.string().min(1),
@@ -135,7 +135,7 @@ const createContentPlan = defineTool({
         pick(args, ['name', 'description', 'user_input'])
       )
     );
-    return `Content plan created.\n${describePlan(plan)}\nNext: generate_content_plan(plan_id: ${String(plan.id)}, start_date, end_date).`;
+    return `Content plan created.\n${describePlan(plan)}`;
   },
 });
 

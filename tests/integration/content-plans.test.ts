@@ -85,7 +85,6 @@ describe('content plans', () => {
       user_input: 'focus on case studies',
     });
     expect(text).toContain('plan_id: 13');
-    expect(text).toContain('generate_content_plan');
   });
 
   it('generate_content_plan sends the window and options and points at the status tool', async () => {

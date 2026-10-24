@@ -81,7 +81,7 @@ describe('HTTP transport — RFC 9728 protected resource metadata', () => {
     );
   });
 
-  it.each(['/mcp', '/sse'])(
+  it.each(['/mcp', '/sse', '/claude/mcp'])(
     'path-aware discovery identifies the complete %s resource',
     async (path) => {
       const { app } = buildHttpApp({ baseSettings });

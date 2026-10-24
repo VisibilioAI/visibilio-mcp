@@ -17,6 +17,7 @@ export interface HttpAppOptions {
 
 export interface LiveSession {
   readonly kind: 'streamable' | 'sse';
+  readonly toolProfile: 'full' | 'claude';
   readonly userId: number;
   credentialHash: string;
   rebind(credential: string, credentialHash: string): void;
@@ -29,7 +30,7 @@ export interface HttpApp {
 }
 
 const SESSION_HEADER = 'mcp-session-id';
-const STREAMABLE_PATHS = ['/mcp', '/sse'] as const;
+const STREAMABLE_PATHS = ['/mcp', '/sse', '/claude/mcp'] as const;
 const DOCUMENTATION_URL = 'https://github.com/VisibilioAI/visibilio-mcp/blob/main/docs/install.md';
 
 export function buildHttpApp(options: HttpAppOptions): HttpApp {
@@ -89,7 +90,7 @@ export function buildHttpApp(options: HttpAppOptions): HttpApp {
 
   const protectedResourceHandler = (req: Request, res: Response) => {
     const self = ownOrigin(req);
-    const resourcePath = req.path.endsWith('/sse') ? '/sse' : '/mcp';
+    const resourcePath = req.path.replace('/.well-known/oauth-protected-resource', '') || '/mcp';
     res.setHeader('Cache-Control', 'public, max-age=300');
     res.json({
       resource: `${self}${resourcePath}`,
@@ -102,6 +103,7 @@ export function buildHttpApp(options: HttpAppOptions): HttpApp {
   app.get('/.well-known/oauth-protected-resource', protectedResourceHandler);
   app.get('/.well-known/oauth-protected-resource/sse', protectedResourceHandler);
   app.get('/.well-known/oauth-protected-resource/mcp', protectedResourceHandler);
+  app.get('/.well-known/oauth-protected-resource/claude/mcp', protectedResourceHandler);
 
   app.get('/.well-known/oauth-authorization-server', (req: Request, res: Response) => {
     const self = ownOrigin(req);
@@ -217,6 +219,7 @@ export function buildHttpApp(options: HttpAppOptions): HttpApp {
   };
 
   const handleStreamable = async (req: Request, res: Response) => {
+    const toolProfile = req.path === '/claude/mcp' ? 'claude' : 'full';
     const settings = parseSettings(req, res);
     if (!settings) return;
     const credentialHash = hashCredential(settings.credential);
@@ -225,7 +228,7 @@ export function buildHttpApp(options: HttpAppOptions): HttpApp {
     if (sessionId) {
       const live = sessions.get(sessionId);
       const transport = streamableTransports.get(sessionId);
-      if (!live || !transport) {
+      if (!live || !transport || live.toolProfile !== toolProfile) {
         res.status(404).json({
           jsonrpc: '2.0',
           error: { code: -32001, message: 'Session not found — send a new initialize request' },
@@ -271,7 +274,7 @@ export function buildHttpApp(options: HttpAppOptions): HttpApp {
 
     let built;
     try {
-      built = await buildServer({ settings, fetch: fetchImpl, ...serverOptions });
+      built = await buildServer({ settings, fetch: fetchImpl, ...serverOptions, toolProfile });
     } catch (err) {
       if (err instanceof AuthenticationError) {
         rejectAuthenticationFailure(req, res, err);
@@ -291,6 +294,7 @@ export function buildHttpApp(options: HttpAppOptions): HttpApp {
         streamableTransports.set(id, transport);
         const live: LiveSession = {
           kind: 'streamable',
+          toolProfile,
           userId: built.session.userId,
           credentialHash,
           rebind(credential, hash) {
@@ -321,6 +325,7 @@ export function buildHttpApp(options: HttpAppOptions): HttpApp {
     app.delete(path, handleStreamable);
   }
   app.get('/mcp', handleStreamable);
+  app.get('/claude/mcp', handleStreamable);
 
   app.get('/sse', async (req: Request, res: Response) => {
     if (req.header(SESSION_HEADER)) {
@@ -339,6 +344,7 @@ export function buildHttpApp(options: HttpAppOptions): HttpApp {
       sseTransports.set(id, t);
       const live: LiveSession = {
         kind: 'sse',
+        toolProfile: 'full',
         userId: built.session.userId,
         credentialHash: hashCredential(settings.credential),
         rebind(credential, hash) {
@@ -417,7 +423,7 @@ function setBearerChallenge(
   res: Response,
   options: { error: string; description: string }
 ): void {
-  const resourcePath = req.path === '/sse' ? '/sse' : '/mcp';
+  const resourcePath = req.path === '/sse' || req.path === '/claude/mcp' ? req.path : '/mcp';
   const resourceMetadata = `${ownOrigin(req)}/.well-known/oauth-protected-resource${resourcePath}`;
   const sanitize = (v: string) =>
     v

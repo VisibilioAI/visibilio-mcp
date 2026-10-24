@@ -59,7 +59,7 @@ const listSignals = defineTool({
     return listOrEmpty(
       `Signals (${signals.length}):`,
       signals.map(signalLine),
-      'No signals match. Scan a source with scan_source or relax the filters.'
+      'No signals match. Try broader filters or check the sources configured in Visibilio.'
     );
   },
 });
@@ -235,7 +235,7 @@ const createSource = defineTool({
         pick(args, ['name', 'type', 'url', 'scan_frequency_minutes', 'priority'])
       )
     );
-    return `Source created.\n${line(nameOf(source), 'source_id', source.id, [typeof source.type === 'string' ? source.type : undefined, typeof source.url === 'string' ? source.url : undefined])}\nScan it now with scan_source(source_id: ${String(source.id)}).`;
+    return `Source created.\n${line(nameOf(source), 'source_id', source.id, [typeof source.type === 'string' ? source.type : undefined, typeof source.url === 'string' ? source.url : undefined])}`;
   },
 });
 
