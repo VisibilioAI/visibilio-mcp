@@ -53,7 +53,7 @@ const CREATED = {
   data: { id: 900, type: 'article', title: 'Geely Starray EM-i', status: 'draft' },
 };
 
-describe('generation round trip — waiting for a run', () => {
+describe('generation round trip — polling a run', () => {
   beforeEach(() => {
     vi.useFakeTimers();
   });
@@ -62,26 +62,7 @@ describe('generation round trip — waiting for a run', () => {
     vi.useRealTimers();
   });
 
-  it('get_workflow_status waits on a running run and answers as soon as it completes', async () => {
-    const { session, calls } = buildSession([
-      { match: STATUS, body: run('running') },
-      { match: STATUS, body: run('running') },
-      { match: STATUS, body: run('completed', [ARTICLE]) },
-    ]);
-
-    const pending = (await findTool('get_workflow_status')).handler(
-      { execution_id: '544' },
-      session
-    );
-    await vi.runAllTimersAsync();
-    const text = await pending;
-
-    expect(calls).toHaveLength(3);
-    expect(text).toContain('completed');
-    expect(text).toContain('Geely Starray EM-i');
-  });
-
-  it('get_workflow_status hands a still-running run back within 40 seconds', async () => {
+  it('get_workflow_status returns the current status in a single read, without blocking', async () => {
     const { session, calls } = buildSession([{ match: STATUS, body: run('running') }]);
     const startedAt = Date.now();
 
@@ -92,11 +73,24 @@ describe('generation round trip — waiting for a run', () => {
     await vi.runAllTimersAsync();
     const text = await pending;
 
-    const waited = Date.now() - startedAt;
-    expect(waited).toBeGreaterThan(30_000);
-    expect(waited).toBeLessThanOrEqual(40_000);
-    expect(calls.length).toBeGreaterThan(1);
+    expect(calls).toHaveLength(1);
+    expect(Date.now() - startedAt).toBeLessThan(1_000);
     expect(text).toMatch(/still running/i);
+    expect(text).toContain('get_workflow_status');
+  });
+
+  // Regression guard — a run already complete at poll time returns its output in one read.
+  it('get_workflow_status returns the output when the run is already complete', async () => {
+    const { session, calls } = buildSession([{ match: STATUS, body: run('completed', [ARTICLE]) }]);
+
+    const text = await (await findTool('get_workflow_status')).handler(
+      { execution_id: '544' },
+      session
+    );
+
+    expect(calls).toHaveLength(1);
+    expect(text).toContain('completed');
+    expect(text).toContain('Geely Starray EM-i');
   });
 });
 
