@@ -243,16 +243,17 @@ const scanSource = defineTool({
   name: 'scan_source',
   title: 'Scan source',
   description:
-    'Scan a source now and score the new items as signals for a product (synchronous, up to 2 minutes).',
+    'Scan a source now and score the new items as signals for a product. Returns a job id at once; follow it with get_generation_job_status until it completes, then the scored items appear as signals (see list_signals). Retrying the same request never rescans the source twice.',
   inputSchema: { source_id: z.number().int(), product_id: z.number().int().optional() },
   annotations: mutating,
   handler: async (args, session) => {
     const sourceId = requireNumberArg(args, 'source_id');
     const productId = resolveProductId(args, session);
-    const result = unwrapData<Row>(
-      await session.client.post(`/api/v2/sources/${sourceId}/scan`, { product_id: productId })
-    );
-    return `Scan of source ${sourceId} finished: ${String(result.items_found ?? 0)} items found, ${String(result.items_new ?? 0)} new. See list_signals.`;
+    const started = (await session.client.post(`/api/v2/sources/${sourceId}/scan-async`, {
+      product_id: productId,
+    })) as { job_id?: number | string; status?: string };
+    const jobId = String(started.job_id ?? '');
+    return `Scan started: job ${jobId} (${String(started.status ?? 'running')}). Call get_generation_job_status(job_id: "${jobId}") until it completes; the scored items then appear as signals (see list_signals).`;
   },
 });
 
