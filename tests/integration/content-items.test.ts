@@ -82,6 +82,21 @@ describe('content items — listing and reading', () => {
     expect(text).toContain('Founders');
   });
 
+  it('get_content_item surfaces the item author_name so clients can read it', async () => {
+    const { session } = buildSession([
+      {
+        match: pathMatcher('GET', '/api/v2/content-items/501'),
+        body: { data: { ...ITEM, author_name: 'Neli Kostova' } },
+      },
+    ]);
+
+    const text = await (
+      await findTool('get_content_item')
+    ).handler({ content_item_id: 501 }, session);
+
+    expect(text).toContain('author_name: Neli Kostova');
+  });
+
   it('a gateway 404 is reported to the model as a failed result with the gateway message, not thrown', async () => {
     const { session } = buildSession([
       {
