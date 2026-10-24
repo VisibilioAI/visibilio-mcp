@@ -81,11 +81,12 @@ describe('signals and sources', () => {
     expect(text).toMatch(/dismissed/);
   });
 
-  it('scan_source posts the active product and reports what was found', async () => {
+  it('scan_source starts an async job with the active product and returns the job id', async () => {
     const { session, calls } = buildSession([
       {
-        match: pathMatcher('POST', '/api/v2/sources/5/scan'),
-        body: { data: { items_found: 12, items_new: 3, source_id: 5 } },
+        match: pathMatcher('POST', '/api/v2/sources/5/scan-async'),
+        status: 202,
+        body: { job_id: 601, status: 'running' },
       },
     ]);
     await session.setActiveProduct(147, 'Visibilio');
@@ -93,7 +94,8 @@ describe('signals and sources', () => {
     const text = await (await findTool('scan_source')).handler({ source_id: 5 }, session);
 
     expect(jsonBodyOf(calls[0])).toEqual({ product_id: 147 });
-    expect(text).toContain('3 new');
+    expect(text).toContain('601');
+    expect(text).toContain('get_generation_job_status');
   });
 
   it('create_source posts the source definition', async () => {
