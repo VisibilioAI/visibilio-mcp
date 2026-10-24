@@ -83,10 +83,9 @@ describe('generation round trip — polling a run', () => {
   it('get_workflow_status returns the output when the run is already complete', async () => {
     const { session, calls } = buildSession([{ match: STATUS, body: run('completed', [ARTICLE]) }]);
 
-    const text = await (await findTool('get_workflow_status')).handler(
-      { execution_id: '544' },
-      session
-    );
+    const text = await (
+      await findTool('get_workflow_status')
+    ).handler({ execution_id: '544' }, session);
 
     expect(calls).toHaveLength(1);
     expect(text).toContain('completed');

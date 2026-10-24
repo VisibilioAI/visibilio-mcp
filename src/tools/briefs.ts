@@ -185,7 +185,7 @@ const generateFromBrief = defineTool({
     const result = unwrapData<Row>(await session.client.post(`/api/v2/briefs/${briefId}/generate`));
     return [
       `Generation started for brief ${briefId}: execution_id ${String(result.execution_id)} (status ${String(result.status)}).`,
-      `Call get_workflow_status(execution_id: "${String(result.execution_id)}") until it completes; each call waits up to 40 seconds (an article usually takes 4-7 minutes, a post about 2).`,
+      `Call get_workflow_status(execution_id: "${String(result.execution_id)}") to follow it; it returns at once, so call it again while it reports the run is still going (an article usually takes 4-7 minutes, a post about 2).`,
     ].join('\n');
   },
 });

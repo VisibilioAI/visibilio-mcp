@@ -115,7 +115,7 @@ const generateFromSignal = defineTool({
         pick(args, ['output_types', 'additional_context', 'language'])
       )
     );
-    return `Generation started from signal ${signalId}: execution_id ${String(result.execution_id)} (${String(result.state)}). Call get_workflow_status(execution_id) until it completes; each call waits up to 40 seconds.`;
+    return `Generation started from signal ${signalId}: execution_id ${String(result.execution_id)} (${String(result.state)}). Call get_workflow_status(execution_id) to follow it; it returns at once, so call it again while it reports the run is still going.`;
   },
 });
 
