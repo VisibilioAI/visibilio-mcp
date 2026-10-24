@@ -422,7 +422,7 @@ const repurposeContentItem = defineTool({
   name: 'repurpose_content_item',
   title: 'Repurpose content item',
   description:
-    'Create platform-specific variants of a content item (e.g. a LinkedIn post and an X thread from an article). Synchronous; returns the new draft items.',
+    'Create platform-specific variants of a content item (e.g. a LinkedIn post and an X thread from an article). Returns a job id at once; follow it with get_generation_job_status until it completes, then the variants are saved as drafts automatically. Retrying the same request never generates a second set of variants.',
   inputSchema: {
     content_item_id: z.number().int(),
     targets: z
@@ -441,18 +441,12 @@ const repurposeContentItem = defineTool({
   annotations: mutating,
   handler: async (args, session) => {
     const itemId = requireNumberArg(args, 'content_item_id');
-    const result = unwrapData<Row>(
-      await session.client.post(
-        `/api/v2/content-items/${itemId}/repurpose`,
-        pick(args, ['targets', 'additional_context', 'language'])
-      )
-    );
-    const variants = asArray<Row>(result.variants);
-    return listOrEmpty(
-      `Created ${variants.length} variant(s) from content item ${itemId}:`,
-      variants.map(itemLine),
-      'No variants were produced.'
-    );
+    const started = (await session.client.post(
+      `/api/v2/content-items/${itemId}/repurpose-async`,
+      pick(args, ['targets', 'additional_context', 'language'])
+    )) as { job_id?: number | string; status?: string };
+    const jobId = String(started.job_id ?? '');
+    return `Repurpose started: job ${jobId} (${String(started.status ?? 'running')}). Call get_generation_job_status(job_id: "${jobId}") until it completes; the variants are saved as drafts automatically.`;
   },
 });
 
