@@ -504,7 +504,7 @@ const generateCoverImage = defineTool({
   name: 'generate_cover_image',
   title: 'Generate cover image',
   description:
-    'Generate an AI cover image for a content item in the product illustration style and attach it as the featured image.',
+    'Generate an AI cover image for a content item in the product illustration style and attach it as the featured image. Returns a job id at once; follow it with get_generation_job_status until it completes (the cover attaches to the item automatically). Retrying the same request never generates a second cover.',
   inputSchema: {
     content_item_id: z.number().int(),
     prompt: z.string().max(500).optional().describe('Optional art direction'),
@@ -513,17 +513,50 @@ const generateCoverImage = defineTool({
   annotations: mutating,
   handler: async (args, session) => {
     const itemId = requireNumberArg(args, 'content_item_id');
-    const item = unwrapData<Row>(
-      await session.client.post(
-        `/api/v2/content-items/${itemId}/generate-cover`,
-        pick(args, ['prompt', 'user_initiated'])
-      )
-    );
-    return `Cover generated: ${String(item.featured_image_url ?? '(no url returned)')}`;
+    const started = (await session.client.post(
+      `/api/v2/content-items/${itemId}/generate-cover-async`,
+      pick(args, ['prompt', 'user_initiated'])
+    )) as { job_id?: number | string; status?: string };
+    const jobId = String(started.job_id ?? '');
+    return `Cover generation started: job ${jobId} (${String(started.status ?? 'running')}). Call get_generation_job_status(job_id: "${jobId}") until it completes; the cover attaches to the content item automatically.`;
+  },
+});
+
+const GENERATION_JOB_TERMINAL_STATUSES = ['completed', 'partial_failed', 'failed'] as const;
+
+const getGenerationJobStatus = defineTool({
+  name: 'get_generation_job_status',
+  title: 'Get generation job status',
+  description:
+    'Check an async generation job (for example a cover image). Returns the current status at once; while it is still running, call again shortly. A status read is idempotent, so a retry never duplicates work.',
+  inputSchema: {
+    job_id: z
+      .union([z.number().int(), z.string()])
+      .describe('The job id returned when the job started'),
+  },
+  annotations: readOnly,
+  handler: async (args, session) => {
+    const jobId = String(args.job_id ?? '');
+    const job = unwrapData<Row>(await session.client.get(`/api/v2/generation-jobs/${jobId}`));
+    const status = String(job.status ?? '');
+    const head = fields([
+      ['job_id', job.job_id ?? jobId],
+      ['kind', job.kind],
+      ['status', job.status],
+      ['error', job.error],
+    ]);
+    if (!(GENERATION_JOB_TERMINAL_STATUSES as readonly string[]).includes(status)) {
+      return `${head}\nStill running; call get_generation_job_status again shortly.`;
+    }
+    if (status === 'completed') {
+      return `${head}\nThe job has completed.`;
+    }
+    return `${head}\nThe job has ended.`;
   },
 });
 
 export const contentItemTools: readonly ToolDefinition[] = [
+  getGenerationJobStatus,
   listContentItems,
   getContentItem,
   createContentItem,
