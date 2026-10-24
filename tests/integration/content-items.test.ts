@@ -322,19 +322,12 @@ describe('content items — AI helpers', () => {
     expect(text).toContain('update_content_item');
   });
 
-  it('repurpose_content_item forwards targets and context', async () => {
+  it('repurpose_content_item forwards targets and context to the async route', async () => {
     const { session, calls } = buildSession([
       {
-        match: pathMatcher('POST', '/api/v2/content-items/501/repurpose'),
-        status: 201,
-        body: {
-          data: {
-            session_id: 's1',
-            source_content_item_id: 501,
-            variants: [{ id: 601, title: 'LinkedIn take', platform: 'linkedin' }],
-            variants_count: 1,
-          },
-        },
+        match: pathMatcher('POST', '/api/v2/content-items/501/repurpose-async'),
+        status: 202,
+        body: { job_id: 777, status: 'running' },
       },
     ]);
 
@@ -353,8 +346,8 @@ describe('content items — AI helpers', () => {
       targets: [{ platform: 'linkedin', content_type: 'social_post', remix_strategy: 'adapt' }],
       additional_context: 'keep it short',
     });
-    expect(text).toContain('content_item_id: 601');
-    expect(text).toContain('linkedin');
+    expect(text).toContain('777');
+    expect(text).toContain('get_generation_job_status');
   });
 
   it('translate_content_item sends the target language', async () => {
