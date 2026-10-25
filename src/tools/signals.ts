@@ -133,7 +133,13 @@ const addSignalToPlan = defineTool({
         pillar: requireStringArg(args, 'pillar'),
       })
     );
-    return `Signal ${signalId} ${String(result.action)} into the plan${result.plannedTopicId ? ` (topic_id: ${String(result.plannedTopicId)})` : ''}.`;
+    const topicId = result.plannedTopicId ? String(result.plannedTopicId) : null;
+    if (!topicId) {
+      return `Signal ${signalId} was not added to the plan: it already has its target number of posts for the coming week and no open slot in the next four weeks. Nothing was created.`;
+    }
+    const how =
+      result.action === 'replaced' ? 'replacing a placeholder topic' : 'as a new planned topic';
+    return `Signal ${signalId} added to the plan ${how} (topic_id: ${topicId}). View it with list_planned_topics.`;
   },
 });
 
