@@ -135,7 +135,7 @@ const requestContentChanges = defineTool({
     'Send a content item back with a reason and a note; Visibilio starts a revision job that rewrites it accordingly.',
   inputSchema: {
     content_item_id: z.number().int(),
-    reason: z.string().min(1),
+    reason: z.enum(['wrong_facts', 'wrong_tone', 'off_strategy', 'other']),
     note: z.string().min(1),
   },
   annotations: mutating,
