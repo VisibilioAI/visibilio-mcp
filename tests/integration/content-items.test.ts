@@ -241,9 +241,13 @@ describe('content items — writing', () => {
 
   it('update_content_item PUTs only the provided fields and marks the edit as agent-made', async () => {
     const { session, calls } = buildSession([
+      { match: pathMatcher('GET', '/api/v2/content-items/501'), body: { data: ITEM } },
       {
+        // The gateway does NOT version a status change, so changed_fields comes
+        // back empty even though the status really moved draft -> review. The
+        // tool must still report the status change, not "nothing" (#965.7).
         match: pathMatcher('PUT', '/api/v2/content-items/501'),
-        body: { data: { ...ITEM, status: 'review' }, changed_fields: ['status'] },
+        body: { data: { ...ITEM, status: 'review' }, changed_fields: [] },
       },
     ]);
 
@@ -251,13 +255,31 @@ describe('content items — writing', () => {
       await findTool('update_content_item')
     ).handler({ content_item_id: 501, status: 'review', edit_prompt: 'ready for review' }, session);
 
-    expect(jsonBodyOf(calls[0])).toEqual({
+    const putCall = calls.find((c) => (c.init?.method ?? 'GET') === 'PUT');
+    expect(jsonBodyOf(putCall)).toEqual({
       status: 'review',
       edit_prompt: 'ready for review',
       created_by: 'agent',
     });
     expect(text).toContain('status');
-    expect(text).toContain('review');
+    expect(text).not.toContain('nothing');
+  });
+
+  it('update_content_item reports nothing when the requested value matches the stored one', async () => {
+    const { session } = buildSession([
+      { match: pathMatcher('GET', '/api/v2/content-items/501'), body: { data: ITEM } },
+      {
+        match: pathMatcher('PUT', '/api/v2/content-items/501'),
+        body: { data: ITEM, changed_fields: [] },
+      },
+    ]);
+
+    const text = await (
+      await findTool('update_content_item')
+    ).handler({ content_item_id: 501, status: 'draft' }, session);
+
+    expect(text).toContain('nothing');
+    expect(text).not.toContain('Updated: status');
   });
 
   it('delete_content_item issues DELETE and reports a published-elsewhere conflict verbatim as a failed result', async () => {
