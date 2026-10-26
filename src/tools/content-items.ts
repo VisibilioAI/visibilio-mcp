@@ -15,7 +15,7 @@ import {
 } from './_define.js';
 import { asArray, fields, line, listOrEmpty, nameOf, truncate, type Row } from './_format.js';
 import { pickPiece, piecesOf } from './_run.js';
-import { reconcileChangedFields } from './publication-sync.js';
+import { publicationSyncState, reconcileChangedFields } from './publication-sync.js';
 
 const CONTENT_TYPES = ['article', 'social_post', 'newsletter'] as const;
 const STATUSES = [
@@ -91,6 +91,30 @@ export async function fetchItem(session: McpSession, itemId: number): Promise<Ro
   return unwrapData<Row>(await session.client.get(`/api/v2/content-items/${itemId}`));
 }
 
+async function publicationDriftLine(session: McpSession, item: Row): Promise<string | null> {
+  if (item.status !== 'published') return null;
+  try {
+    const hubs = asArray<Row>(unwrapData(await session.client.get('/api/v2/content-hubs')));
+    const hub = hubs.find((h) => h.is_active === true) ?? hubs[0];
+    if (!hub) return null;
+    const publications = asArray<Row>(
+      unwrapData(await session.client.get(`/api/v2/content-hubs/${String(hub.id)}/publications`))
+    );
+    const publication = publications.find((p) => String(p.content_item_id) === String(item.id));
+    if (!publication) return null;
+    const publishedVersion = publication.published_version;
+    const currentVersion = item.version;
+    const state = publicationSyncState({
+      publishedVersion: typeof publishedVersion === 'number' ? publishedVersion : null,
+      currentVersion: typeof currentVersion === 'number' ? currentVersion : null,
+    });
+    if (state !== 'drifted') return null;
+    return `\nPublication: Published, changes not live — the live hub page is behind the current draft (published version ${String(publishedVersion)}, current version ${String(currentVersion)}).`;
+  } catch {
+    return null;
+  }
+}
+
 const listContentItems = defineTool({
   name: 'list_content_items',
   title: 'List content items',
@@ -135,7 +159,9 @@ const getContentItem = defineTool({
   annotations: readOnly,
   handler: async (args, session) => {
     const item = await fetchItem(session, requireNumberArg(args, 'content_item_id'));
-    return describeItem(item, args.include_body !== false);
+    const described = describeItem(item, args.include_body !== false);
+    const drift = await publicationDriftLine(session, item);
+    return drift ? `${described}${drift}` : described;
   },
 });
 
