@@ -82,6 +82,35 @@ describe('measurement', () => {
     expect(text).toContain('Refresh the pricing page');
     expect(text).toContain('recommendation_id: 4');
   });
+
+  it('renders the title of an object-shaped recommended_topic, never "[object Object]"', async () => {
+    const { session } = buildSession([
+      {
+        match: pathMatcher('GET', '/api/v2/measurement/recommendations'),
+        body: {
+          data: [
+            {
+              id: 7,
+              rule_id: 'repeat_top_topic_format',
+              reason: 'Your social post content performed best this period.',
+              state: 'open',
+              recommended_topic: {
+                title: 'Follow-up: pricing clarity',
+                content_type: 'social_post',
+                basis_publication_id: 14,
+              },
+            },
+          ],
+        },
+      },
+    ]);
+    await session.setActiveProduct(147, 'Visibilio');
+
+    const text = await (await findTool('list_measurement_recommendations')).handler({}, session);
+
+    expect(text).toContain('Follow-up: pricing clarity');
+    expect(text).not.toContain('[object Object]');
+  });
 });
 
 describe('AI visibility (answer engine)', () => {
