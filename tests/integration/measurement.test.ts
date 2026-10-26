@@ -106,9 +106,7 @@ describe('measurement', () => {
     ]);
     await session.setActiveProduct(147, 'Visibilio');
 
-    const text = await (
-      await findTool('list_measurement_recommendations')
-    ).handler({}, session);
+    const text = await (await findTool('list_measurement_recommendations')).handler({}, session);
 
     expect(text).toContain('Follow-up: pricing clarity');
     expect(text).not.toContain('[object Object]');

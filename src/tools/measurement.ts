@@ -29,6 +29,17 @@ function pct(value: unknown): string | undefined {
   return typeof value === 'number' ? `${Math.round(value * 100)}%` : undefined;
 }
 
+function recommendationLabel(row: Row): string {
+  const topic = row.recommended_topic;
+  if (topic && typeof topic === 'object' && !Array.isArray(topic)) {
+    const title = (topic as Row).title;
+    if (typeof title === 'string' && title.length > 0) return title;
+  }
+  if (typeof topic === 'string' && topic.length > 0) return topic;
+  if (typeof row.rule_id === 'string' && row.rule_id.length > 0) return row.rule_id;
+  return 'Recommendation';
+}
+
 const getMeasurementOverview = defineTool({
   name: 'get_measurement_overview',
   title: 'Get measurement overview',
@@ -84,15 +95,10 @@ const listMeasurementRecommendations = defineTool({
       return listOrEmpty(
         `Recommendations (${rows.length}):`,
         rows.map((r) =>
-          line(
-            String(r.recommended_topic ?? r.rule_id ?? 'Recommendation'),
-            'recommendation_id',
-            r.id,
-            [
-              typeof r.reason === 'string' ? r.reason : undefined,
-              typeof r.state === 'string' ? r.state : undefined,
-            ]
-          )
+          line(recommendationLabel(r), 'recommendation_id', r.id, [
+            typeof r.reason === 'string' ? r.reason : undefined,
+            typeof r.state === 'string' ? r.state : undefined,
+          ])
         ),
         'No recommendations in this state.'
       );
