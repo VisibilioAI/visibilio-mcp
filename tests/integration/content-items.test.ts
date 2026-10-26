@@ -389,3 +389,55 @@ describe('content items — AI helpers', () => {
     expect(text).toContain('content_item_id: 611');
   });
 });
+
+describe('content items — publication drift (get_content_item)', () => {
+  const PUBLISHED = { ...ITEM, id: 777, status: 'published', version: 5 };
+  const ACTIVE_HUB = { id: 'hub-1', name: 'Blog', is_active: true };
+
+  it('warns that a published item whose live page is behind has changes not live', async () => {
+    const { session } = buildSession([
+      { match: pathMatcher('GET', '/api/v2/content-items/777'), body: { data: PUBLISHED } },
+      { match: pathMatcher('GET', '/api/v2/content-hubs'), body: { data: [ACTIVE_HUB] } },
+      {
+        match: pathMatcher('GET', '/api/v2/content-hubs/hub-1/publications'),
+        body: { data: [{ content_item_id: 777, published_version: 3, live_url: null }] },
+      },
+    ]);
+
+    const text = await (
+      await findTool('get_content_item')
+    ).handler({ content_item_id: 777 }, session);
+
+    expect(text).toContain('changes not live');
+  });
+
+  it('adds no drift claim when the live page matches the current version', async () => {
+    const { session } = buildSession([
+      { match: pathMatcher('GET', '/api/v2/content-items/777'), body: { data: PUBLISHED } },
+      { match: pathMatcher('GET', '/api/v2/content-hubs'), body: { data: [ACTIVE_HUB] } },
+      {
+        match: pathMatcher('GET', '/api/v2/content-hubs/hub-1/publications'),
+        body: { data: [{ content_item_id: 777, published_version: 5, live_url: null }] },
+      },
+    ]);
+
+    const text = await (
+      await findTool('get_content_item')
+    ).handler({ content_item_id: 777 }, session);
+
+    expect(text).not.toContain('changes not live');
+  });
+
+  it('does not query hubs for a non-published item and adds no drift claim', async () => {
+    const { session, calls } = buildSession([
+      { match: pathMatcher('GET', '/api/v2/content-items/501'), body: { data: ITEM } },
+    ]);
+
+    const text = await (
+      await findTool('get_content_item')
+    ).handler({ content_item_id: 501 }, session);
+
+    expect(calls).toHaveLength(1);
+    expect(text).not.toContain('changes not live');
+  });
+});
