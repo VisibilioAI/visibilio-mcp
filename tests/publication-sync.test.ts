@@ -19,6 +19,8 @@ describe('publicationSyncState — is the live page still what the draft says', 
   });
 
   it('is unknown when the current version is missing', () => {
-    expect(publicationSyncState({ publishedVersion: 3, currentVersion: undefined })).toBe('unknown');
+    expect(publicationSyncState({ publishedVersion: 3, currentVersion: undefined })).toBe(
+      'unknown'
+    );
   });
 });
