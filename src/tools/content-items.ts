@@ -15,6 +15,7 @@ import {
 } from './_define.js';
 import { asArray, fields, line, listOrEmpty, nameOf, truncate, type Row } from './_format.js';
 import { pickPiece, piecesOf } from './_run.js';
+import { reconcileChangedFields } from './publication-sync.js';
 
 const CONTENT_TYPES = ['article', 'social_post', 'newsletter'] as const;
 const STATUSES = [
@@ -268,15 +269,21 @@ const updateContentItem = defineTool({
   annotations: mutating,
   handler: async (args, session) => {
     const itemId = requireNumberArg(args, 'content_item_id');
-    const payload = { ...pick(args, EDITORIAL_FIELDS), created_by: 'agent' };
+    const requested = pick(args, EDITORIAL_FIELDS);
+    const payload = { ...requested, created_by: 'agent' };
+    const before = await fetchItem(session, itemId);
     const body = (await session.client.put(`/api/v2/content-items/${itemId}`, payload)) as {
       data?: Row;
       changed_fields?: string[];
     };
     const item = body.data ?? (body as Row);
-    const changed = body.changed_fields?.length
-      ? body.changed_fields.join(', ')
-      : 'nothing (no differences)';
+    const changedFields = reconcileChangedFields({
+      before,
+      after: item,
+      requested: Object.keys(requested),
+      versionChangedFields: body.changed_fields,
+    });
+    const changed = changedFields.length ? changedFields.join(', ') : 'nothing (no differences)';
     return `Updated: ${changed}.\n${describeItem(item, false)}`;
   },
 });
