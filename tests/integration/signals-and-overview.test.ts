@@ -207,11 +207,14 @@ describe('overview', () => {
     const text = await (
       await findTool('request_content_changes')
     ).handler(
-      { content_item_id: 501, reason: 'tone', note: 'Too salesy, soften the intro' },
+      { content_item_id: 501, reason: 'wrong_tone', note: 'Too salesy, soften the intro' },
       session
     );
 
-    expect(jsonBodyOf(calls[0])).toEqual({ reason: 'tone', note: 'Too salesy, soften the intro' });
+    expect(jsonBodyOf(calls[0])).toEqual({
+      reason: 'wrong_tone',
+      note: 'Too salesy, soften the intro',
+    });
     expect(text).toContain('rev-1');
   });
 
