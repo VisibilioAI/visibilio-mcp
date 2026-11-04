@@ -1,4 +1,4 @@
-import type { VisibilioClient } from './client.js';
+import { HttpError, type VisibilioClient } from './client.js';
 import type { SessionContext } from './session.js';
 
 /**
@@ -53,6 +53,13 @@ export async function rememberContext(
       product_id: context.product?.id ?? null,
     });
   } catch (err) {
+    if (
+      err instanceof HttpError &&
+      err.status === 403 &&
+      (err.body as { error?: unknown } | null)?.error === 'oauth_organization_scoped'
+    ) {
+      throw err;
+    }
     console.error(
       '[visibilio-mcp/context] could not save the session context:',
       err instanceof Error ? err.message : err
