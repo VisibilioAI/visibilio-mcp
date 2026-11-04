@@ -1,5 +1,5 @@
 import { createHash, randomUUID } from 'node:crypto';
-import express, { type Express, type Request, type Response } from 'express';
+import express, { type Express, type NextFunction, type Request, type Response } from 'express';
 import { SSEServerTransport } from '@modelcontextprotocol/sdk/server/sse.js';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import { buildServer } from './server.js';
@@ -31,12 +31,29 @@ export interface HttpApp {
 const SESSION_HEADER = 'mcp-session-id';
 const STREAMABLE_PATHS = ['/mcp', '/sse'] as const;
 const DOCUMENTATION_URL = 'https://github.com/VisibilioAI/visibilio-mcp/blob/main/docs/install.md';
+const CORS_ALLOW_METHODS = 'GET, POST, DELETE, OPTIONS';
+const CORS_ALLOW_HEADERS =
+  'Authorization, Content-Type, Mcp-Session-Id, Mcp-Protocol-Version, Last-Event-ID';
+const CORS_EXPOSE_HEADERS = 'Mcp-Session-Id, WWW-Authenticate';
 
 export function buildHttpApp(options: HttpAppOptions): HttpApp {
   const { baseSettings, fetch: fetchImpl } = options;
   const app = express();
   app.use(express.json({ limit: '1mb' }));
   app.use(express.urlencoded({ extended: false, limit: '1mb' }));
+  app.use((_req: Request, res: Response, next: NextFunction) => {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Vary', 'Origin');
+    res.setHeader('Access-Control-Expose-Headers', CORS_EXPOSE_HEADERS);
+    next();
+  });
+  app.options('*', (_req: Request, res: Response) => {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', CORS_ALLOW_METHODS);
+    res.setHeader('Access-Control-Allow-Headers', CORS_ALLOW_HEADERS);
+    res.setHeader('Access-Control-Max-Age', '86400');
+    res.status(204).end();
+  });
   const httpFetch: typeof fetch = fetchImpl ?? globalThis.fetch.bind(globalThis);
 
   const sessions = new Map<string, LiveSession>();
