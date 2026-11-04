@@ -2,6 +2,7 @@ import { describe, it, expect, vi } from 'vitest';
 import type { AuthContext, OrganizationMembership } from '../../src/auth.js';
 import { HttpError, VisibilioClient } from '../../src/client.js';
 import { McpSession, type SessionContext } from '../../src/session.js';
+import { rememberContext } from '../../src/remembered-context.js';
 import { callTool, textOf } from './_helpers.js';
 
 const CONTEXT_PATH = '/api/v2/mcp/context';
@@ -42,13 +43,15 @@ function mockResponse(status: number, body: unknown): Response {
   } as unknown as Response;
 }
 
-function buildScopedSession(
-  options: { initialContext?: SessionContext; rejectWith?: RejectWith } = {}
-): ScopedSetup {
-  const reject = options.rejectWith ?? {
-    status: 403,
-    body: { error: 'oauth_organization_scoped', grant_organization_id: 1 },
-  };
+const SCOPED_403: RejectWith = {
+  status: 403,
+  body: { error: 'oauth_organization_scoped', grant_organization_id: 1 },
+};
+
+function makeScopedClient(reject: RejectWith): {
+  client: VisibilioClient;
+  calls: Array<{ url: string; init?: RequestInit }>;
+} {
   const calls: Array<{ url: string; init?: RequestInit }> = [];
   const fetchImpl = vi.fn(async (url: string, init?: RequestInit) => {
     calls.push({ url, init });
@@ -59,13 +62,18 @@ function buildScopedSession(
     }
     return mockResponse(200, { data: {} });
   });
-
   const client = new VisibilioClient({
     gatewayUrl: 'https://gateway.test',
     credential: 'vat_scoped_mock',
     fetch: fetchImpl as unknown as typeof fetch,
   });
+  return { client, calls };
+}
 
+function buildScopedSession(
+  options: { initialContext?: SessionContext; rejectWith?: RejectWith } = {}
+): ScopedSetup {
+  const { client, calls } = makeScopedClient(options.rejectWith ?? SCOPED_403);
   const session = new McpSession(makeAuth(), client, {
     initialContext: options.initialContext,
     onContextChange: async (context) => {
@@ -74,6 +82,16 @@ function buildScopedSession(
         product_id: context.product?.id ?? null,
       });
     },
+  });
+  return { session, client, calls };
+}
+
+function buildSessionThroughRememberContext(
+  options: { rejectWith?: RejectWith } = {}
+): ScopedSetup {
+  const { client, calls } = makeScopedClient(options.rejectWith ?? SCOPED_403);
+  const session = new McpSession(makeAuth(), client, {
+    onContextChange: (context) => rememberContext(client, context),
   });
   return { session, client, calls };
 }
@@ -159,5 +177,37 @@ describe('set_active_organization surfaces a friendly message for a scoped-switc
     expect(result.isError).toBe(true);
     expect(text).not.toContain('re-authorize');
     expect(text).toContain('Forbidden');
+  });
+});
+
+describe('production wiring — set_active_organization through the real rememberContext', () => {
+  it('surfaces the friendly message and reverts the switch when the context write is org-scoped', async () => {
+    const { session } = buildSessionThroughRememberContext();
+    expect(session.organizationId).toBe(1);
+
+    const result = await callTool('set_active_organization', { organization_id: 2 }, session);
+    const text = textOf(result);
+
+    expect(result.isError).toBe(true);
+    expect(text).toContain('scoped to organization');
+    expect(text).toContain('Alpha Org');
+    expect(text).toContain('re-authorize');
+    expect(session.organizationId).toBe(1);
+  });
+
+  it('lets the switch stand on a transient 500 — the best-effort cache is preserved', async () => {
+    // Regression guard — a non-enforcement failure must not revert or raise; the switch stands.
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    const { session } = buildSessionThroughRememberContext({
+      rejectWith: { status: 500, body: { error: 'server_error' } },
+    });
+
+    const result = await callTool('set_active_organization', { organization_id: 2 }, session);
+    const text = textOf(result);
+
+    expect(result.isError).toBeUndefined();
+    expect(text).toContain('Active organization set to');
+    expect(session.organizationId).toBe(2);
+    errorSpy.mockRestore();
   });
 });
