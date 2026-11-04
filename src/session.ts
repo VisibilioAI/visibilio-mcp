@@ -72,10 +72,19 @@ export class McpSession {
         `You are not a member of organization ${id}. Call list_organizations to see your organizations.`
       );
     }
+    const priorOrganizationId = this.activeOrganizationId;
+    const priorProduct = this.activeProduct;
     this.activeOrganizationId = id;
     this.activeProduct = null;
     this.client.setActiveOrganization(id);
-    await this.onContextChange(this.context);
+    try {
+      await this.onContextChange(this.context);
+    } catch (error) {
+      this.activeOrganizationId = priorOrganizationId;
+      this.activeProduct = priorProduct;
+      this.client.setActiveOrganization(priorOrganizationId);
+      throw error;
+    }
     return membership;
   }
 

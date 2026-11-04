@@ -11,6 +11,26 @@ import {
   type ToolDefinition,
 } from './_define.js';
 import type { McpSession } from '../session.js';
+import { HttpError } from '../client.js';
+
+function scopedSwitchMessage(err: unknown, session: McpSession): string | null {
+  if (!(err instanceof HttpError) || err.status !== 403) return null;
+  const body = err.body;
+  if (!body || typeof body !== 'object') return null;
+  const record = body as Record<string, unknown>;
+  if (record.error !== 'oauth_organization_scoped') return null;
+  const grantOrganizationId = record.grant_organization_id;
+  const named =
+    typeof grantOrganizationId === 'number'
+      ? session.organizations.find((org) => org.id === grantOrganizationId)?.name
+      : undefined;
+  const label =
+    named ??
+    (grantOrganizationId === undefined || grantOrganizationId === null
+      ? 'the one it was authorized for'
+      : String(grantOrganizationId));
+  return `This connection is scoped to organization ${label}; re-authorize in the Visibilio app to change it.`;
+}
 
 interface ProductShape {
   id: number;
@@ -95,8 +115,14 @@ const setActiveOrganization = defineTool({
         `You are not a member of organization ${organizationId}. Call list_organizations to see your organizations.`
       );
     }
-    const membership = await session.setActiveOrganization(organizationId);
-    return `Active organization set to ${membership.name || membership.id} (organization_id: ${membership.id}). Active product cleared — call list_products to pick one.`;
+    try {
+      const membership = await session.setActiveOrganization(organizationId);
+      return `Active organization set to ${membership.name || membership.id} (organization_id: ${membership.id}). Active product cleared — call list_products to pick one.`;
+    } catch (err) {
+      const message = scopedSwitchMessage(err, session);
+      if (message) throw new ToolError(message);
+      throw err;
+    }
   },
 });
 
