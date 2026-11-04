@@ -2,8 +2,14 @@ import { describe, it, expect, vi } from 'vitest';
 import type { AuthContext, OrganizationMembership } from '../../src/auth.js';
 import { HttpError, VisibilioClient } from '../../src/client.js';
 import { McpSession, type SessionContext } from '../../src/session.js';
+import { callTool, textOf } from './_helpers.js';
 
 const CONTEXT_PATH = '/api/v2/mcp/context';
+
+interface RejectWith {
+  readonly status?: number;
+  readonly body?: unknown;
+}
 
 interface ScopedSetup {
   readonly session: McpSession;
@@ -36,14 +42,20 @@ function mockResponse(status: number, body: unknown): Response {
   } as unknown as Response;
 }
 
-function buildScopedSession(options: { initialContext?: SessionContext } = {}): ScopedSetup {
+function buildScopedSession(
+  options: { initialContext?: SessionContext; rejectWith?: RejectWith } = {}
+): ScopedSetup {
+  const reject = options.rejectWith ?? {
+    status: 403,
+    body: { error: 'oauth_organization_scoped', grant_organization_id: 1 },
+  };
   const calls: Array<{ url: string; init?: RequestInit }> = [];
   const fetchImpl = vi.fn(async (url: string, init?: RequestInit) => {
     calls.push({ url, init });
     const method = (init?.method ?? 'GET').toUpperCase();
     const path = new URL(url).pathname;
     if (path === CONTEXT_PATH && method === 'PUT') {
-      return mockResponse(403, { error: 'oauth_organization_scoped', grant_organization_id: 1 });
+      return mockResponse(reject.status ?? 403, reject.body);
     }
     return mockResponse(200, { data: {} });
   });
@@ -102,5 +114,50 @@ describe('set_active_organization reverts local state when the gateway rejects t
     await expect(session.setActiveOrganization(2)).rejects.toBeInstanceOf(HttpError);
 
     expect(session.product?.id).toBe(99);
+  });
+});
+
+describe('set_active_organization surfaces a friendly message for a scoped-switch 403', () => {
+  it('names the grant organization and tells the user to re-authorize', async () => {
+    const { session } = buildScopedSession();
+
+    const result = await callTool('set_active_organization', { organization_id: 2 }, session);
+    const text = textOf(result);
+
+    expect(result.isError).toBe(true);
+    expect(text).toContain('scoped to organization');
+    expect(text).toContain('Alpha Org');
+    expect(text).toContain('re-authorize');
+    expect(text).not.toContain('HTTP 403');
+  });
+
+  it('falls back to the grant organization id when it is not among the memberships', async () => {
+    const { session } = buildScopedSession({
+      rejectWith: {
+        status: 403,
+        body: { error: 'oauth_organization_scoped', grant_organization_id: 999 },
+      },
+    });
+
+    const result = await callTool('set_active_organization', { organization_id: 2 }, session);
+    const text = textOf(result);
+
+    expect(text).toContain('scoped to organization 999');
+    expect(text).toContain('re-authorize');
+  });
+
+  it('leaves a non-scoped 403 on its existing path — personal-key sessions are unchanged', async () => {
+    // Regression guard — already passes; a 403 that is not oauth_organization_scoped must keep
+    // the raw gateway-error path and never show the re-authorize message.
+    const { session } = buildScopedSession({
+      rejectWith: { status: 403, body: { error: 'forbidden', message: 'Forbidden' } },
+    });
+
+    const result = await callTool('set_active_organization', { organization_id: 2 }, session);
+    const text = textOf(result);
+
+    expect(result.isError).toBe(true);
+    expect(text).not.toContain('re-authorize');
+    expect(text).toContain('Forbidden');
   });
 });
