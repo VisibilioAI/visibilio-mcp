@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { HttpError } from '../client.js';
 import {
   defineTool,
+  isoDate,
   pick,
   readOnly,
   resolveProductId,
@@ -47,14 +48,8 @@ const getMeasurementOverview = defineTool({
     'Performance overview for a product over a window: publications, impressions, engagement, followers, website sessions, search, top publications and pages.',
   inputSchema: {
     product_id: z.number().int().optional().describe('Defaults to the active product'),
-    from: z
-      .string()
-      .regex(/^\d{4}-\d{2}-\d{2}$/)
-      .optional(),
-    to: z
-      .string()
-      .regex(/^\d{4}-\d{2}-\d{2}$/)
-      .optional(),
+    from: isoDate('from').optional(),
+    to: isoDate('to').optional(),
   },
   annotations: readOnly,
   handler: async (args, session) => {
