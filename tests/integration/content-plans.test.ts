@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest';
+import { z } from 'zod';
 import { buildSession, findTool, jsonBodyOf, pathMatcher } from './_helpers.js';
 
 const PLAN = {
@@ -174,5 +175,53 @@ describe('content plans', () => {
     });
     expect(text).toContain('MCP launch');
     expect(text).toContain('topic_id: 5');
+  });
+
+  it('get_planned_topic_brief accepts a UUID string topic_id in its input schema', async () => {
+    const brief = await findTool('get_planned_topic_brief');
+    const schema = z.object(brief.inputSchema);
+
+    const parsed = schema.safeParse({
+      topic_id: '3fa85f64-5717-4562-b3fc-2c963f66afa6',
+      product_id: 147,
+    });
+
+    expect(parsed.success).toBe(true);
+  });
+
+  it('passes a UUID topic_id from list_planned_topics into get_planned_topic_brief', async () => {
+    const topicId = '3fa85f64-5717-4562-b3fc-2c963f66afa6';
+    const { session, calls } = buildSession([
+      {
+        match: pathMatcher('GET', '/products/147/planned-topics'),
+        body: {
+          data: [
+            {
+              id: topicId,
+              title: 'MCP launch',
+              planned_at: '2026-10-14T09:00:00Z',
+              status: 'planned',
+              pillar: 'product',
+              content_item_ids: [],
+            },
+          ],
+        },
+      },
+      {
+        match: pathMatcher('GET', `/planned-topics/${topicId}/brief`),
+        body: { data: { topic: 'MCP launch', angle: 'Why MCP matters' } },
+      },
+    ]);
+    await session.setActiveProduct(147, 'Visibilio');
+
+    const listText = await (await findTool('list_planned_topics')).handler({}, session);
+    expect(listText).toContain(`topic_id: ${topicId}`);
+
+    const briefText = await (
+      await findTool('get_planned_topic_brief')
+    ).handler({ topic_id: topicId }, session);
+
+    expect(calls[1]!.url).toContain(`/planned-topics/${topicId}/brief`);
+    expect(briefText).toContain('Why MCP matters');
   });
 });

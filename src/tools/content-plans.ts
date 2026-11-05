@@ -247,11 +247,11 @@ const getPlannedTopicBrief = defineTool({
   name: 'get_planned_topic_brief',
   title: 'Get planned topic brief',
   description: 'Read (or compose, on first call) the writing brief for a planned topic.',
-  inputSchema: { topic_id: z.number().int(), product_id: z.number().int().optional() },
+  inputSchema: { topic_id: z.string(), product_id: z.number().int().optional() },
   annotations: mutating,
   handler: async (args, session) => {
     const productId = resolveProductId(args, session);
-    const topicId = requireNumberArg(args, 'topic_id');
+    const topicId = requireStringArg(args, 'topic_id');
     const brief = unwrapData<unknown>(
       await session.client.get(`/api/v2/products/${productId}/planned-topics/${topicId}/brief`)
     );
