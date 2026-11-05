@@ -141,6 +141,9 @@ const addSignalToPlan = defineTool({
     if (result.action === 'existing') {
       return `Signal ${signalId} was already in the plan (topic_id: ${topicId}). View it with list_planned_topics.`;
     }
+    if (result.action === 'inserted_unscheduled') {
+      return `Signal ${signalId} added without a date to the plan (topic_id: ${topicId}). View it with list_planned_topics.`;
+    }
     const how =
       result.action === 'replaced' ? 'replacing a placeholder topic' : 'as a new planned topic';
     return `Signal ${signalId} added to the plan ${how} (topic_id: ${topicId}). View it with list_planned_topics.`;

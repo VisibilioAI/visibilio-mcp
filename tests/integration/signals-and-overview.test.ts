@@ -359,7 +359,9 @@ describe('add_signal_to_plan reporting', () => {
     const { session } = buildSession([
       {
         match: pathMatcher('POST', '/api/v2/signals/70/add-to-plan'),
-        body: { data: { action: 'inserted_unscheduled', planned_topic_id: '560', planned_at: null } },
+        body: {
+          data: { action: 'inserted_unscheduled', planned_topic_id: '560', planned_at: null },
+        },
       },
     ]);
 
