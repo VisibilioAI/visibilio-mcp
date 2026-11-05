@@ -303,4 +303,53 @@ describe('add_signal_to_plan reporting', () => {
     expect(text).toContain('topic_id: 556');
     expect(text).toContain('list_planned_topics');
   });
+
+  it('reads the snake_case planned_topic_id staging answers for a newly inserted topic', async () => {
+    const { session } = buildSession([
+      {
+        match: pathMatcher('POST', '/api/v2/signals/70/add-to-plan'),
+        body: { data: { action: 'inserted', planned_topic_id: '557' } },
+      },
+    ]);
+
+    const text = await (
+      await findTool('add_signal_to_plan')
+    ).handler({ signal_id: 70, pillar: 'Thought leadership' }, session);
+
+    expect(text).not.toMatch(/not added/i);
+    expect(text).toContain('topic_id: 557');
+    expect(text).toContain('list_planned_topics');
+  });
+
+  it('reads the snake_case planned_topic_id staging answers for a replaced placeholder', async () => {
+    const { session } = buildSession([
+      {
+        match: pathMatcher('POST', '/api/v2/signals/70/add-to-plan'),
+        body: { data: { action: 'replaced', planned_topic_id: '558' } },
+      },
+    ]);
+
+    const text = await (
+      await findTool('add_signal_to_plan')
+    ).handler({ signal_id: 70, pillar: 'Thought leadership' }, session);
+
+    expect(text).toMatch(/replac/i);
+    expect(text).toContain('topic_id: 558');
+  });
+
+  // Regression guard — already passes; locks in current behavior so future refactors cannot regress.
+  it('still reports nothing was created when the snake_case planned_topic_id is null', async () => {
+    const { session } = buildSession([
+      {
+        match: pathMatcher('POST', '/api/v2/signals/70/add-to-plan'),
+        body: { data: { action: 'capped', planned_topic_id: null } },
+      },
+    ]);
+
+    const text = await (
+      await findTool('add_signal_to_plan')
+    ).handler({ signal_id: 70, pillar: 'Thought leadership' }, session);
+
+    expect(text).toMatch(/not added|nothing (was )?created/i);
+  });
 });
