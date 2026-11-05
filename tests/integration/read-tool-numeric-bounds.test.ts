@@ -34,3 +34,19 @@ describe('get_operation_overview.period_hours is bounded', () => {
     expect(periodHours().safeParse(undefined).success).toBe(true);
   });
 });
+
+describe('list_notifications.offset is non-negative', () => {
+  const offset = () => field('list_notifications', 'offset');
+
+  it('rejects a negative offset (the reporter -1 case)', () => {
+    expect(offset().safeParse(-1).success).toBe(false);
+  });
+
+  it('accepts a zero offset', () => {
+    expect(offset().safeParse(0).success).toBe(true);
+  });
+
+  it('accepts an omitted offset (optional)', () => {
+    expect(offset().safeParse(undefined).success).toBe(true);
+  });
+});
