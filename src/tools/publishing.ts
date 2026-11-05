@@ -255,7 +255,10 @@ const scheduleContentItem = defineTool({
   inputSchema: {
     content_item_id: z.number().int(),
     channel_id: z.number().int(),
-    publish_at: z.string().describe('ISO 8601 timestamp, e.g. 2026-10-20T09:00:00Z'),
+    publish_at: z
+      .string()
+      .datetime({ offset: true, local: true })
+      .describe('ISO 8601 timestamp, e.g. 2026-10-20T09:00:00Z'),
     options: z
       .object({ primary_category: z.string().optional(), timezone: z.string().optional() })
       .optional(),
