@@ -50,3 +50,28 @@ describe('list_notifications.offset is non-negative', () => {
     expect(offset().safeParse(undefined).success).toBe(true);
   });
 });
+
+describe('list_hub_publications.limit is bounded', () => {
+  const limit = () => field('list_hub_publications', 'limit');
+
+  it('rejects a negative limit (the reporter -1 case)', () => {
+    expect(limit().safeParse(-1).success).toBe(false);
+  });
+
+  it('rejects a zero limit', () => {
+    expect(limit().safeParse(0).success).toBe(false);
+  });
+
+  it('rejects a limit above the page ceiling', () => {
+    expect(limit().safeParse(101).success).toBe(false);
+  });
+
+  it('accepts a limit within range', () => {
+    expect(limit().safeParse(1).success).toBe(true);
+    expect(limit().safeParse(100).success).toBe(true);
+  });
+
+  it('accepts an omitted limit (optional)', () => {
+    expect(limit().safeParse(undefined).success).toBe(true);
+  });
+});
