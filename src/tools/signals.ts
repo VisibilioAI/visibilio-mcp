@@ -2,6 +2,7 @@ import { z } from 'zod';
 import {
   defineTool,
   hasAnyArg,
+  isoDate,
   mutating,
   optionalProductId,
   pick,
@@ -34,7 +35,7 @@ const listSignals = defineTool({
     unused_only: z.boolean().optional().describe('Only signals not yet turned into content'),
     source_type: z.string().optional(),
     topic: z.string().optional(),
-    since: z.string().optional().describe('ISO date'),
+    since: isoDate('since').optional().describe('ISO date'),
     sort: z.enum(['relevance', 'newest', 'oldest']).optional(),
     limit: z.number().int().min(1).max(200).optional(),
   },

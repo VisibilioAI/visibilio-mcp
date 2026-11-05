@@ -3,6 +3,7 @@ import {
   defineTool,
   destructive,
   hasAnyArg,
+  isoDate,
   mutating,
   optionalProductId,
   pick,
@@ -223,8 +224,8 @@ const listSchedules = defineTool({
       .optional(),
     content_item_id: z.number().int().optional(),
     channel_id: z.number().int().optional(),
-    from: z.string().optional(),
-    to: z.string().optional(),
+    from: isoDate('from').optional(),
+    to: isoDate('to').optional(),
   },
   annotations: readOnly,
   handler: async (args, session) => {
@@ -300,8 +301,8 @@ const getPublishedFeed = defineTool({
   inputSchema: {
     product_id: z.number().int().optional(),
     channel: z.string().optional(),
-    from: z.string().optional(),
-    to: z.string().optional(),
+    from: isoDate('from').optional(),
+    to: isoDate('to').optional(),
   },
   annotations: readOnly,
   handler: async (args, session) => {

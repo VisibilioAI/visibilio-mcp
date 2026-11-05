@@ -2,6 +2,7 @@ import { z } from 'zod';
 import {
   defineTool,
   hasAnyArg,
+  isoDate,
   mutating,
   pick,
   readOnly,
@@ -215,8 +216,8 @@ const listPlannedTopics = defineTool({
     'List the planned topics (calendar entries) of a product in a date window, with their status and generated content items.',
   inputSchema: {
     product_id: z.number().int().optional(),
-    from: z.string().optional().describe('ISO date, inclusive'),
-    to: z.string().optional().describe('ISO date, exclusive'),
+    from: isoDate('from').optional().describe('ISO date, inclusive'),
+    to: isoDate('to').optional().describe('ISO date, exclusive'),
   },
   annotations: readOnly,
   handler: async (args, session) => {
