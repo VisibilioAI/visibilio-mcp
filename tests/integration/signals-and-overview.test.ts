@@ -337,6 +337,24 @@ describe('add_signal_to_plan reporting', () => {
     expect(text).toContain('topic_id: 558');
   });
 
+  it('says the signal was already in the plan when the gateway answers existing, and names the topic', async () => {
+    const { session } = buildSession([
+      {
+        match: pathMatcher('POST', '/api/v2/signals/70/add-to-plan'),
+        body: { data: { action: 'existing', planned_topic_id: '559' } },
+      },
+    ]);
+
+    const text = await (
+      await findTool('add_signal_to_plan')
+    ).handler({ signal_id: 70, pillar: 'Thought leadership' }, session);
+
+    expect(text).toContain('was already in the plan');
+    expect(text).not.toMatch(/as a new planned topic/);
+    expect(text).toContain('topic_id: 559');
+    expect(text).toContain('list_planned_topics');
+  });
+
   // Regression guard — already passes; locks in current behavior so future refactors cannot regress.
   it('still reports nothing was created when the snake_case planned_topic_id is null', async () => {
     const { session } = buildSession([
