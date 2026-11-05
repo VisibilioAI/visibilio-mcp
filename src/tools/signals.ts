@@ -133,7 +133,8 @@ const addSignalToPlan = defineTool({
         pillar: requireStringArg(args, 'pillar'),
       })
     );
-    const topicId = result.plannedTopicId ? String(result.plannedTopicId) : null;
+    const plannedTopicId = result.planned_topic_id ?? result.plannedTopicId;
+    const topicId = plannedTopicId ? String(plannedTopicId) : null;
     if (!topicId) {
       return `Signal ${signalId} was not added to the plan: it already has its target number of posts for the coming week and no open slot in the next four weeks. Nothing was created.`;
     }
