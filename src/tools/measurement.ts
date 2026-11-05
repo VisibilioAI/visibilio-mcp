@@ -113,7 +113,7 @@ const getAiVisibilityMetrics = defineTool({
     'How often AI assistants mention the product when answering buyer questions: mention rate, share of voice and coverage for the latest (or a given) measurement cycle.',
   inputSchema: {
     product_id: z.number().int().optional(),
-    cycle: z.number().int().optional(),
+    cycle: z.number().int().min(1).optional(),
     provider: z.string().optional().describe('e.g. openai, anthropic, google, perplexity'),
     question_class: z.enum(['unbranded', 'branded']).optional(),
     topic_id: z.string().optional(),
