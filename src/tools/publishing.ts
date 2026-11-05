@@ -2,6 +2,7 @@ import { z } from 'zod';
 import {
   defineTool,
   destructive,
+  hasAnyArg,
   mutating,
   optionalProductId,
   pick,
@@ -204,7 +205,9 @@ const listHubPublications = defineTool({
           typeof p.published_at === 'string' ? p.published_at.slice(0, 10) : undefined,
         ])
       ),
-      'Nothing published on this hub yet.'
+      hasAnyArg(args, ['status'])
+        ? `No publications on hub ${hubId} match the filter. Remove the status filter to see all publications on this hub.`
+        : 'Nothing published on this hub yet.'
     );
   },
 });
