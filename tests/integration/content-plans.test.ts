@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest';
+import { z } from 'zod';
 import { buildSession, findTool, jsonBodyOf, pathMatcher } from './_helpers.js';
 
 const PLAN = {
@@ -174,5 +175,17 @@ describe('content plans', () => {
     });
     expect(text).toContain('MCP launch');
     expect(text).toContain('topic_id: 5');
+  });
+
+  it('get_planned_topic_brief accepts a UUID string topic_id in its input schema', async () => {
+    const brief = await findTool('get_planned_topic_brief');
+    const schema = z.object(brief.inputSchema);
+
+    const parsed = schema.safeParse({
+      topic_id: '3fa85f64-5717-4562-b3fc-2c963f66afa6',
+      product_id: 147,
+    });
+
+    expect(parsed.success).toBe(true);
   });
 });
