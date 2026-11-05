@@ -220,7 +220,7 @@ const listNotifications = defineTool({
   inputSchema: {
     product_id: z.number().int().optional(),
     limit: z.number().int().min(1).max(100).optional(),
-    offset: z.number().int().optional(),
+    offset: z.number().int().min(0).optional(),
   },
   annotations: readOnly,
   handler: async (args, session) => {
