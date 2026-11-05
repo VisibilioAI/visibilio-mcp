@@ -52,10 +52,9 @@ describe('publishing — channels and social', () => {
       { match: pathMatcher('GET', '/api/v2/content-hubs/5/publications'), body: { data: [] } },
     ]);
 
-    const text = await (await findTool('list_hub_publications')).handler(
-      { hub_id: 5, status: 'failed' },
-      session
-    );
+    const text = await (
+      await findTool('list_hub_publications')
+    ).handler({ hub_id: 5, status: 'failed' }, session);
 
     expect(text).toContain('match the filter');
     expect(text).not.toContain('Nothing published on this hub yet.');
