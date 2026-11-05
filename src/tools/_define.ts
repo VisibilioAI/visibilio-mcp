@@ -6,6 +6,7 @@ export interface ToolAnnotations {
   readonly readOnlyHint: boolean;
   readonly destructiveHint: boolean;
   readonly idempotentHint?: boolean;
+  readonly openWorldHint?: boolean;
 }
 
 export type ToolArgs = Record<string, unknown>;
@@ -62,9 +63,26 @@ interface DefineToolInput<TShape extends ZodRawShape> {
   readonly handler: ToolHandler;
 }
 
-export const readOnly: ToolAnnotations = { readOnlyHint: true, destructiveHint: false };
-export const mutating: ToolAnnotations = { readOnlyHint: false, destructiveHint: true };
-export const destructive: ToolAnnotations = { readOnlyHint: false, destructiveHint: true };
+export const readOnly: ToolAnnotations = {
+  readOnlyHint: true,
+  destructiveHint: false,
+  openWorldHint: false,
+};
+export const mutating: ToolAnnotations = {
+  readOnlyHint: false,
+  destructiveHint: false,
+  openWorldHint: false,
+};
+export const destructive: ToolAnnotations = {
+  readOnlyHint: false,
+  destructiveHint: true,
+  openWorldHint: false,
+};
+export const openWorld: ToolAnnotations = {
+  readOnlyHint: false,
+  destructiveHint: false,
+  openWorldHint: true,
+};
 
 export class ToolError extends Error {
   constructor(message: string) {

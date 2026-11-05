@@ -140,30 +140,37 @@ describe('Streamable HTTP transport — session lifecycle', () => {
     const tools = response.body.result.tools as Array<{
       name: string;
       title: string;
-      annotations: { title?: string; readOnlyHint?: boolean; destructiveHint?: boolean };
+      annotations: {
+        title?: string;
+        readOnlyHint?: boolean;
+        destructiveHint?: boolean;
+        openWorldHint?: boolean;
+      };
     }>;
     expect(tools.length).toBeGreaterThan(0);
     for (const tool of tools) {
       expect(tool.annotations.title, tool.name).toBe(tool.title);
       expect(tool.annotations.title?.trim().length, tool.name).toBeGreaterThan(0);
-      if (!tool.annotations.readOnlyHint) {
-        expect(tool.annotations.destructiveHint, tool.name).toBe(true);
+      if (tool.annotations.readOnlyHint) {
+        expect(tool.annotations.destructiveHint, tool.name).toBe(false);
       }
     }
-    for (const name of [
-      'update_content_item',
-      'publish_social_post',
-      'get_content_plan_status',
-      'get_planned_topic_brief',
-    ]) {
-      expect(tools.find((tool) => tool.name === name)?.annotations, name).toMatchObject({
-        readOnlyHint: false,
-        destructiveHint: true,
-      });
-    }
+    expect(
+      tools.find((tool) => tool.name === 'update_content_item')?.annotations,
+      'update_content_item'
+    ).toMatchObject({ readOnlyHint: false, destructiveHint: false });
+    expect(
+      tools.find((tool) => tool.name === 'delete_content_item')?.annotations,
+      'delete_content_item'
+    ).toMatchObject({ readOnlyHint: false, destructiveHint: true });
+    expect(
+      tools.find((tool) => tool.name === 'publish_social_post')?.annotations,
+      'publish_social_post'
+    ).toMatchObject({ readOnlyHint: false, destructiveHint: false, openWorldHint: true });
     expect(tools.find((tool) => tool.name === 'get_content_item')?.annotations).toMatchObject({
       readOnlyHint: true,
       destructiveHint: false,
+      openWorldHint: false,
     });
   });
 

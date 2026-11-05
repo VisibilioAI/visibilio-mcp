@@ -3,6 +3,7 @@ import type { McpSession } from '../session.js';
 import {
   defineTool,
   mutating,
+  openWorld,
   optionalProductId,
   pick,
   readOnly,
@@ -133,7 +134,7 @@ const searchKnowledge = defineTool({
     query: z.string().min(3),
     domains: z.array(z.enum(KNOWLEDGE_DOMAINS)).optional(),
   },
-  annotations: readOnly,
+  annotations: openWorld,
   handler: async (args, session) => {
     requireStringArg(args, 'query');
     const body = (await session.client.post(
