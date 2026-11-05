@@ -251,7 +251,7 @@ const getPlannedTopicBrief = defineTool({
   annotations: mutating,
   handler: async (args, session) => {
     const productId = resolveProductId(args, session);
-    const topicId = requireNumberArg(args, 'topic_id');
+    const topicId = requireStringArg(args, 'topic_id');
     const brief = unwrapData<unknown>(
       await session.client.get(`/api/v2/products/${productId}/planned-topics/${topicId}/brief`)
     );
