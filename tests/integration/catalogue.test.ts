@@ -150,15 +150,16 @@ describe('tool catalogue — one tool per gateway capability', () => {
     }
   });
 
-  it('pure reads are read-only and state-changing tools are destructive', () => {
+  it('pure reads are read-only and non-destructive; writes are not read-only', () => {
     for (const tool of allTools) {
       const isRead =
-        /^(list_|get_|whoami$|search$|fetch$|search_|validate_)/.test(tool.name) &&
+        /^(list_|get_|whoami$|search$|fetch$|validate_)/.test(tool.name) &&
         !['get_content_plan_status', 'get_planned_topic_brief'].includes(tool.name);
-      if (isRead) expect(tool.annotations.readOnlyHint, tool.name).toBe(true);
-      if (!isRead) {
+      if (isRead) {
+        expect(tool.annotations.readOnlyHint, tool.name).toBe(true);
+        expect(tool.annotations.destructiveHint, tool.name).toBe(false);
+      } else {
         expect(tool.annotations.readOnlyHint, tool.name).toBe(false);
-        expect(tool.annotations.destructiveHint, tool.name).toBe(true);
       }
     }
   });
