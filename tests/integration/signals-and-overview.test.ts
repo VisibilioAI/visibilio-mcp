@@ -355,6 +355,24 @@ describe('add_signal_to_plan reporting', () => {
     expect(text).toContain('list_planned_topics');
   });
 
+  it('says the signal was added without a date when the gateway answers inserted_unscheduled, and names the topic', async () => {
+    const { session } = buildSession([
+      {
+        match: pathMatcher('POST', '/api/v2/signals/70/add-to-plan'),
+        body: { data: { action: 'inserted_unscheduled', planned_topic_id: '560', planned_at: null } },
+      },
+    ]);
+
+    const text = await (
+      await findTool('add_signal_to_plan')
+    ).handler({ signal_id: 70, pillar: 'Thought leadership' }, session);
+
+    expect(text).toContain('added without a date');
+    expect(text).not.toMatch(/as a new planned topic/);
+    expect(text).toContain('topic_id: 560');
+    expect(text).toContain('list_planned_topics');
+  });
+
   // Regression guard — already passes; locks in current behavior so future refactors cannot regress.
   it('still reports nothing was created when the snake_case planned_topic_id is null', async () => {
     const { session } = buildSession([
