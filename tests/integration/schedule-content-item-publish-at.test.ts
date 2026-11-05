@@ -44,10 +44,7 @@ async function connectedClient(): Promise<Client> {
   return client;
 }
 
-async function errorText(
-  client: Client,
-  args: Record<string, unknown>
-): Promise<string> {
+async function errorText(client: Client, args: Record<string, unknown>): Promise<string> {
   try {
     const result = (await client.callTool({ name: 'schedule_content_item', arguments: args })) as {
       isError?: boolean;
