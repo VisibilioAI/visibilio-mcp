@@ -1,6 +1,12 @@
-import type { ZodRawShape } from 'zod';
+import { z, type ZodRawShape } from 'zod';
 import type { McpSession } from '../session.js';
 import { HttpError } from '../client.js';
+
+const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
+
+export function isoDate(field: string): z.ZodString {
+  return z.string().regex(ISO_DATE, `${field} must be an ISO date (YYYY-MM-DD)`);
+}
 
 export interface ToolAnnotations {
   readonly readOnlyHint: boolean;
