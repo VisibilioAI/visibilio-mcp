@@ -178,6 +178,10 @@ export function pick(args: ToolArgs, keys: readonly string[]): ToolArgs {
   return out;
 }
 
+export function hasAnyArg(args: ToolArgs, keys: readonly string[]): boolean {
+  return keys.some((key) => args[key] !== undefined && args[key] !== null);
+}
+
 export function resolveProductId(args: ToolArgs, session: McpSession): number {
   const explicit = numberArg(args, 'product_id');
   if (explicit !== undefined) return explicit;

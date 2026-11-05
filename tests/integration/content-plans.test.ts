@@ -49,6 +49,32 @@ describe('content plans', () => {
     expect(text).toContain('2026-10-01');
   });
 
+  it('list_content_plans reports a filtered-empty result without claiming the account is empty', async () => {
+    const { session } = buildSession([
+      { match: pathMatcher('GET', '/api/v2/products/147/content-plans'), body: { data: [] } },
+    ]);
+    await session.setActiveProduct(147, 'Visibilio');
+
+    const text = await (
+      await findTool('list_content_plans')
+    ).handler({ status: 'proposed' }, session);
+
+    expect(text).toContain('No content plans match the filter');
+    expect(text).not.toContain('create_content_plan');
+  });
+
+  it('list_content_plans keeps the create hint when no filter was supplied and none exist', async () => {
+    // Regression guard — already passes; locks in the genuinely-empty message.
+    const { session } = buildSession([
+      { match: pathMatcher('GET', '/api/v2/products/147/content-plans'), body: { data: [] } },
+    ]);
+    await session.setActiveProduct(147, 'Visibilio');
+
+    const text = await (await findTool('list_content_plans')).handler({}, session);
+
+    expect(text).toContain('No content plans yet. Create one with create_content_plan.');
+  });
+
   it('get_content_plan renders the planned posts from __meta', async () => {
     const { session } = buildSession([
       { match: pathMatcher('GET', '/api/v2/products/147/content-plans/12'), body: { data: PLAN } },

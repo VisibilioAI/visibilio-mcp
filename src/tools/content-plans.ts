@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import {
   defineTool,
+  hasAnyArg,
   mutating,
   pick,
   readOnly,
@@ -89,7 +90,9 @@ const listContentPlans = defineTool({
     return listOrEmpty(
       `Content plans (${plans.length}):`,
       plans.map(planLine),
-      'No content plans yet. Create one with create_content_plan.'
+      hasAnyArg(args, ['status'])
+        ? 'No content plans match the filter. Remove the status filter to see all content plans.'
+        : 'No content plans yet. Create one with create_content_plan.'
     );
   },
 });

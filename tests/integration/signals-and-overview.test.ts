@@ -17,6 +17,15 @@ const SIGNAL = {
   used_in: [],
 };
 
+const SOURCE = {
+  id: 5,
+  name: 'TechCrunch RSS',
+  type: 'rss',
+  url: 'https://news.test/feed',
+  is_active: true,
+  last_scanned_at: '2026-10-13T06:00:00Z',
+};
+
 describe('signals and sources', () => {
   it('list_signals scopes to the active product and forwards filters', async () => {
     const { session, calls } = buildSession([
@@ -37,6 +46,39 @@ describe('signals and sources', () => {
     expect(text).toContain('MCP adoption doubles');
     expect(text).toContain('signal_id: 70');
     expect(text).toContain('88');
+  });
+
+  it('list_sources lists each source with its id and type', async () => {
+    const { session } = buildSession([
+      { match: pathMatcher('GET', '/api/v2/sources'), body: { data: [SOURCE] } },
+    ]);
+
+    const text = await (await findTool('list_sources')).handler({}, session);
+
+    expect(text).toContain('TechCrunch RSS');
+    expect(text).toContain('source_id: 5');
+  });
+
+  it('list_sources reports a filtered-empty result without claiming there are no sources', async () => {
+    const { session } = buildSession([
+      { match: pathMatcher('GET', '/api/v2/sources'), body: { data: [] } },
+    ]);
+
+    const text = await (await findTool('list_sources')).handler({ type: 'rss' }, session);
+
+    expect(text).toContain('No sources match the filter');
+    expect(text).not.toContain('create_source');
+  });
+
+  it('list_sources keeps the add hint when no filter was supplied and none exist', async () => {
+    // Regression guard — already passes; locks in the genuinely-empty message.
+    const { session } = buildSession([
+      { match: pathMatcher('GET', '/api/v2/sources'), body: { data: [] } },
+    ]);
+
+    const text = await (await findTool('list_sources')).handler({}, session);
+
+    expect(text).toContain('No sources yet. Add one with create_source.');
   });
 
   it('generate_from_signal posts output types and reports the execution id', async () => {

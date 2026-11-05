@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import {
   defineTool,
+  hasAnyArg,
   mutating,
   optionalProductId,
   pick,
@@ -215,7 +216,9 @@ const listSources = defineTool({
             : undefined,
         ])
       ),
-      'No sources yet. Add one with create_source.'
+      hasAnyArg(args, ['type', 'is_active'])
+        ? 'No sources match the filter. Remove the type/is_active filter to see all sources.'
+        : 'No sources yet. Add one with create_source.'
     );
   },
 });

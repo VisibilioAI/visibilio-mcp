@@ -94,6 +94,28 @@ describe('briefs', () => {
     expect(text).toContain('brief_id: 31');
   });
 
+  it('list_briefs reports a filtered-empty result without claiming the account is empty', async () => {
+    const { session } = buildSession([
+      { match: pathMatcher('GET', '/api/v2/briefs'), body: { data: [] } },
+    ]);
+
+    const text = await (await findTool('list_briefs')).handler({ status: 'draft' }, session);
+
+    expect(text).toContain('No briefs match the filter');
+    expect(text).not.toContain('create_brief');
+  });
+
+  it('list_briefs keeps the create hint when no filter was supplied and none exist', async () => {
+    // Regression guard — already passes; locks in the genuinely-empty message.
+    const { session } = buildSession([
+      { match: pathMatcher('GET', '/api/v2/briefs'), body: { data: [] } },
+    ]);
+
+    const text = await (await findTool('list_briefs')).handler({}, session);
+
+    expect(text).toContain('No briefs yet. Create one with create_brief.');
+  });
+
   it('generate_from_brief starts generation and tells the model how to follow up', async () => {
     const { session } = buildSession([
       {

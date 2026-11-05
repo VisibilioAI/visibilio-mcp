@@ -2,6 +2,7 @@ import { z } from 'zod';
 import {
   defineTool,
   destructive,
+  hasAnyArg,
   mutating,
   optionalProductId,
   pick,
@@ -79,7 +80,9 @@ const listBriefs = defineTool({
     return listOrEmpty(
       `Briefs (${briefs.length}):`,
       briefs.map(briefLine),
-      'No briefs yet. Create one with create_brief.'
+      hasAnyArg(args, ['status', 'content_type'])
+        ? 'No briefs match the filter. Remove the status/content_type filter to see all briefs.'
+        : 'No briefs yet. Create one with create_brief.'
     );
   },
 });

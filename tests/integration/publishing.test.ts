@@ -23,6 +23,54 @@ describe('publishing — channels and social', () => {
     expect(text).toMatch(/inactive/);
   });
 
+  it('list_hub_publications lists each publication with its id', async () => {
+    const { session } = buildSession([
+      {
+        match: pathMatcher('GET', '/api/v2/content-hubs/5/publications'),
+        body: {
+          data: [
+            {
+              id: 9,
+              content_item_id: 501,
+              status: 'deployed',
+              live_url: 'https://site.test/post',
+              published_at: '2026-10-13T00:00:00Z',
+            },
+          ],
+        },
+      },
+    ]);
+
+    const text = await (await findTool('list_hub_publications')).handler({ hub_id: 5 }, session);
+
+    expect(text).toContain('Content item 501');
+    expect(text).toContain('publication_id: 9');
+  });
+
+  it('list_hub_publications reports a filtered-empty result without claiming nothing is published', async () => {
+    const { session } = buildSession([
+      { match: pathMatcher('GET', '/api/v2/content-hubs/5/publications'), body: { data: [] } },
+    ]);
+
+    const text = await (
+      await findTool('list_hub_publications')
+    ).handler({ hub_id: 5, status: 'failed' }, session);
+
+    expect(text).toContain('match the filter');
+    expect(text).not.toContain('Nothing published on this hub yet.');
+  });
+
+  it('list_hub_publications keeps the nothing-published message when no filter was supplied', async () => {
+    // Regression guard — already passes; locks in the genuinely-empty message.
+    const { session } = buildSession([
+      { match: pathMatcher('GET', '/api/v2/content-hubs/5/publications'), body: { data: [] } },
+    ]);
+
+    const text = await (await findTool('list_hub_publications')).handler({ hub_id: 5 }, session);
+
+    expect(text).toContain('Nothing published on this hub yet.');
+  });
+
   it('list_product_channels reads the product route and shows each channel role', async () => {
     const { session, calls } = buildSession([
       {
