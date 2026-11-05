@@ -183,7 +183,7 @@ const listHubPublications = defineTool({
   inputSchema: {
     hub_id: z.number().int(),
     status: z.enum(['pending', 'committed', 'deployed', 'failed']).optional(),
-    limit: z.number().int().optional(),
+    limit: z.number().int().min(1).max(100).optional(),
   },
   annotations: readOnly,
   handler: async (args, session) => {
