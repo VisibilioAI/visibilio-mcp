@@ -75,3 +75,23 @@ describe('list_hub_publications.limit is bounded', () => {
     expect(limit().safeParse(undefined).success).toBe(true);
   });
 });
+
+describe('get_ai_visibility_metrics.cycle is a positive measurement cycle', () => {
+  const cycle = () => field('get_ai_visibility_metrics', 'cycle');
+
+  it('rejects a zero cycle', () => {
+    expect(cycle().safeParse(0).success).toBe(false);
+  });
+
+  it('rejects a negative cycle', () => {
+    expect(cycle().safeParse(-1).success).toBe(false);
+  });
+
+  it('accepts a positive cycle', () => {
+    expect(cycle().safeParse(1).success).toBe(true);
+  });
+
+  it('accepts an omitted cycle (optional)', () => {
+    expect(cycle().safeParse(undefined).success).toBe(true);
+  });
+});
