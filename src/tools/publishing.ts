@@ -218,7 +218,9 @@ const listSchedules = defineTool({
   description: 'List scheduled and past social publications with their status and published URLs.',
   inputSchema: {
     product_id: z.number().int().optional(),
-    status: z.string().optional().describe('scheduled, publishing, published, failed, cancelled'),
+    status: z
+      .enum(['scheduled', 'publishing', 'published', 'failed', 'cancelled'])
+      .optional(),
     content_item_id: z.number().int().optional(),
     channel_id: z.number().int().optional(),
     from: z.string().optional(),
