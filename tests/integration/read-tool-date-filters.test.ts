@@ -21,9 +21,12 @@ const DATE_FILTERS: ReadonlyArray<readonly [string, string]> = [
 ];
 
 describe('read-tool date filters enforce an ISO date format', () => {
-  it.each(DATE_FILTERS)('%s.%s rejects a non-ISO date (the reporter "22.10.2026" case)', (tool, key) => {
-    expect(field(tool, key).safeParse('22.10.2026').success).toBe(false);
-  });
+  it.each(DATE_FILTERS)(
+    '%s.%s rejects a non-ISO date (the reporter "22.10.2026" case)',
+    (tool, key) => {
+      expect(field(tool, key).safeParse('22.10.2026').success).toBe(false);
+    }
+  );
 
   it.each(DATE_FILTERS)('%s.%s accepts an ISO date', (tool, key) => {
     expect(field(tool, key).safeParse('2026-10-22').success).toBe(true);

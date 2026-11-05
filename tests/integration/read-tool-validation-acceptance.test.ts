@@ -65,10 +65,13 @@ describe('reporter cases are rejected with the offending field named (meta#1013)
     ['list_schedules', { status: 'bogus' }, 'status'],
   ];
 
-  it.each(CASES)('%s with a bad argument is rejected naming the field', async (name, args, field) => {
-    const client = await connectedClient();
-    const text = await errorText(client, name, args);
-    expect(text, `${name} should be rejected`).not.toBe('');
-    expect(text, `${name} rejection should name ${field}`).toContain(field);
-  });
+  it.each(CASES)(
+    '%s with a bad argument is rejected naming the field',
+    async (name, args, field) => {
+      const client = await connectedClient();
+      const text = await errorText(client, name, args);
+      expect(text, `${name} should be rejected`).not.toBe('');
+      expect(text, `${name} rejection should name ${field}`).toContain(field);
+    }
+  );
 });
