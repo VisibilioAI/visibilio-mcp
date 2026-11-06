@@ -57,7 +57,7 @@ export class VisibilioClient {
   constructor(options: VisibilioClientOptions) {
     this.gatewayUrl = options.gatewayUrl.replace(/\/$/, '');
     this.credential = options.credential;
-    this.timeoutMs = options.timeoutMs ?? 30_000;
+    this.timeoutMs = options.timeoutMs ?? 900_000;
     this.fetchImpl = options.fetch ?? globalThis.fetch;
   }
 
