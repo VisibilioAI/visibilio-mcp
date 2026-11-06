@@ -100,9 +100,7 @@ describe('knowledge', () => {
         match: pathMatcher('POST', '/api/v2/knowledge/search'),
         body: {
           query: 'pricing',
-          results: [
-            { domain: 'company_profile', content: { pricing: 'freemium' }, score: 0.91 },
-          ],
+          results: [{ domain: 'company_profile', content: { pricing: 'freemium' }, score: 0.91 }],
         },
       },
     ]);
