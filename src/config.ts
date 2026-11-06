@@ -8,7 +8,7 @@ const DEFAULT_GATEWAY_URL = 'https://visibilio-api-gateway-prod.vercel.app';
 const baseSchema = z.object({
   gatewayUrl: z.string().url(),
   frontendUrl: z.string().url().optional(),
-  timeoutMs: z.number().int().positive().default(30_000),
+  timeoutMs: z.number().int().positive().default(900_000),
 });
 
 const settingsSchema = baseSchema.extend({

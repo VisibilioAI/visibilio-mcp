@@ -1,6 +1,6 @@
 import type { ZodRawShape } from 'zod';
 import type { McpSession } from '../session.js';
-import { HttpError } from '../client.js';
+import { HttpError, RequestCancelledError, RequestTimeoutError } from '../client.js';
 
 export interface ToolAnnotations {
   readonly readOnlyHint: boolean;
@@ -105,6 +105,12 @@ export function defineTool<TShape extends ZodRawShape>(
         return await input.handler(args ?? {}, session);
       } catch (err) {
         if (err instanceof ToolError) return toolFailure(`Error: ${err.message}`);
+        if (err instanceof RequestTimeoutError) {
+          return toolFailure(`${input.title} timed out after ${err.timeoutMs}ms. Try again.`);
+        }
+        if (err instanceof RequestCancelledError) {
+          return toolFailure(`${input.title} was cancelled.`);
+        }
         if (err instanceof HttpError) {
           return toolFailure(describeError(`${input.title} failed`, err));
         }

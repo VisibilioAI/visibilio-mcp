@@ -1,3 +1,5 @@
+import { currentRequestScope } from './request-scope.js';
+
 export type QueryParams = Record<string, string | number | boolean | undefined>;
 
 interface VisibilioClientOptions {
@@ -18,7 +20,29 @@ export class HttpError extends Error {
   }
 }
 
+export class RequestCancelledError extends Error {
+  constructor(
+    public readonly method: string,
+    public readonly requestUrl: string
+  ) {
+    super(`${method} ${requestUrl} was cancelled by the client`);
+    this.name = 'RequestCancelledError';
+  }
+}
+
+export class RequestTimeoutError extends Error {
+  constructor(
+    public readonly method: string,
+    public readonly requestUrl: string,
+    public readonly timeoutMs: number
+  ) {
+    super(`${method} ${requestUrl} timed out after ${timeoutMs}ms`);
+    this.name = 'RequestTimeoutError';
+  }
+}
+
 const RETRYABLE_STATUSES = new Set([429, 502, 503, 504]);
+const PROGRESS_HEARTBEAT_MS = 25_000;
 const RETRYABLE_METHODS = new Set(['GET', 'HEAD', 'OPTIONS']);
 const MAX_RETRY_ATTEMPTS = 3;
 const BASE_DELAY_MS = 1000;
@@ -34,7 +58,7 @@ export class VisibilioClient {
   constructor(options: VisibilioClientOptions) {
     this.gatewayUrl = options.gatewayUrl.replace(/\/$/, '');
     this.credential = options.credential;
-    this.timeoutMs = options.timeoutMs ?? 30_000;
+    this.timeoutMs = options.timeoutMs ?? 900_000;
     this.fetchImpl = options.fetch ?? globalThis.fetch;
   }
 
@@ -96,13 +120,36 @@ export class VisibilioClient {
     body: string | undefined,
     attempt: number
   ): Promise<unknown> {
+    const scope = currentRequestScope();
+    const external = scope?.signal;
+    if (external?.aborted) throw new RequestCancelledError(method, url);
+
     const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), this.timeoutMs);
+    let abortReason: 'timeout' | 'cancel' | null = null;
+    const timer = setTimeout(() => {
+      abortReason = 'timeout';
+      controller.abort();
+    }, this.timeoutMs);
+    const onExternalAbort = () => {
+      abortReason = 'cancel';
+      controller.abort();
+    };
+    external?.addEventListener('abort', onExternalAbort, { once: true });
+    const reportProgress = scope?.reportProgress;
+    const heartbeat = reportProgress
+      ? setInterval(() => reportProgress(), PROGRESS_HEARTBEAT_MS)
+      : undefined;
     let response: Response;
     try {
       response = await this.fetchImpl(url, { method, headers, body, signal: controller.signal });
+    } catch (err) {
+      if (abortReason === 'cancel') throw new RequestCancelledError(method, url);
+      if (abortReason === 'timeout') throw new RequestTimeoutError(method, url, this.timeoutMs);
+      throw err;
     } finally {
       clearTimeout(timer);
+      if (heartbeat !== undefined) clearInterval(heartbeat);
+      external?.removeEventListener('abort', onExternalAbort);
     }
 
     if (
