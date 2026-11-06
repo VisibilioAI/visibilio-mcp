@@ -146,7 +146,7 @@ const searchKnowledge = defineTool({
       `Results for "${String(body.query ?? args.query)}" (${results.length}):`,
       results.map(
         (r) =>
-          `- [${String(r.domain)}] relevance ${typeof r.relevance_score === 'number' ? r.relevance_score.toFixed(2) : '?'}\n  ${JSON.stringify(r.content)}`
+          `- [${String(r.domain)}] relevance ${typeof r.score === 'number' ? r.score.toFixed(2) : '?'}\n  ${JSON.stringify(r.content)}`
       ),
       'No matches.'
     );
