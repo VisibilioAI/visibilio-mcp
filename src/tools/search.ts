@@ -99,11 +99,17 @@ const search = defineTool({
         search: query,
         limit: RESULTS_PER_PRODUCT,
       });
-      for (const item of asArray<Row>(unwrapData(body))) {
+      const items = asArray<Row>(unwrapData(body));
+      const publishedUrls = items.some((item) => item.status === 'published')
+        ? await publishedUrlsForProduct(session, product.id)
+        : new Map<string, string>();
+      for (const item of items) {
         results.push({
           id: `content-item:${String(item.id)}`,
           title: titleOf(item),
-          url: contentItemUrl(session.organizationId, item.id),
+          url:
+            (item.status === 'published' && publishedUrls.get(String(item.id))) ||
+            contentItemUrl(session.organizationId, item.id),
         });
       }
     }
