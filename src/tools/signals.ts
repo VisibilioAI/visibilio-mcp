@@ -96,7 +96,7 @@ const getSignal = defineTool({
     return fields([
       ['Signal', signal.title],
       ['signal_id', signal.id],
-      ['score', signal.relevance_score],
+      ['score', isUnscored(signal) ? 'not scored' : signal.relevance_score],
       ['source', signal.source_name],
       ['url', signal.url],
       ['scanned_at', signal.scanned_at],
