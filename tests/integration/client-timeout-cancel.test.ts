@@ -29,7 +29,12 @@ function abortableFetch(onCall?: (signal: AbortSignal | undefined) => void): typ
 }
 
 function makeClient(fetchImpl: typeof fetch, timeoutMs?: number): VisibilioClient {
-  return new VisibilioClient({ gatewayUrl: GATEWAY, credential: 'vsk_mock', timeoutMs, fetch: fetchImpl });
+  return new VisibilioClient({
+    gatewayUrl: GATEWAY,
+    credential: 'vsk_mock',
+    timeoutMs,
+    fetch: fetchImpl,
+  });
 }
 
 describe('VisibilioClient — caller cancellation propagates to the gateway fetch', () => {
