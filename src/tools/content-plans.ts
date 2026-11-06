@@ -234,7 +234,11 @@ const listPlannedTopics = defineTool({
       `Planned topics (${topics.length}):`,
       topics.map((t) =>
         line(nameOf(t), 'topic_id', t.id, [
-          typeof t.planned_at === 'string' ? t.planned_at.slice(0, 10) : undefined,
+          typeof t.scheduled_date === 'string'
+            ? t.scheduled_date
+            : typeof t.planned_at === 'string'
+              ? t.planned_at.slice(0, 10)
+              : undefined,
           typeof t.status === 'string' ? t.status : undefined,
           typeof t.pillar === 'string' ? `pillar: ${t.pillar}` : undefined,
           Array.isArray(t.content_item_ids) && t.content_item_ids.length
