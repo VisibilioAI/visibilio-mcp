@@ -55,3 +55,29 @@ describe('VisibilioClient — a timeout is distinguishable from a cancellation',
     vi.useRealTimers();
   });
 });
+
+describe('VisibilioClient — default timeout covers long gateway operations', () => {
+  it('does not cut a request off at 30s and defaults to a 900s (900_000ms) timeout', async () => {
+    vi.useFakeTimers();
+    const client = makeClient(abortableFetch()); // no timeoutMs: uses the client default
+
+    let settled = false;
+    const error = client.get('/api/v2/products').then(
+      () => {
+        settled = true;
+      },
+      (e: unknown) => {
+        settled = true;
+        return e;
+      }
+    );
+
+    await vi.advanceTimersByTimeAsync(30_000);
+    expect(settled).toBe(false); // the old 30s default would have aborted here
+
+    await vi.advanceTimersByTimeAsync(900_000 - 30_000);
+    expect(settled).toBe(true);
+    expect(await error).toBeInstanceOf(RequestTimeoutError);
+    vi.useRealTimers();
+  });
+});
