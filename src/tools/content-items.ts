@@ -202,7 +202,7 @@ const createContentItem = defineTool({
   name: 'create_content_item',
   title: 'Create content item',
   description:
-    'Create a content item in a product as a draft. Use it to save text you wrote, or to save a generated workflow result: pass type and source_execution_id, and the title, text, SEO meta, FAQ and summary come from the run unless you pass your own (idempotent per execution).',
+    'Create a content item in a product as a draft. Use it to save text you wrote, or to save a generated workflow result: pass type and source_execution_id, and the title, text, SEO meta, FAQ and summary come from the run unless you pass your own (idempotent per execution). When the content came from a signal, also pass signal_id so that signal is marked used and is not suggested again.',
   inputSchema: {
     product_id: z.number().int().optional().describe('Defaults to the active product'),
     type: z.enum(CONTENT_TYPES),
@@ -227,6 +227,13 @@ const createContentItem = defineTool({
       .string()
       .optional()
       .describe('Workflow execution id whose output this item saves'),
+    signal_id: z
+      .number()
+      .int()
+      .optional()
+      .describe(
+        'The signal this content was generated from. Pass it to mark that signal used so it is not suggested again.'
+      ),
   },
   annotations: mutating,
   handler: async (args, session) => {
@@ -245,6 +252,7 @@ const createContentItem = defineTool({
       'excerpt',
       'body_format',
       'source_execution_id',
+      'signal_id',
     ]);
     const sourceExecutionId = stringArg(args, 'source_execution_id');
     const generated = sourceExecutionId
