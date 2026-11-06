@@ -4,6 +4,7 @@ import {
   destructive,
   hasAnyArg,
   mutating,
+  openWorld,
   optionalProductId,
   pick,
   readOnly,
@@ -85,7 +86,7 @@ const publishSocialPost = defineTool({
     channel_id: z.number().int(),
     source_article_link: z.boolean().optional().describe('Append the link of the source article'),
   },
-  annotations: mutating,
+  annotations: openWorld,
   handler: async (args, session) => {
     const itemId = requireNumberArg(args, 'content_item_id');
     const result = unwrapData<Row>(
@@ -156,7 +157,7 @@ const publishToHub = defineTool({
       .describe('Social channel ids to announce the post on'),
     source_article_link: z.boolean().optional(),
   },
-  annotations: mutating,
+  annotations: openWorld,
   handler: async (args, session) => {
     const hubId = requireNumberArg(args, 'hub_id');
     const itemId = requireNumberArg(args, 'content_item_id');

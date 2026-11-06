@@ -3,6 +3,7 @@ import {
   defineTool,
   hasAnyArg,
   mutating,
+  openWorld,
   optionalProductId,
   pick,
   readOnly,
@@ -254,7 +255,7 @@ const scanSource = defineTool({
   description:
     'Scan a source now and score the new items as signals for a product. Returns a job id at once; follow it with get_generation_job_status until it completes, then the scored items appear as signals (see list_signals). Retrying the same request never rescans the source twice.',
   inputSchema: { source_id: z.number().int(), product_id: z.number().int().optional() },
-  annotations: mutating,
+  annotations: openWorld,
   handler: async (args, session) => {
     const sourceId = requireNumberArg(args, 'source_id');
     const productId = resolveProductId(args, session);

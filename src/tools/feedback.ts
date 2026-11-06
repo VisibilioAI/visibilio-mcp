@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { defineTool, mutating, pick, requireStringArg, type ToolDefinition } from './_define.js';
+import { defineTool, openWorld, pick, requireStringArg, type ToolDefinition } from './_define.js';
 
 const sendFeedback = defineTool({
   name: 'send_feedback',
@@ -10,7 +10,7 @@ const sendFeedback = defineTool({
     message: z.string().min(1).max(2000),
     rating: z.number().int().min(1).max(5).optional(),
   },
-  annotations: mutating,
+  annotations: openWorld,
   handler: async (args, session) => {
     requireStringArg(args, 'message');
     await session.client.post('/api/v2/feedback', {
