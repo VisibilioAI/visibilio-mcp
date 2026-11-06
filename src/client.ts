@@ -1,3 +1,5 @@
+import { currentRequestScope } from './request-scope.js';
+
 export type QueryParams = Record<string, string | number | boolean | undefined>;
 
 interface VisibilioClientOptions {
@@ -15,6 +17,16 @@ export class HttpError extends Error {
   ) {
     super(message);
     this.name = 'HttpError';
+  }
+}
+
+export class RequestCancelledError extends Error {
+  constructor(
+    public readonly method: string,
+    public readonly requestUrl: string
+  ) {
+    super(`${method} ${requestUrl} was cancelled by the client`);
+    this.name = 'RequestCancelledError';
   }
 }
 
@@ -96,13 +108,29 @@ export class VisibilioClient {
     body: string | undefined,
     attempt: number
   ): Promise<unknown> {
+    const external = currentRequestScope()?.signal;
+    if (external?.aborted) throw new RequestCancelledError(method, url);
+
     const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), this.timeoutMs);
+    let abortReason: 'timeout' | 'cancel' | null = null;
+    const timer = setTimeout(() => {
+      abortReason = 'timeout';
+      controller.abort();
+    }, this.timeoutMs);
+    const onExternalAbort = () => {
+      abortReason = 'cancel';
+      controller.abort();
+    };
+    external?.addEventListener('abort', onExternalAbort, { once: true });
     let response: Response;
     try {
       response = await this.fetchImpl(url, { method, headers, body, signal: controller.signal });
+    } catch (err) {
+      if (abortReason === 'cancel') throw new RequestCancelledError(method, url);
+      throw err;
     } finally {
       clearTimeout(timer);
+      external?.removeEventListener('abort', onExternalAbort);
     }
 
     if (
