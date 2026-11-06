@@ -30,18 +30,28 @@ describe('search (ChatGPT connector contract)', () => {
         match: pathMatcher('GET', '/api/v2/products/148/content-items'),
         body: { data: [{ id: 9, title: 'Launch post', type: 'social_post', status: 'published' }] },
       },
+      {
+        match: pathMatcher('GET', '/api/v2/organizations/7/published-feed'),
+        body: { data: [{ content_item_id: 9, live_url: 'https://site.com/launch-post' }] },
+      },
     ]);
 
     const result = await (await findTool('search')).handler({ query: 'launch' }, session);
 
     expect(calls[1]!.url).toContain('search=launch');
     expect(calls[2]!.url).toContain('search=launch');
+    // RED driver: item 9 is published, so its url must be the mapped live_url, not the app page.
     expect(structuredOf(result)).toEqual({
       results: [
         { id: 'content-item:5', title: 'Launch plan', url: 'https://app.visibilio.ai/7/content/5' },
-        { id: 'content-item:9', title: 'Launch post', url: 'https://app.visibilio.ai/7/content/9' },
+        { id: 'content-item:9', title: 'Launch post', url: 'https://site.com/launch-post' },
       ],
     });
+    // Regression guard — already passes; product 147 has no published item, so no feed
+    // lookup for it should ever happen.
+    expect(calls.some((c) => c.url.includes('published-feed') && c.url.includes('product_id=147'))).toBe(
+      false
+    );
   });
 
   it('an empty query returns no results and never calls the gateway', async () => {
