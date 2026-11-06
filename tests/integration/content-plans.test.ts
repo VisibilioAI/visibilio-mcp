@@ -203,6 +203,59 @@ describe('content plans', () => {
     expect(text).toContain('topic_id: 5');
   });
 
+  it('list_planned_topics shows scheduled_date (the plan calendar date), not the UTC date of planned_at', async () => {
+    const { session } = buildSession([
+      {
+        match: pathMatcher('GET', '/api/v2/products/147/planned-topics'),
+        body: {
+          data: [
+            {
+              id: 5,
+              title: 'MCP launch',
+              scheduled_date: '2027-01-11',
+              planned_at: '2027-01-10T22:00:00.000Z',
+              status: 'planned',
+              pillar: 'product',
+              content_item_ids: [],
+            },
+          ],
+        },
+      },
+    ]);
+    await session.setActiveProduct(147, 'Visibilio');
+
+    const text = await (await findTool('list_planned_topics')).handler({}, session);
+
+    expect(text).toContain('2027-01-11');
+    expect(text).not.toContain('2027-01-10');
+  });
+
+  it('list_planned_topics falls back to the planned_at date when scheduled_date is absent', async () => {
+    // Regression guard — keeps the pre-gateway-field behaviour safe until the
+    // gateway scheduled_date reaches prod.
+    const { session } = buildSession([
+      {
+        match: pathMatcher('GET', '/api/v2/products/147/planned-topics'),
+        body: {
+          data: [
+            {
+              id: 5,
+              title: 'MCP launch',
+              planned_at: '2026-10-14T09:00:00.000Z',
+              status: 'planned',
+              content_item_ids: [],
+            },
+          ],
+        },
+      },
+    ]);
+    await session.setActiveProduct(147, 'Visibilio');
+
+    const text = await (await findTool('list_planned_topics')).handler({}, session);
+
+    expect(text).toContain('2026-10-14');
+  });
+
   it('get_planned_topic_brief accepts a UUID string topic_id in its input schema', async () => {
     const brief = await findTool('get_planned_topic_brief');
     const schema = z.object(brief.inputSchema);
