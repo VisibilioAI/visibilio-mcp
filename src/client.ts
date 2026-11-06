@@ -30,6 +30,17 @@ export class RequestCancelledError extends Error {
   }
 }
 
+export class RequestTimeoutError extends Error {
+  constructor(
+    public readonly method: string,
+    public readonly requestUrl: string,
+    public readonly timeoutMs: number
+  ) {
+    super(`${method} ${requestUrl} timed out after ${timeoutMs}ms`);
+    this.name = 'RequestTimeoutError';
+  }
+}
+
 const RETRYABLE_STATUSES = new Set([429, 502, 503, 504]);
 const RETRYABLE_METHODS = new Set(['GET', 'HEAD', 'OPTIONS']);
 const MAX_RETRY_ATTEMPTS = 3;
@@ -127,6 +138,7 @@ export class VisibilioClient {
       response = await this.fetchImpl(url, { method, headers, body, signal: controller.signal });
     } catch (err) {
       if (abortReason === 'cancel') throw new RequestCancelledError(method, url);
+      if (abortReason === 'timeout') throw new RequestTimeoutError(method, url, this.timeoutMs);
       throw err;
     } finally {
       clearTimeout(timer);
