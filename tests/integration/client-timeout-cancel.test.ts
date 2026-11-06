@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { RequestCancelledError, VisibilioClient } from '../../src/client.js';
+import { RequestCancelledError, RequestTimeoutError, VisibilioClient } from '../../src/client.js';
 import { runInRequestScope } from '../../src/request-scope.js';
 
 const GATEWAY = 'https://gateway.test';
@@ -39,5 +39,19 @@ describe('VisibilioClient — caller cancellation propagates to the gateway fetc
     await assertion;
 
     expect(fetchSignal?.aborted).toBe(true);
+  });
+});
+
+describe('VisibilioClient — a timeout is distinguishable from a cancellation', () => {
+  it('rejects with RequestTimeoutError (not RequestCancelledError) when the client timeout elapses', async () => {
+    vi.useFakeTimers();
+    const client = makeClient(abortableFetch(), 1000);
+
+    const error = client.get('/api/v2/products').catch((e: unknown) => e);
+    await vi.advanceTimersByTimeAsync(1000);
+
+    expect(await error).toBeInstanceOf(RequestTimeoutError);
+    expect(await error).not.toBeInstanceOf(RequestCancelledError);
+    vi.useRealTimers();
   });
 });
