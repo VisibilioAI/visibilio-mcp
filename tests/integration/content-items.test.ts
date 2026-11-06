@@ -482,3 +482,70 @@ describe('content items — signal linkage', () => {
     expect(jsonBodyOf(calls[0])).not.toHaveProperty('signal_id');
   });
 });
+
+describe('content items — version history formatting', () => {
+  const versionsPath = '/api/v2/content-items/501/versions';
+
+  it('renders an edit note of up to 160 characters in full, without an ellipsis', async () => {
+    const note =
+      'Clarified the pricing section and aligned the closing call-to-action with the latest brand voice guidance ahead of the Q4 product launch.';
+    expect(note.length).toBeGreaterThan(80);
+    expect(note.length).toBeLessThanOrEqual(160);
+
+    const { session } = buildSession([
+      {
+        match: pathMatcher('GET', versionsPath),
+        body: {
+          data: [
+            {
+              id: 42,
+              title: 'Why MCP matters',
+              created_at: '2026-10-13T10:00:00Z',
+              created_by: 'agent',
+              changed_fields: ['body'],
+              edit_prompt: note,
+            },
+          ],
+        },
+      },
+    ]);
+
+    const text = await (
+      await findTool('list_content_item_versions')
+    ).handler({ content_item_id: 501 }, session);
+
+    expect(text).toContain(note);
+    expect(text).not.toContain('…');
+  });
+
+  // Regression guard - passes at authorship; locks in the 160-char output-size budget so a note
+  // longer than the cap is still shortened rather than dumped in full across up to 200 rows.
+  it('still truncates an edit note longer than 160 characters', async () => {
+    const longNote = 'A'.repeat(200);
+
+    const { session } = buildSession([
+      {
+        match: pathMatcher('GET', versionsPath),
+        body: {
+          data: [
+            {
+              id: 43,
+              title: 'Why MCP matters',
+              created_at: '2026-10-13T10:00:00Z',
+              created_by: 'agent',
+              changed_fields: ['body'],
+              edit_prompt: longNote,
+            },
+          ],
+        },
+      },
+    ]);
+
+    const text = await (
+      await findTool('list_content_item_versions')
+    ).handler({ content_item_id: 501 }, session);
+
+    expect(text).toContain('…');
+    expect(text).not.toContain(longNote);
+  });
+});
