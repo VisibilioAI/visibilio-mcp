@@ -441,3 +441,44 @@ describe('content items — publication drift (get_content_item)', () => {
     expect(text).not.toContain('changes not live');
   });
 });
+
+describe('content items — signal linkage', () => {
+  it('create_content_item threads signal_id into the create body so the gateway marks the signal used', async () => {
+    const { session, calls } = buildSession([
+      {
+        match: pathMatcher('POST', '/api/v2/products/147/content-items'),
+        status: 201,
+        body: { data: { ...ITEM, id: 779 } },
+      },
+    ]);
+    await session.setActiveProduct(147, 'Visibilio');
+
+    await (
+      await findTool('create_content_item')
+    ).handler(
+      { type: 'social_post', title: 'From a signal', body: 'Post text', signal_id: 42 },
+      session
+    );
+
+    expect(jsonBodyOf(calls[0])).toMatchObject({ signal_id: 42 });
+  });
+
+  // Regression guard - passes at authorship; locks in that a save unrelated to a signal carries no
+  // signal_id, so the gateway marks nothing.
+  it('create_content_item sends no signal_id when none is given', async () => {
+    const { session, calls } = buildSession([
+      {
+        match: pathMatcher('POST', '/api/v2/products/147/content-items'),
+        status: 201,
+        body: { data: { ...ITEM, id: 780 } },
+      },
+    ]);
+    await session.setActiveProduct(147, 'Visibilio');
+
+    await (
+      await findTool('create_content_item')
+    ).handler({ type: 'social_post', title: 'Hand-written', body: 'Post text' }, session);
+
+    expect(jsonBodyOf(calls[0])).not.toHaveProperty('signal_id');
+  });
+});

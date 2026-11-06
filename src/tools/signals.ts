@@ -99,7 +99,7 @@ const generateFromSignal = defineTool({
   name: 'generate_from_signal',
   title: 'Generate from signal',
   description:
-    'Turn a signal into content (e.g. output_types ["linkedin_post","blog_article"]). Returns an execution id; follow it with get_workflow_status, then save with create_content_item(type, source_execution_id).',
+    'Turn a signal into content (e.g. output_types ["linkedin_post","blog_article"]). Returns an execution id; follow it with get_workflow_status, then save with create_content_item(type, source_execution_id, signal_id). Pass signal_id so the signal is marked used and is not suggested again.',
   inputSchema: {
     signal_id: z.number().int(),
     output_types: z
