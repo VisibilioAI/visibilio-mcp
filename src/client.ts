@@ -19,6 +19,7 @@ export class HttpError extends Error {
 }
 
 const RETRYABLE_STATUSES = new Set([429, 502, 503, 504]);
+const RETRYABLE_METHODS = new Set(['GET', 'HEAD', 'OPTIONS']);
 const MAX_RETRY_ATTEMPTS = 3;
 const BASE_DELAY_MS = 1000;
 const BREAKER_BASE_DELAY_MS = 2000;
@@ -104,7 +105,11 @@ export class VisibilioClient {
       clearTimeout(timer);
     }
 
-    if (RETRYABLE_STATUSES.has(response.status) && attempt < MAX_RETRY_ATTEMPTS) {
+    if (
+      RETRYABLE_METHODS.has(method) &&
+      RETRYABLE_STATUSES.has(response.status) &&
+      attempt < MAX_RETRY_ATTEMPTS
+    ) {
       await sleep(computeBackoffDelay(response, attempt));
       return this.fetchWithBackoff(method, url, headers, body, attempt + 1);
     }
