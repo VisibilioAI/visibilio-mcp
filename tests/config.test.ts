@@ -6,7 +6,7 @@ describe('configuration — the gateway is the only upstream', () => {
     const settings = loadBaseSettings({});
 
     expect(settings.gatewayUrl).toBe('https://visibilio-api-gateway-prod.vercel.app');
-    expect(settings.timeoutMs).toBe(30_000);
+    expect(settings.timeoutMs).toBe(900_000);
   });
 
   it('reads VISIBILIO_GATEWAY_URL, VISIBILIO_FRONTEND_URL and VISIBILIO_TIMEOUT_MS', () => {
