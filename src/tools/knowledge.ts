@@ -129,18 +129,26 @@ const searchKnowledge = defineTool({
   name: 'search_knowledge',
   title: 'Search knowledge',
   description:
-    'Semantic search across the organization knowledge base. Returns matching fragments with their domain and relevance.',
+    'Semantic search across the knowledge base (active product plus organization-level). Returns matching fragments with their domain and relevance.',
   inputSchema: {
     query: z.string().min(3),
     domains: z.array(z.enum(KNOWLEDGE_DOMAINS)).optional(),
+    product_id: z
+      .number()
+      .int()
+      .optional()
+      .describe(
+        'Defaults to the active product; scopes results to that product plus organization-level knowledge'
+      ),
   },
   annotations: openWorld,
   handler: async (args, session) => {
     requireStringArg(args, 'query');
-    const body = (await session.client.post(
-      '/api/v2/knowledge/search',
-      pick(args, ['query', 'domains'])
-    )) as Row;
+    const productId = optionalProductId(args, session);
+    const body = (await session.client.post('/api/v2/knowledge/search', {
+      ...pick(args, ['query', 'domains']),
+      ...(productId !== undefined ? { product_id: productId } : {}),
+    })) as Row;
     const results = asArray<Row>(body.results);
     return listOrEmpty(
       `Results for "${String(body.query ?? args.query)}" (${results.length}):`,
