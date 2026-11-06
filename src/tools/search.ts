@@ -38,6 +38,10 @@ function titleOf(item: Row): string {
 export function htmlToText(html: string): string {
   return html
     .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/<a\b[^>]*?\bhref=(["'])(.*?)\1[^>]*>([\s\S]*?)<\/a>/gi, (_m, _q, href, inner) => {
+      const text = String(inner).replace(/<[^>]+>/g, '').trim();
+      return text ? `[${text}](${String(href)})` : String(href);
+    })
     .replace(/<\/(p|div|h[1-6]|li|blockquote|tr)>/gi, '\n')
     .replace(/<[^>]+>/g, '')
     .replace(/&nbsp;/g, ' ')
