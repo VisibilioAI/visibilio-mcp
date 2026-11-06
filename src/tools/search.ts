@@ -13,8 +13,8 @@ import { fetchProducts } from './context.js';
 import { fetchItem } from './content-items.js';
 
 const CONTENT_ITEM_ID = /^content-item:(\d+)$/;
-const RESULTS_PER_PRODUCT = 10;
-const MAX_RESULTS = 20;
+export const RESULTS_PER_PRODUCT = 10;
+export const MAX_RESULTS = 20;
 const METADATA_FIELDS = ['type', 'status', 'platform', 'language', 'product_id'] as const;
 
 interface SearchResult {
@@ -56,7 +56,7 @@ const search = defineTool({
   name: 'search',
   title: 'Search',
   description:
-    'Search content items across every product of the active organization by free text (ChatGPT connector contract). Returns {results: [{id, title, url}]}; pass a result id to fetch for the full text.',
+    'Search content items across every product of the active organization by free text (ChatGPT connector contract). The server matches your query as-is against titles and bodies, so you do not need to add % or _ wildcards or wrap a phrase in quotes. Returns at most 10 results per product and at most 20 results in total across the organization; there is no paging, so make the query more specific to surface different items. Returns {results: [{id, title, url}]}; pass a result id to fetch for the full text.',
   inputSchema: {
     query: z.string().describe('Free-text query matched against titles and bodies'),
   },
