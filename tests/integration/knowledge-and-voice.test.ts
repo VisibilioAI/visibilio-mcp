@@ -100,9 +100,7 @@ describe('knowledge', () => {
         match: pathMatcher('POST', '/api/v2/knowledge/search'),
         body: {
           query: 'pricing',
-          results: [
-            { domain: 'company_profile', content: { pricing: 'freemium' }, relevance_score: 0.91 },
-          ],
+          results: [{ domain: 'company_profile', content: { pricing: 'freemium' }, score: 0.91 }],
         },
       },
     ]);
@@ -115,6 +113,41 @@ describe('knowledge', () => {
     expect(text).toContain('company_profile');
     expect(text).toContain('freemium');
     expect(text).toContain('0.91');
+  });
+
+  it('search_knowledge scopes the search to the active product', async () => {
+    const { session, calls } = buildSession([
+      {
+        match: pathMatcher('POST', '/api/v2/knowledge/search'),
+        body: { query: 'pricing', results: [] },
+      },
+    ]);
+    await session.setActiveProduct(147, 'Visibilio');
+
+    await (
+      await findTool('search_knowledge')
+    ).handler({ query: 'pricing', domains: ['company_profile'] }, session);
+
+    expect(jsonBodyOf(calls[0])).toEqual({
+      query: 'pricing',
+      domains: ['company_profile'],
+      product_id: 147,
+    });
+  });
+
+  it('search_knowledge honors an explicit product_id argument', async () => {
+    const { session, calls } = buildSession([
+      {
+        match: pathMatcher('POST', '/api/v2/knowledge/search'),
+        body: { query: 'pricing', results: [] },
+      },
+    ]);
+
+    await (
+      await findTool('search_knowledge')
+    ).handler({ query: 'pricing', product_id: 42 }, session);
+
+    expect(jsonBodyOf(calls[0])).toEqual({ query: 'pricing', product_id: 42 });
   });
 
   it('accept_knowledge_proposal posts to the accept route', async () => {
