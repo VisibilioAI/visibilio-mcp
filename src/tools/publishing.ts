@@ -304,7 +304,11 @@ const getPublishedFeed = defineTool({
     product_id: z.number().int().optional(),
     channel: z.string().optional(),
     from: isoDate('from').optional(),
-    to: isoDate('to').optional(),
+    to: isoDate('to')
+      .optional()
+      .describe(
+        'End of the window (YYYY-MM-DD), exclusive of this date: items published on the "to" day itself are not returned. To include a day, set "to" to the next day.'
+      ),
   },
   annotations: readOnly,
   handler: async (args, session) => {
