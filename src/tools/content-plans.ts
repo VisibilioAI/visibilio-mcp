@@ -54,12 +54,7 @@ function describePlan(plan: Row): string {
       ['plan_id', plan.id],
       ['status', plan.status],
       ['description', plan.description],
-      [
-        'period',
-        typeof plan.period_start === 'string'
-          ? `${plan.period_start} → ${String(plan.period_end ?? '?')}`
-          : undefined,
-      ],
+      ['period', periodOf(plan)],
       ['user_input', plan.user_input],
       [
         'execution_id',
