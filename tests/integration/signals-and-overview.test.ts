@@ -26,6 +26,60 @@ const SOURCE = {
   last_scanned_at: '2026-10-13T06:00:00Z',
 };
 
+const UNSCORED_SIGNAL = {
+  id: 72,
+  product_id: 147,
+  source_name: 'TechCrunch',
+  source_type: 'rss',
+  title: 'Pending scoring item',
+  summary: 'Not yet scored.',
+  url: 'https://news.test/pending',
+  relevance_score: 0,
+  score_breakdown: { reason: 'scorer_unavailable', unscored: true },
+  reasoning: '',
+  topics: [],
+  content_type: 'news',
+  suggested_actions: [],
+  scanned_at: '2026-11-06T07:00:00Z',
+  used_in: [],
+};
+
+const GENUINE_ZERO_SIGNAL = {
+  id: 71,
+  product_id: 147,
+  source_name: 'TechCrunch',
+  source_type: 'rss',
+  title: 'Low relevance item',
+  summary: 'Scored as off-topic.',
+  url: 'https://news.test/low',
+  relevance_score: 0,
+  score_breakdown: { actionability: 0, content_quality: 0, thematic_alignment: 0 },
+  reasoning: 'Off-topic for this product.',
+  topics: [],
+  content_type: 'news',
+  suggested_actions: [],
+  scanned_at: '2026-11-06T06:00:00Z',
+  used_in: [],
+};
+
+const EMPTY_BREAKDOWN_SIGNAL = {
+  id: 73,
+  product_id: 147,
+  source_name: 'TechCrunch',
+  source_type: 'rss',
+  title: 'Legacy unscored item',
+  summary: 'Older row with default breakdown.',
+  url: 'https://news.test/legacy',
+  relevance_score: 0,
+  score_breakdown: {},
+  reasoning: '',
+  topics: [],
+  content_type: 'news',
+  suggested_actions: [],
+  scanned_at: '2026-11-05T06:00:00Z',
+  used_in: [],
+};
+
 describe('signals and sources', () => {
   it('list_signals scopes to the active product and forwards filters', async () => {
     const { session, calls } = buildSession([
@@ -159,6 +213,54 @@ describe('signals and sources', () => {
       url: 'https://x.test/feed',
     });
     expect(text).toContain('source_id: 6');
+  });
+});
+
+describe('list_signals distinguishes unscored signals from signals scored 0', () => {
+  it('shows "not scored" for an unscored signal rather than "score: 0"', async () => {
+    const { session } = buildSession([
+      { match: pathMatcher('GET', '/api/v2/signals'), body: { data: [UNSCORED_SIGNAL] } },
+    ]);
+
+    const text = await (await findTool('list_signals')).handler({}, session);
+
+    expect(text).toContain('not scored');
+    expect(text).not.toContain('score: 0');
+  });
+
+  it('treats an empty score_breakdown as unscored', async () => {
+    const { session } = buildSession([
+      { match: pathMatcher('GET', '/api/v2/signals'), body: { data: [EMPTY_BREAKDOWN_SIGNAL] } },
+    ]);
+
+    const text = await (await findTool('list_signals')).handler({}, session);
+
+    expect(text).toContain('not scored');
+    expect(text).not.toContain('score: 0');
+  });
+
+  it('still shows "score: 0" for a signal genuinely scored 0', async () => {
+    // Regression guard — already passes; locks in that a real zero score is never relabelled.
+    const { session } = buildSession([
+      { match: pathMatcher('GET', '/api/v2/signals'), body: { data: [GENUINE_ZERO_SIGNAL] } },
+    ]);
+
+    const text = await (await findTool('list_signals')).handler({}, session);
+
+    expect(text).toContain('score: 0');
+    expect(text).not.toContain('not scored');
+  });
+
+  it('keeps the numeric score for a positively scored signal', async () => {
+    // Regression guard — already passes; locks in that a real score is never hidden.
+    const { session } = buildSession([
+      { match: pathMatcher('GET', '/api/v2/signals'), body: { data: [SIGNAL] } },
+    ]);
+
+    const text = await (await findTool('list_signals')).handler({}, session);
+
+    expect(text).toContain('score: 88');
+    expect(text).not.toContain('not scored');
   });
 });
 
