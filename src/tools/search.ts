@@ -42,6 +42,7 @@ export function htmlToText(html: string): string {
       const text = String(inner).replace(/<[^>]+>/g, '').trim();
       return text ? `[${text}](${String(href)})` : String(href);
     })
+    .replace(/<\/(td|th)>/gi, ' | ')
     .replace(/<\/(p|div|h[1-6]|li|blockquote|tr)>/gi, '\n')
     .replace(/<[^>]+>/g, '')
     .replace(/&nbsp;/g, ' ')
@@ -51,7 +52,7 @@ export function htmlToText(html: string): string {
     .replace(/&quot;/g, '"')
     .replace(/&#39;/g, "'")
     .split('\n')
-    .map((line) => line.trim())
+    .map((line) => line.trim().replace(/\s*\|\s*$/, '').trim())
     .filter((line) => line.length > 0)
     .join('\n');
 }
