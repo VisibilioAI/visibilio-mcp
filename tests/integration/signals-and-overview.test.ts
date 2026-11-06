@@ -264,6 +264,31 @@ describe('list_signals distinguishes unscored signals from signals scored 0', ()
   });
 });
 
+describe('get_signal distinguishes unscored signals from signals scored 0', () => {
+  it('shows "not scored" for an unscored signal rather than "score: 0"', async () => {
+    const { session } = buildSession([
+      { match: pathMatcher('GET', '/api/v2/signals/72'), body: { data: UNSCORED_SIGNAL } },
+    ]);
+
+    const text = await (await findTool('get_signal')).handler({ signal_id: 72 }, session);
+
+    expect(text).toContain('not scored');
+    expect(text).not.toContain('score: 0');
+  });
+
+  it('still shows "score: 0" for a signal genuinely scored 0', async () => {
+    // Regression guard — already passes; locks in that a real zero score is never relabelled.
+    const { session } = buildSession([
+      { match: pathMatcher('GET', '/api/v2/signals/71'), body: { data: GENUINE_ZERO_SIGNAL } },
+    ]);
+
+    const text = await (await findTool('get_signal')).handler({ signal_id: 71 }, session);
+
+    expect(text).toContain('score: 0');
+    expect(text).not.toContain('not scored');
+  });
+});
+
 describe('overview', () => {
   it('get_daily_briefing passes orgId and productId as the route expects', async () => {
     const { session, calls } = buildSession([
