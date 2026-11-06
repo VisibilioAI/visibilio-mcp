@@ -101,7 +101,7 @@ describe('knowledge', () => {
         body: {
           query: 'pricing',
           results: [
-            { domain: 'company_profile', content: { pricing: 'freemium' }, relevance_score: 0.91 },
+            { domain: 'company_profile', content: { pricing: 'freemium' }, score: 0.91 },
           ],
         },
       },
