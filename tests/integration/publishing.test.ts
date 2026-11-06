@@ -167,6 +167,54 @@ describe('publishing — hubs and schedules', () => {
     expect(text).toContain('hub_id: 3');
   });
 
+  it('list_content_hubs shows the product of a product-scoped hub', async () => {
+    const { session } = buildSession([
+      {
+        match: pathMatcher('GET', '/api/v2/content-hubs'),
+        body: {
+          data: [
+            {
+              id: 3,
+              name: 'Main site',
+              site_url: 'https://acme.test',
+              is_active: true,
+              product_id: 147,
+            },
+          ],
+        },
+      },
+    ]);
+    await session.setActiveProduct(147, 'Visibilio');
+
+    const text = await (await findTool('list_content_hubs')).handler({}, session);
+
+    expect(text).toContain('product_id: 147');
+  });
+
+  it('list_content_hubs marks an organization-level hub', async () => {
+    // Regression guard — already passes; locks in the organization-level marker for a null product.
+    const { session } = buildSession([
+      {
+        match: pathMatcher('GET', '/api/v2/content-hubs'),
+        body: {
+          data: [
+            {
+              id: 4,
+              name: 'Org site',
+              site_url: 'https://org.test',
+              is_active: true,
+              product_id: null,
+            },
+          ],
+        },
+      },
+    ]);
+
+    const text = await (await findTool('list_content_hubs')).handler({}, session);
+
+    expect(text).toContain('organization-level');
+  });
+
   it('publish_to_hub posts slug and category and reports the live url', async () => {
     const { session, calls } = buildSession([
       {

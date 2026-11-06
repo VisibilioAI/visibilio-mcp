@@ -134,7 +134,11 @@ const listContentHubs = defineTool({
         line(nameOf(h), 'hub_id', h.id, [
           typeof h.site_url === 'string' ? h.site_url : undefined,
           h.is_active === false ? 'inactive' : 'active',
-          h.product_id === null ? 'organization-level' : undefined,
+          h.product_id === null
+            ? 'organization-level'
+            : typeof h.product_id === 'number'
+              ? `product_id: ${h.product_id}`
+              : undefined,
         ])
       ),
       'No content hubs configured.'
