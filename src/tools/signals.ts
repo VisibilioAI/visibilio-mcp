@@ -16,9 +16,25 @@ import {
 } from './_define.js';
 import { asArray, fields, line, listOrEmpty, nameOf, truncate, type Row } from './_format.js';
 
+function isUnscored(signal: Row): boolean {
+  const breakdown = signal.score_breakdown;
+  if (typeof breakdown !== 'object' || breakdown === null || Array.isArray(breakdown)) {
+    return false;
+  }
+  const record = breakdown as Record<string, unknown>;
+  return record.unscored === true || Object.keys(record).length === 0;
+}
+
+function scoreSegment(signal: Row): string | undefined {
+  if (isUnscored(signal)) return 'not scored';
+  return typeof signal.relevance_score === 'number'
+    ? `score: ${signal.relevance_score}`
+    : undefined;
+}
+
 function signalLine(signal: Row): string {
   return line(nameOf(signal), 'signal_id', signal.id, [
-    typeof signal.relevance_score === 'number' ? `score: ${signal.relevance_score}` : undefined,
+    scoreSegment(signal),
     typeof signal.source_name === 'string' ? signal.source_name : undefined,
     typeof signal.scanned_at === 'string' ? signal.scanned_at.slice(0, 10) : undefined,
     typeof signal.url === 'string' ? signal.url : undefined,
