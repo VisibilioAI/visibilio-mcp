@@ -49,9 +49,9 @@ describe('search (ChatGPT connector contract)', () => {
     });
     // Regression guard — already passes; product 147 has no published item, so no feed
     // lookup for it should ever happen.
-    expect(calls.some((c) => c.url.includes('published-feed') && c.url.includes('product_id=147'))).toBe(
-      false
-    );
+    expect(
+      calls.some((c) => c.url.includes('published-feed') && c.url.includes('product_id=147'))
+    ).toBe(false);
   });
 
   it('an empty query returns no results and never calls the gateway', async () => {

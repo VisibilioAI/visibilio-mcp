@@ -63,7 +63,9 @@ export function htmlToText(html: string): string {
   return html
     .replace(/<br\s*\/?>/gi, '\n')
     .replace(/<a\b[^>]*?\bhref=(["'])(.*?)\1[^>]*>([\s\S]*?)<\/a>/gi, (_m, _q, href, inner) => {
-      const text = String(inner).replace(/<[^>]+>/g, '').trim();
+      const text = String(inner)
+        .replace(/<[^>]+>/g, '')
+        .trim();
       return text ? `[${text}](${String(href)})` : String(href);
     })
     .replace(/<\/(td|th)>/gi, ' | ')
@@ -76,7 +78,12 @@ export function htmlToText(html: string): string {
     .replace(/&quot;/g, '"')
     .replace(/&#39;/g, "'")
     .split('\n')
-    .map((line) => line.trim().replace(/\s*\|\s*$/, '').trim())
+    .map((line) =>
+      line
+        .trim()
+        .replace(/\s*\|\s*$/, '')
+        .trim()
+    )
     .filter((line) => line.length > 0)
     .join('\n');
 }

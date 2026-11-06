@@ -31,7 +31,9 @@ describe('htmlToText — link targets', () => {
 describe('htmlToText — table cell and row separators', () => {
   it('joins cells with a separator and rows with a newline', () => {
     expect(
-      htmlToText('<table><tr><td>Name</td><td>Age</td></tr><tr><td>Ann</td><td>30</td></tr></table>')
+      htmlToText(
+        '<table><tr><td>Name</td><td>Age</td></tr><tr><td>Ann</td><td>30</td></tr></table>'
+      )
     ).toBe('Name | Age\nAnn | 30');
   });
 
