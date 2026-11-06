@@ -132,6 +132,7 @@ const listContentHubs = defineTool({
       `Content hubs (${hubs.length}):`,
       hubs.map((h) =>
         line(nameOf(h), 'hub_id', h.id, [
+          typeof h.platform === 'string' ? `type: ${h.platform}` : undefined,
           typeof h.site_url === 'string' ? h.site_url : undefined,
           h.is_active === false ? 'inactive' : 'active',
           h.product_id === null
