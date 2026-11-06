@@ -27,3 +27,23 @@ describe('htmlToText — link targets', () => {
     expect(htmlToText('<a name="top">Top</a>')).toBe('Top');
   });
 });
+
+describe('htmlToText — table cell and row separators', () => {
+  it('joins cells with a separator and rows with a newline', () => {
+    expect(
+      htmlToText('<table><tr><td>Name</td><td>Age</td></tr><tr><td>Ann</td><td>30</td></tr></table>')
+    ).toBe('Name | Age\nAnn | 30');
+  });
+
+  it('separates header cells the same way as body cells', () => {
+    expect(htmlToText('<table><tr><th>A</th><th>B</th></tr></table>')).toBe('A | B');
+  });
+
+  // Regression guard — already passes; locks in current behavior so future refactors cannot regress.
+  it('leaves no trailing separator on a single-cell row', () => {
+    expect(htmlToText('<table><tr><td>Only</td></tr></table>')).toBe('Only');
+  });
+
+  // Known limit, not covered here: a cell containing its own block tag (e.g. <td><p>x</p></td>)
+  // degrades, because the block-tag rule inserts a newline inside the cell. Flat cells only.
+});
