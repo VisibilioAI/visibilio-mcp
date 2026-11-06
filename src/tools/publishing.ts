@@ -3,6 +3,7 @@ import {
   defineTool,
   destructive,
   hasAnyArg,
+  isoDate,
   mutating,
   openWorld,
   optionalProductId,
@@ -184,7 +185,7 @@ const listHubPublications = defineTool({
   inputSchema: {
     hub_id: z.number().int(),
     status: z.enum(['pending', 'committed', 'deployed', 'failed']).optional(),
-    limit: z.number().int().optional(),
+    limit: z.number().int().min(1).max(100).optional(),
   },
   annotations: readOnly,
   handler: async (args, session) => {
@@ -219,11 +220,11 @@ const listSchedules = defineTool({
   description: 'List scheduled and past social publications with their status and published URLs.',
   inputSchema: {
     product_id: z.number().int().optional(),
-    status: z.string().optional().describe('scheduled, publishing, published, failed, cancelled'),
+    status: z.enum(['scheduled', 'publishing', 'published', 'failed', 'cancelled']).optional(),
     content_item_id: z.number().int().optional(),
     channel_id: z.number().int().optional(),
-    from: z.string().optional(),
-    to: z.string().optional(),
+    from: isoDate('from').optional(),
+    to: isoDate('to').optional(),
   },
   annotations: readOnly,
   handler: async (args, session) => {
@@ -255,7 +256,10 @@ const scheduleContentItem = defineTool({
   inputSchema: {
     content_item_id: z.number().int(),
     channel_id: z.number().int(),
-    publish_at: z.string().describe('ISO 8601 timestamp, e.g. 2026-10-20T09:00:00Z'),
+    publish_at: z
+      .string()
+      .datetime({ offset: true, local: true })
+      .describe('ISO 8601 timestamp, e.g. 2026-10-20T09:00:00Z'),
     options: z
       .object({ primary_category: z.string().optional(), timezone: z.string().optional() })
       .optional(),
@@ -299,8 +303,8 @@ const getPublishedFeed = defineTool({
   inputSchema: {
     product_id: z.number().int().optional(),
     channel: z.string().optional(),
-    from: z.string().optional(),
-    to: z.string().optional(),
+    from: isoDate('from').optional(),
+    to: isoDate('to').optional(),
   },
   annotations: readOnly,
   handler: async (args, session) => {

@@ -56,7 +56,7 @@ const getOperationOverview = defineTool({
     'Production health for a product: planned, in production and shipped counts, publishing rhythm, risks and topics needing attention.',
   inputSchema: {
     product_id: z.number().int().optional(),
-    period_hours: z.number().int().optional().describe('Default 168 (one week)'),
+    period_hours: z.number().int().min(1).max(8760).optional().describe('Default 168 (one week)'),
   },
   annotations: readOnly,
   handler: async (args, session) => {
@@ -220,7 +220,7 @@ const listNotifications = defineTool({
   inputSchema: {
     product_id: z.number().int().optional(),
     limit: z.number().int().min(1).max(100).optional(),
-    offset: z.number().int().optional(),
+    offset: z.number().int().min(0).optional(),
   },
   annotations: readOnly,
   handler: async (args, session) => {
