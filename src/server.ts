@@ -1,4 +1,6 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import type { RequestHandlerExtra } from '@modelcontextprotocol/sdk/shared/protocol.js';
+import type { ServerNotification, ServerRequest } from '@modelcontextprotocol/sdk/types.js';
 import { McpAuth, type AuthContext } from './auth.js';
 import { VisibilioClient } from './client.js';
 import { McpSession, type SessionContext } from './session.js';
@@ -6,6 +8,28 @@ import { loadSettings, type Settings } from './config.js';
 import { allTools } from './tools/index.js';
 import { allResources } from './resources/index.js';
 import { toCallToolResult } from './tools/_define.js';
+import { runInRequestScope, type RequestScope } from './request-scope.js';
+
+type ToolExtra = RequestHandlerExtra<ServerRequest, ServerNotification>;
+
+function makeProgressReporter(extra: ToolExtra, progressToken: string | number): () => void {
+  let progress = 0;
+  return () => {
+    progress += 1;
+    void extra
+      .sendNotification({ method: 'notifications/progress', params: { progressToken, progress } })
+      .catch(() => undefined);
+  };
+}
+
+export function buildRequestScope(extra: ToolExtra): RequestScope {
+  const progressToken = extra._meta?.progressToken;
+  return {
+    signal: extra.signal,
+    reportProgress:
+      progressToken === undefined ? undefined : makeProgressReporter(extra, progressToken),
+  };
+}
 
 export const SERVER_NAME = '@visibilio/mcp';
 export const SERVER_VERSION = '0.2.9';
@@ -71,8 +95,10 @@ export async function buildServer(options: BuildServerOptions = {}): Promise<Bui
         inputSchema: tool.inputSchema,
         annotations: { ...tool.annotations, title: tool.title },
       },
-      async (args: Record<string, unknown>) =>
-        toCallToolResult(await tool.handler(args ?? {}, session))
+      (args: Record<string, unknown>, extra: ToolExtra) =>
+        runInRequestScope(buildRequestScope(extra), async () =>
+          toCallToolResult(await tool.handler(args ?? {}, session))
+        )
     );
   }
 
