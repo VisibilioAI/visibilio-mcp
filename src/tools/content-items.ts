@@ -381,7 +381,7 @@ const listContentItemVersions = defineTool({
             ? `changed: ${(v.changed_fields as string[]).join(', ')}`
             : undefined,
           typeof v.edit_prompt === 'string' && v.edit_prompt
-            ? `note: ${truncate(v.edit_prompt, 80)}`
+            ? `note: ${truncate(v.edit_prompt)}`
             : undefined,
         ])
       ),
