@@ -98,3 +98,63 @@ describe('VisibilioClient retry behavior', () => {
     expect(text).toContain('product_id: 1');
   });
 });
+
+describe('VisibilioClient retries only idempotent methods', () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it('does NOT retry a POST on a retryable status (503); the paid request is sent exactly once', async () => {
+    const { session, fetch } = buildSession([
+      {
+        match: pathMatcher('POST', '/api/v2/workflows/start'),
+        status: 503,
+        body: { error: 'circuit open' },
+      },
+    ]);
+    const settled = session.client
+      .post('/api/v2/workflows/start', { product_id: 1 })
+      .then(() => null)
+      .catch((error: unknown) => error);
+    await vi.runAllTimersAsync();
+    const error = await settled;
+    expect(error).toBeInstanceOf(HttpError);
+    expect((error as HttpError).status).toBe(503);
+    expect(fetch).toHaveBeenCalledTimes(1);
+  });
+
+  it('does NOT retry a POST on 429; the paid request is sent exactly once', async () => {
+    const { session, fetch } = buildSession([
+      {
+        match: pathMatcher('POST', '/api/v2/workflows/start'),
+        status: 429,
+        body: { error: 'rate limited' },
+        headers: { 'Retry-After': '1' },
+      },
+    ]);
+    const settled = session.client
+      .post('/api/v2/workflows/start', { product_id: 1 })
+      .then(() => null)
+      .catch((error: unknown) => error);
+    await vi.runAllTimersAsync();
+    const error = await settled;
+    expect(error).toBeInstanceOf(HttpError);
+    expect((error as HttpError).status).toBe(429);
+    expect(fetch).toHaveBeenCalledTimes(1);
+  });
+
+  it('still retries a GET on 503 (behavior unchanged)', async () => {
+    const { session, fetch } = buildSession([
+      { match: PRODUCTS, status: 503, body: { error: 'circuit open' } },
+      { match: PRODUCTS, body: { products: [] } },
+    ]);
+    const promise = session.client.get('/api/v2/products');
+    await vi.runAllTimersAsync();
+    expect(await promise).toEqual({ products: [] });
+    expect(fetch).toHaveBeenCalledTimes(2);
+  });
+});
