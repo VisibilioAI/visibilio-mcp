@@ -36,6 +36,7 @@ interface ProductShape {
   id: number;
   name?: string | null;
   description?: string | null;
+  product_type?: string | null;
   website_url?: string | null;
   default_language?: string | null;
   is_archived?: boolean;
@@ -56,6 +57,7 @@ export async function fetchProducts(session: McpSession): Promise<ProductShape[]
 
 function describeProduct(product: ProductShape): string {
   const extras = [
+    product.product_type ? `type: ${product.product_type}` : null,
     product.website_url ? `site: ${product.website_url}` : null,
     product.default_language ? `language: ${product.default_language}` : null,
     product.is_archived ? 'archived' : null,
