@@ -27,6 +27,23 @@ describe('products', () => {
     expect(text).toMatch(/Kondevs \(product_id: 148\).*← active/);
   });
 
+  it('list_products shows each product type', async () => {
+    const { session } = buildSession([
+      {
+        match: pathMatcher('GET', '/api/v2/products'),
+        body: {
+          data: [PRODUCT, { ...PRODUCT, id: 149, name: 'Persona', product_type: 'person' }],
+          total: 2,
+        },
+      },
+    ]);
+
+    const text = await (await findTool('list_products')).handler({}, session);
+
+    expect(text).toMatch(/Visibilio \(product_id: 147\).*type: standard/);
+    expect(text).toMatch(/Persona \(product_id: 149\).*type: person/);
+  });
+
   it('list_products fails with the gateway message when the gateway fails', async () => {
     const { session } = buildSession([
       {
