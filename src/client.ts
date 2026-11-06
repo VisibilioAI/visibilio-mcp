@@ -42,6 +42,7 @@ export class RequestTimeoutError extends Error {
 }
 
 const RETRYABLE_STATUSES = new Set([429, 502, 503, 504]);
+const PROGRESS_HEARTBEAT_MS = 25_000;
 const RETRYABLE_METHODS = new Set(['GET', 'HEAD', 'OPTIONS']);
 const MAX_RETRY_ATTEMPTS = 3;
 const BASE_DELAY_MS = 1000;
@@ -119,7 +120,8 @@ export class VisibilioClient {
     body: string | undefined,
     attempt: number
   ): Promise<unknown> {
-    const external = currentRequestScope()?.signal;
+    const scope = currentRequestScope();
+    const external = scope?.signal;
     if (external?.aborted) throw new RequestCancelledError(method, url);
 
     const controller = new AbortController();
@@ -133,6 +135,10 @@ export class VisibilioClient {
       controller.abort();
     };
     external?.addEventListener('abort', onExternalAbort, { once: true });
+    const reportProgress = scope?.reportProgress;
+    const heartbeat = reportProgress
+      ? setInterval(() => reportProgress(), PROGRESS_HEARTBEAT_MS)
+      : undefined;
     let response: Response;
     try {
       response = await this.fetchImpl(url, { method, headers, body, signal: controller.signal });
@@ -142,6 +148,7 @@ export class VisibilioClient {
       throw err;
     } finally {
       clearTimeout(timer);
+      if (heartbeat !== undefined) clearInterval(heartbeat);
       external?.removeEventListener('abort', onExternalAbort);
     }
 
