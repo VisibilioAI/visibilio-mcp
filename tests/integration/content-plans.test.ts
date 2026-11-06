@@ -145,6 +145,32 @@ describe('content plans', () => {
     expect(text).toContain('2 posts');
   });
 
+  it('get_content_plan derives the period from the planned posts when period_start/period_end are absent', async () => {
+    const uiPlan = {
+      id: 20,
+      name: 'UI plan',
+      status: 'completed',
+      __meta: {
+        posts: [
+          { date: '2026-09-20', platform: 'linkedin', topic: 'B' },
+          { date: '2026-10-13', platform: 'blog', topic: 'C' },
+          { date: '2026-09-15', platform: 'linkedin', topic: 'A' },
+        ],
+      },
+    };
+    const { session } = buildSession([
+      {
+        match: pathMatcher('GET', '/api/v2/products/147/content-plans/20'),
+        body: { data: uiPlan },
+      },
+    ]);
+    await session.setActiveProduct(147, 'Visibilio');
+
+    const text = await (await findTool('get_content_plan')).handler({ plan_id: 20 }, session);
+
+    expect(text).toContain('period: 2026-09-15 → 2026-10-13');
+  });
+
   it('create_content_plan posts name, description and user_input', async () => {
     const { session, calls } = buildSession([
       {
