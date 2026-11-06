@@ -4,6 +4,16 @@ import { runInRequestScope } from '../../src/request-scope.js';
 
 const GATEWAY = 'https://gateway.test';
 
+function okResponse(body: unknown): Response {
+  return {
+    ok: true,
+    status: 200,
+    headers: { get: () => null },
+    text: async () => JSON.stringify(body),
+    json: async () => body,
+  } as unknown as Response;
+}
+
 /** A fetch that never settles on its own; it rejects (like native fetch) only when its signal aborts. */
 function abortableFetch(onCall?: (signal: AbortSignal | undefined) => void): typeof fetch {
   return vi.fn((_url: string, init?: RequestInit) => {
@@ -78,6 +88,29 @@ describe('VisibilioClient — default timeout covers long gateway operations', (
     await vi.advanceTimersByTimeAsync(900_000 - 30_000);
     expect(settled).toBe(true);
     expect(await error).toBeInstanceOf(RequestTimeoutError);
+    vi.useRealTimers();
+  });
+});
+
+describe('VisibilioClient — progress heartbeat during a long gateway call', () => {
+  it('calls the scope reporter periodically while a gateway call is in flight', async () => {
+    vi.useFakeTimers();
+    const reportProgress = vi.fn();
+    let resolveFetch!: (response: Response) => void;
+    const fetchImpl = vi.fn(
+      () =>
+        new Promise<Response>((resolve) => {
+          resolveFetch = resolve;
+        })
+    ) as unknown as typeof fetch;
+    const client = makeClient(fetchImpl);
+
+    const promise = runInRequestScope({ reportProgress }, () => client.get('/api/v2/products'));
+    await vi.advanceTimersByTimeAsync(25_000 * 2 + 10);
+    expect(reportProgress.mock.calls.length).toBeGreaterThanOrEqual(2);
+
+    resolveFetch(okResponse({ products: [] }));
+    expect(await promise).toEqual({ products: [] });
     vi.useRealTimers();
   });
 });
