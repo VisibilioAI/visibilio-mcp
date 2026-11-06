@@ -173,7 +173,13 @@ describe('publishing — hubs and schedules', () => {
         match: pathMatcher('GET', '/api/v2/content-hubs'),
         body: {
           data: [
-            { id: 3, name: 'Main site', site_url: 'https://acme.test', is_active: true, product_id: 147 },
+            {
+              id: 3,
+              name: 'Main site',
+              site_url: 'https://acme.test',
+              is_active: true,
+              product_id: 147,
+            },
           ],
         },
       },
@@ -192,7 +198,13 @@ describe('publishing — hubs and schedules', () => {
         match: pathMatcher('GET', '/api/v2/content-hubs'),
         body: {
           data: [
-            { id: 4, name: 'Org site', site_url: 'https://org.test', is_active: true, product_id: null },
+            {
+              id: 4,
+              name: 'Org site',
+              site_url: 'https://org.test',
+              is_active: true,
+              product_id: null,
+            },
           ],
         },
       },
