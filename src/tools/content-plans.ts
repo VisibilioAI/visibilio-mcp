@@ -14,19 +14,27 @@ import {
 } from './_define.js';
 import { asArray, fields, line, listOrEmpty, nameOf, type Row } from './_format.js';
 
-function planLine(plan: Row): string {
-  const period =
-    typeof plan.period_start === 'string' && typeof plan.period_end === 'string'
-      ? `${plan.period_start} → ${plan.period_end}`
-      : undefined;
-  return line(nameOf(plan), 'plan_id', plan.id, [
-    typeof plan.status === 'string' ? plan.status : undefined,
-    period,
-  ]);
-}
-
 function postsOf(meta: unknown): Row[] {
   return meta && typeof meta === 'object' ? asArray<Row>((meta as Row).posts) : [];
+}
+
+function periodOf(plan: Row): string | undefined {
+  if (typeof plan.period_start === 'string' && typeof plan.period_end === 'string') {
+    return `${plan.period_start} → ${plan.period_end}`;
+  }
+  const dates = postsOf(plan.__meta)
+    .map((post) => post.date)
+    .filter((date): date is string => typeof date === 'string' && date.length > 0)
+    .sort();
+  if (dates.length === 0) return undefined;
+  return `${dates[0]} → ${dates[dates.length - 1]}`;
+}
+
+function planLine(plan: Row): string {
+  return line(nameOf(plan), 'plan_id', plan.id, [
+    typeof plan.status === 'string' ? plan.status : undefined,
+    periodOf(plan),
+  ]);
 }
 
 function renderPosts(meta: unknown): string {
@@ -46,12 +54,7 @@ function describePlan(plan: Row): string {
       ['plan_id', plan.id],
       ['status', plan.status],
       ['description', plan.description],
-      [
-        'period',
-        typeof plan.period_start === 'string'
-          ? `${plan.period_start} → ${String(plan.period_end ?? '?')}`
-          : undefined,
-      ],
+      ['period', periodOf(plan)],
       ['user_input', plan.user_input],
       [
         'execution_id',

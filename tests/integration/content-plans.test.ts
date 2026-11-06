@@ -49,6 +49,62 @@ describe('content plans', () => {
     expect(text).toContain('2026-10-01');
   });
 
+  it('list_content_plans derives the period from the planned posts when period_start/period_end are absent', async () => {
+    const uiPlan = {
+      id: 20,
+      name: 'UI plan',
+      status: 'completed',
+      __meta: {
+        posts: [
+          { date: '2026-09-20', platform: 'linkedin', topic: 'B' },
+          { date: '2026-10-13', platform: 'blog', topic: 'C' },
+          { date: '2026-09-15', platform: 'linkedin', topic: 'A' },
+        ],
+      },
+    };
+    const { session } = buildSession([
+      { match: pathMatcher('GET', '/api/v2/products/147/content-plans'), body: { data: [uiPlan] } },
+    ]);
+    await session.setActiveProduct(147, 'Visibilio');
+
+    const text = await (await findTool('list_content_plans')).handler({}, session);
+
+    expect(text).toContain('UI plan');
+    expect(text).toContain('2026-09-15 → 2026-10-13');
+  });
+
+  it('list_content_plans prefers the explicit period_start/period_end over the posts range', async () => {
+    // Regression guard — already passes; locks in that the stored columns win when present,
+    // so MCP-finalized plans keep their exact period and the fix cannot override it.
+    const { session } = buildSession([
+      { match: pathMatcher('GET', '/api/v2/products/147/content-plans'), body: { data: [PLAN] } },
+    ]);
+    await session.setActiveProduct(147, 'Visibilio');
+
+    const text = await (await findTool('list_content_plans')).handler({}, session);
+
+    expect(text).toContain('2026-10-01 → 2026-10-31');
+    expect(text).not.toContain('2026-10-14 → 2026-10-16');
+  });
+
+  it('list_content_plans shows no period when a plan has neither stored columns nor posts', async () => {
+    // Regression guard — already passes; a plan with nothing to derive from shows no period.
+    const emptyPlan = { id: 21, name: 'Empty plan', status: 'pending', __meta: {} };
+    const { session } = buildSession([
+      {
+        match: pathMatcher('GET', '/api/v2/products/147/content-plans'),
+        body: { data: [emptyPlan] },
+      },
+    ]);
+    await session.setActiveProduct(147, 'Visibilio');
+
+    const text = await (await findTool('list_content_plans')).handler({}, session);
+
+    expect(text).toContain('Empty plan');
+    expect(text).toContain('plan_id: 21');
+    expect(text).not.toContain('→');
+  });
+
   it('list_content_plans reports a filtered-empty result without claiming the account is empty', async () => {
     const { session } = buildSession([
       { match: pathMatcher('GET', '/api/v2/products/147/content-plans'), body: { data: [] } },
@@ -87,6 +143,32 @@ describe('content plans', () => {
     expect(text).toContain('linkedin');
     expect(text).toContain('MCP launch');
     expect(text).toContain('2 posts');
+  });
+
+  it('get_content_plan derives the period from the planned posts when period_start/period_end are absent', async () => {
+    const uiPlan = {
+      id: 20,
+      name: 'UI plan',
+      status: 'completed',
+      __meta: {
+        posts: [
+          { date: '2026-09-20', platform: 'linkedin', topic: 'B' },
+          { date: '2026-10-13', platform: 'blog', topic: 'C' },
+          { date: '2026-09-15', platform: 'linkedin', topic: 'A' },
+        ],
+      },
+    };
+    const { session } = buildSession([
+      {
+        match: pathMatcher('GET', '/api/v2/products/147/content-plans/20'),
+        body: { data: uiPlan },
+      },
+    ]);
+    await session.setActiveProduct(147, 'Visibilio');
+
+    const text = await (await findTool('get_content_plan')).handler({ plan_id: 20 }, session);
+
+    expect(text).toContain('period: 2026-09-15 → 2026-10-13');
   });
 
   it('create_content_plan posts name, description and user_input', async () => {
