@@ -191,6 +191,55 @@ describe('publishing — hubs and schedules', () => {
     expect(text).toContain('product_id: 147');
   });
 
+  it('list_content_hubs shows the hub type from the platform field', async () => {
+    const { session } = buildSession([
+      {
+        match: pathMatcher('GET', '/api/v2/content-hubs'),
+        body: {
+          data: [
+            {
+              id: 3,
+              name: 'Main site',
+              site_url: 'https://acme.test',
+              is_active: true,
+              product_id: 147,
+              platform: 'github',
+            },
+          ],
+        },
+      },
+    ]);
+
+    const text = await (await findTool('list_content_hubs')).handler({}, session);
+
+    expect(text).toContain('type: github');
+  });
+
+  it('list_content_hubs omits the type for a hub with no linked channel (null platform)', async () => {
+    const { session } = buildSession([
+      {
+        match: pathMatcher('GET', '/api/v2/content-hubs'),
+        body: {
+          data: [
+            {
+              id: 3,
+              name: 'Main site',
+              site_url: 'https://acme.test',
+              is_active: true,
+              product_id: 147,
+              platform: null,
+            },
+          ],
+        },
+      },
+    ]);
+
+    const text = await (await findTool('list_content_hubs')).handler({}, session);
+
+    expect(text).toContain('hub_id: 3');
+    expect(text).not.toContain('type:');
+  });
+
   it('list_content_hubs marks an organization-level hub', async () => {
     // Regression guard — already passes; locks in the organization-level marker for a null product.
     const { session } = buildSession([
