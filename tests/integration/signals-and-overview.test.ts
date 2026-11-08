@@ -163,6 +163,23 @@ describe('signals and sources', () => {
     expect(text).toContain('get_workflow_status');
   });
 
+  it('generate_from_signal tells the agent to carry signal_id into create_content_item', async () => {
+    const { session } = buildSession([
+      {
+        match: pathMatcher('POST', '/api/v2/signals/70/generate'),
+        status: 202,
+        body: { data: { execution_id: 'exec-3', state: 'running', message: 'started' } },
+      },
+    ]);
+
+    const text = await (
+      await findTool('generate_from_signal')
+    ).handler({ signal_id: 70, output_types: ['linkedin_post'] }, session);
+
+    expect(text).toContain('create_content_item');
+    expect(text).toContain('signal_id');
+  });
+
   it('dismiss_signal PATCHes the dismiss route', async () => {
     const { session, calls } = buildSession([
       {
