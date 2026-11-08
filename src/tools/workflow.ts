@@ -186,6 +186,12 @@ const getWorkflowStatus = defineTool({
       ['duration_seconds', status.duration_seconds],
       [status.state === 'cancelled' ? 'cancel_reason' : 'error', status.error],
     ]);
+    if (status.state === 'awaiting_confirmation') {
+      const plan = describePlan(status.plan);
+      return [head, 'Awaiting confirmation: call confirm_workflow to proceed (or reject it).', plan]
+        .filter((s): s is string => s !== null)
+        .join('\n');
+    }
     if (status.state !== 'completed') {
       return `${head}\n${status.is_complete ? 'The run has ended.' : 'Still running; call get_workflow_status again to keep polling.'}`;
     }
