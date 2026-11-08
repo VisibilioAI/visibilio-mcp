@@ -95,6 +95,21 @@ function aeoAssetsSection(item: Row): string {
   return sections.length ? `\n\n${sections.join('\n\n')}` : '';
 }
 
+function ctaSection(item: Row): string {
+  const cta = item.cta && typeof item.cta === 'object' ? (item.cta as Row) : null;
+  if (!cta) return '';
+  const body = fields([
+    ['enabled', cta.enabled],
+    ['eyebrow', cta.eyebrow],
+    ['title', cta.title],
+    ['supporting text', cta.supportingText],
+    ['button label', cta.buttonLabel],
+    ['button url', cta.buttonUrl],
+    ['style', cta.style],
+  ]);
+  return body ? `\n\nCall to action:\n${body}` : '';
+}
+
 function describeItem(item: Row, includeBody: boolean): string {
   const audiences = asArray<Row>(item.audiences)
     .map((a) => a.name)
@@ -121,8 +136,9 @@ function describeItem(item: Row, includeBody: boolean): string {
     ['updated_at', item.updated_at],
   ]);
   const assets = aeoAssetsSection(item);
-  if (!includeBody) return `${head}${assets}`;
-  return `${head}${assets}\n\nBody:\n${String(item.body ?? '')}`;
+  const cta = ctaSection(item);
+  if (!includeBody) return `${head}${assets}${cta}`;
+  return `${head}${assets}${cta}\n\nBody:\n${String(item.body ?? '')}`;
 }
 
 export async function fetchItem(session: McpSession, itemId: number): Promise<Row> {
