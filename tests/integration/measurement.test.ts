@@ -250,4 +250,48 @@ describe('AI visibility (answer engine)', () => {
     });
     expect(text).toContain('Best MCP server?');
   });
+
+  it('list_ai_visibility_content_ideas reads the product route and lists each idea with its id', async () => {
+    const { session, calls } = buildSession([
+      {
+        match: pathMatcher('GET', '/api/v2/answer-engine/products/147/content-ideas'),
+        body: {
+          data: {
+            ideas: [
+              {
+                id: 42,
+                title: 'How MCP cuts integration time',
+                topicName: 'Integrations',
+                status: 'proposed',
+                briefId: 7,
+              },
+            ],
+          },
+        },
+      },
+    ]);
+    await session.setActiveProduct(147, 'Visibilio');
+
+    const text = await (await findTool('list_ai_visibility_content_ideas')).handler({}, session);
+
+    expect(calls[0]!.url).toContain('/api/v2/answer-engine/products/147/content-ideas');
+    expect(text).toContain('Content ideas (1):');
+    expect(text).toContain('How MCP cuts integration time');
+    expect(text).toContain('idea_id: 42');
+    expect(text).toContain('brief_id: 7');
+  });
+
+  it('list_ai_visibility_content_ideas reports the empty state plainly', async () => {
+    const { session } = buildSession([
+      {
+        match: pathMatcher('GET', '/api/v2/answer-engine/products/147/content-ideas'),
+        body: { data: { ideas: [] } },
+      },
+    ]);
+    await session.setActiveProduct(147, 'Visibilio');
+
+    const text = await (await findTool('list_ai_visibility_content_ideas')).handler({}, session);
+
+    expect(text).toContain('No content ideas yet.');
+  });
 });
