@@ -184,7 +184,7 @@ const getWorkflowStatus = defineTool({
       ],
       ['cost_usd', status.total_cost_usd],
       ['duration_seconds', status.duration_seconds],
-      ['error', status.error],
+      [status.state === 'cancelled' ? 'cancel_reason' : 'error', status.error],
     ]);
     if (status.state !== 'completed') {
       return `${head}\n${status.is_complete ? 'The run has ended.' : 'Still running; call get_workflow_status again to keep polling.'}`;
