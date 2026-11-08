@@ -254,7 +254,7 @@ const createSource = defineTool({
     scan_frequency_minutes: z.number().int().min(15).optional(),
     priority: z.number().int().min(1).max(10).optional(),
   },
-  annotations: mutating,
+  annotations: openWorld,
   handler: async (args, session) => {
     requireStringArg(args, 'name');
     requireStringArg(args, 'url');
