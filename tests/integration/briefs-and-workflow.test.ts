@@ -386,6 +386,55 @@ describe('workflow', () => {
     expect(text).not.toContain('cancel_reason');
   });
 
+  it('get_workflow_status tells the caller to confirm when a run awaits confirmation', async () => {
+    // meta#1074 (3) RED driver — the gateway marks awaiting_confirmation as is_complete:true,
+    // so today the MCP prints "The run has ended." It must instead point to confirm_workflow.
+    const { session } = buildSession([
+      {
+        match: pathMatcher('GET', '/api/v2/workflow/exec-5/status'),
+        body: {
+          execution_id: 'exec-5',
+          state: 'awaiting_confirmation',
+          progress_percentage: 0,
+          is_complete: true,
+          steps: [],
+          total_cost_usd: 0,
+        },
+      },
+    ]);
+
+    const text = await (
+      await findTool('get_workflow_status')
+    ).handler({ execution_id: 'exec-5' }, session);
+
+    expect(text).toContain('Awaiting confirmation: call confirm_workflow');
+    expect(text).not.toContain('The run has ended.');
+  });
+
+  it('get_workflow_status surfaces the plan when a run awaits confirmation and a plan is present', async () => {
+    const { session } = buildSession([
+      {
+        match: pathMatcher('GET', '/api/v2/workflow/exec-6/status'),
+        body: {
+          execution_id: 'exec-6',
+          state: 'awaiting_confirmation',
+          progress_percentage: 0,
+          is_complete: true,
+          steps: [],
+          total_cost_usd: 0,
+          plan: { steps: [{ agent_type: 'research' }, { agent_type: 'content' }] },
+        },
+      },
+    ]);
+
+    const text = await (
+      await findTool('get_workflow_status')
+    ).handler({ execution_id: 'exec-6' }, session);
+
+    expect(text).toContain('Awaiting confirmation: call confirm_workflow');
+    expect(text).toContain('plan: research → content');
+  });
+
   it('confirm_workflow posts the decision', async () => {
     const { session, calls } = buildSession([
       {
