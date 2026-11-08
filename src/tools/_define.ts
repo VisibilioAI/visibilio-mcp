@@ -89,6 +89,12 @@ export const openWorld: ToolAnnotations = {
   destructiveHint: false,
   openWorldHint: true,
 };
+export const idempotentWrite: ToolAnnotations = {
+  readOnlyHint: false,
+  destructiveHint: false,
+  idempotentHint: true,
+  openWorldHint: false,
+};
 
 export class ToolError extends Error {
   constructor(message: string) {

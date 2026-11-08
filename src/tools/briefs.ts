@@ -3,6 +3,7 @@ import {
   defineTool,
   destructive,
   hasAnyArg,
+  idempotentWrite,
   mutating,
   optionalProductId,
   pick,
@@ -153,7 +154,7 @@ const updateBrief = defineTool({
     language: z.enum(LANGUAGES).nullable().optional(),
     status: z.enum(BRIEF_STATUSES).optional(),
   },
-  annotations: mutating,
+  annotations: idempotentWrite,
   handler: async (args, session) => {
     const briefId = requireNumberArg(args, 'brief_id');
     const brief = unwrapData<Row>(

@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import {
   defineTool,
+  idempotentWrite,
   mutating,
   numberArg,
   optionalProductId,
@@ -277,7 +278,7 @@ const markNotificationsRead = defineTool({
       .describe('Pass all: true to mark every notification read; otherwise pass notification_id'),
     product_id: z.number().int().optional(),
   },
-  annotations: mutating,
+  annotations: idempotentWrite,
   handler: async (args, session) => {
     const notificationId = numberArg(args, 'notification_id');
     if (notificationId === undefined && args.all !== true)

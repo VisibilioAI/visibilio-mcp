@@ -2,6 +2,7 @@ import { z } from 'zod';
 import type { McpSession } from '../session.js';
 import {
   defineTool,
+  idempotentWrite,
   mutating,
   numberArg,
   pick,
@@ -73,7 +74,7 @@ const updateBrandVoice = defineTool({
       .optional()
       .describe('content_strategy knowledge version; auto-detected when omitted'),
   },
-  annotations: mutating,
+  annotations: idempotentWrite,
   handler: async (args, session) => {
     const productId = resolveProductId(args, session);
     if (!args.document || typeof args.document !== 'object')

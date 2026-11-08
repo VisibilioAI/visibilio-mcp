@@ -3,6 +3,7 @@ import type { McpSession } from '../session.js';
 import {
   defineTool,
   destructive,
+  idempotentWrite,
   mutating,
   pick,
   readOnly,
@@ -304,7 +305,7 @@ const updateContentItem = defineTool({
       .optional()
       .describe('Short note on what changed and why (stored with the version)'),
   },
-  annotations: mutating,
+  annotations: idempotentWrite,
   handler: async (args, session) => {
     const itemId = requireNumberArg(args, 'content_item_id');
     const requested = pick(args, EDITORIAL_FIELDS);

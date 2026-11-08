@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import {
   defineTool,
+  idempotentWrite,
   mutating,
   pick,
   readOnly,
@@ -75,7 +76,7 @@ const updateProduct = defineTool({
     is_pinned: z.boolean().optional(),
     is_archived: z.boolean().optional(),
   },
-  annotations: mutating,
+  annotations: idempotentWrite,
   handler: async (args, session) => {
     const productId = requireNumberArg(args, 'product_id');
     const product = unwrapData<Row>(
