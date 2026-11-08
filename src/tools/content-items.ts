@@ -572,6 +572,12 @@ const generateCoverImage = defineTool({
 
 const GENERATION_JOB_TERMINAL_STATUSES = ['completed', 'partial_failed', 'failed'] as const;
 
+function revisionBaselineVersion(idempotencyKey: unknown): number | null {
+  if (typeof idempotencyKey !== 'string') return null;
+  const match = idempotencyKey.match(/version:(\d+)$/);
+  return match ? Number(match[1]) : null;
+}
+
 const getGenerationJobStatus = defineTool({
   name: 'get_generation_job_status',
   title: 'Get generation job status',
@@ -603,8 +609,53 @@ const getGenerationJobStatus = defineTool({
   },
 });
 
+const getRevisionStatus = defineTool({
+  name: 'get_revision_status',
+  title: 'Get revision status',
+  description:
+    'Follow a revision job started by request_content_changes. Pass the job_id it returned and the content_item_id you sent. Reports the revision ready for review only once the job has completed and the item has actually moved (status review, or its version advanced), so a completed job whose revised content has not landed yet keeps you polling. A status read is idempotent, so a retry never duplicates work.',
+  inputSchema: {
+    job_id: z
+      .union([z.number().int(), z.string()])
+      .describe('The revision job id returned by request_content_changes'),
+    content_item_id: z.number().int().describe('The content item the revision applies to'),
+  },
+  annotations: readOnly,
+  handler: async (args, session) => {
+    const jobId = String(args.job_id ?? '');
+    const itemId = requireNumberArg(args, 'content_item_id');
+    const job = unwrapData<Row>(await session.client.get(`/api/v2/generation-jobs/${jobId}`));
+    const status = String(job.status ?? '');
+    const head = fields([
+      ['job_id', job.job_id ?? jobId],
+      ['content_item_id', itemId],
+      ['kind', job.kind],
+      ['status', job.status],
+      ['error', job.error],
+    ]);
+    if (!(GENERATION_JOB_TERMINAL_STATUSES as readonly string[]).includes(status)) {
+      return `${head}\nThe revision job is still running; call get_revision_status again shortly.`;
+    }
+    if (status === 'completed') {
+      const item = await fetchItem(session, itemId);
+      const itemStatus = String(item.status ?? '');
+      const baseline = revisionBaselineVersion(job.idempotency_key);
+      const currentVersion = typeof item.version === 'number' ? item.version : null;
+      const versionMoved =
+        baseline !== null && currentVersion !== null && currentVersion > baseline;
+      const landed = itemStatus === 'review' || versionMoved;
+      if (landed) {
+        return `${head}\nThe revision is ready for review (content item ${itemId}: status ${itemStatus}, version ${String(item.version ?? '')}).`;
+      }
+      return `${head}\nThe revision job completed but the revised content has not landed yet; call get_revision_status again shortly.`;
+    }
+    return `${head}\nThe revision job ended without applying the changes.`;
+  },
+});
+
 export const contentItemTools: readonly ToolDefinition[] = [
   getGenerationJobStatus,
+  getRevisionStatus,
   listContentItems,
   getContentItem,
   createContentItem,
