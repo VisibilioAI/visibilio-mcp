@@ -42,6 +42,24 @@ describe('annotation presets', () => {
   });
 });
 
+describe('validate_brand_voice is a paid write, not a read', () => {
+  it('posts to a paid scoring call, so it is not read-only and not destructive', () => {
+    const a = annotationOf('validate_brand_voice');
+    expect(a.readOnlyHint).toBe(false);
+    expect(a.destructiveHint).toBe(false);
+  });
+});
+
+describe('generate_seo_meta saves nothing, so it is not destructive', () => {
+  it('is a non-destructive compute write', () => {
+    // Regression guard - already passes; locks in current behaviour so a future
+    // change cannot re-mark this save-nothing suggestion tool as destructive.
+    const a = annotationOf('generate_seo_meta');
+    expect(a.readOnlyHint).toBe(false);
+    expect(a.destructiveHint).toBe(false);
+  });
+});
+
 describe('search_knowledge is not read-only', () => {
   it('posts and can trigger a paid model call, so it is not readOnly and is open-world', () => {
     const a = annotationOf('search_knowledge');

@@ -181,6 +181,10 @@ describe('Streamable HTTP transport — session lifecycle', () => {
       destructiveHint: false,
       openWorldHint: false,
     });
+    expect(
+      tools.find((tool) => tool.name === 'validate_brand_voice')?.annotations,
+      'validate_brand_voice'
+    ).toMatchObject({ readOnlyHint: false, destructiveHint: false });
   });
 
   it('authenticates the gateway once per session, not once per request', async () => {
