@@ -657,3 +657,71 @@ describe('list_signals caps the result size to the MCP read budget', () => {
     expect(text.length).toBeLessThan(25000);
   });
 });
+
+describe('list_sources surfaces per-source scan health', () => {
+  it('shows the failure cause for a failing source, not just the error message', async () => {
+    const failing = {
+      id: 9,
+      name: 'Broken Feed',
+      type: 'rss',
+      url: 'https://broken.test/feed',
+      is_active: true,
+      last_scanned_at: '2026-11-07T06:00:00Z',
+      items_count: 0,
+      error_count: 5,
+      last_error: 'Scan failed',
+      error_category: 'anti_bot_blocked',
+    };
+    const { session } = buildSession([
+      { match: pathMatcher('GET', '/api/v2/sources'), body: { data: [failing] } },
+    ]);
+
+    const text = (await (await findTool('list_sources')).handler({}, session)) as string;
+
+    expect(text).toContain('cause: anti_bot_blocked');
+  });
+
+  it('marks a source that has scanned but never returned items as empty, not healthy', async () => {
+    const empty = {
+      id: 10,
+      name: 'Quiet Feed',
+      type: 'rss',
+      url: 'https://quiet.test/feed',
+      is_active: true,
+      last_scanned_at: '2026-11-07T06:00:00Z',
+      items_count: 0,
+      error_count: 0,
+      last_error: null,
+      error_category: null,
+    };
+    const { session } = buildSession([
+      { match: pathMatcher('GET', '/api/v2/sources'), body: { data: [empty] } },
+    ]);
+
+    const text = (await (await findTool('list_sources')).handler({}, session)) as string;
+
+    expect(text).toContain('items: 0');
+  });
+
+  it('shows the item count for a healthy source that is returning items', async () => {
+    const healthy = {
+      id: 11,
+      name: 'Busy Feed',
+      type: 'rss',
+      url: 'https://busy.test/feed',
+      is_active: true,
+      last_scanned_at: '2026-11-07T06:00:00Z',
+      items_count: 42,
+      error_count: 0,
+      last_error: null,
+      error_category: null,
+    };
+    const { session } = buildSession([
+      { match: pathMatcher('GET', '/api/v2/sources'), body: { data: [healthy] } },
+    ]);
+
+    const text = (await (await findTool('list_sources')).handler({}, session)) as string;
+
+    expect(text).toContain('items: 42');
+  });
+});
