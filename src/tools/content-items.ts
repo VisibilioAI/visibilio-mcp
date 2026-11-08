@@ -630,6 +630,15 @@ const getRevisionStatus = defineTool({
     if (!(GENERATION_JOB_TERMINAL_STATUSES as readonly string[]).includes(status)) {
       return `${head}\nThe revision job is still running; call get_revision_status again shortly.`;
     }
+    if (status === 'completed') {
+      const item = await fetchItem(session, itemId);
+      const itemStatus = String(item.status ?? '');
+      const landed = itemStatus === 'review';
+      if (landed) {
+        return `${head}\nThe revision is ready for review (content item ${itemId}: status ${itemStatus}, version ${String(item.version ?? '')}).`;
+      }
+      return `${head}\nThe revision job completed but the revised content has not landed yet; call get_revision_status again shortly.`;
+    }
     return head;
   },
 });
