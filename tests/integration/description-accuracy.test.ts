@@ -49,8 +49,11 @@ describe('tool descriptions describe what the server actually does', () => {
     expect(paramDescription('update_content_item', 'author_name')).toBe('Articles only');
   });
 
-  it('translate_content_item warns it can outlast the client timeout', () => {
-    expect(tool('translate_content_item').description).toContain('can outlast the client timeout');
+  it('translate_content_item returns a job id and points at get_generation_job_status (meta #1070)', () => {
+    const d = tool('translate_content_item').description;
+    expect(d).toContain('Returns a job id');
+    expect(d).toContain('get_generation_job_status');
+    expect(d).not.toContain('can outlast the client timeout');
   });
 
   it('update_knowledge states protected keys are kept and company_profile is org-wide', () => {
