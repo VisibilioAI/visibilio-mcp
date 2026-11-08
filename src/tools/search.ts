@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import {
   defineTool,
+  numberArg,
   readOnly,
   requireStringArg,
   stringArg,
@@ -92,14 +93,22 @@ const search = defineTool({
   name: 'search',
   title: 'Search',
   description:
-    'Search content items across every product of the active organization by free text (ChatGPT connector contract). The server matches your query as-is against titles and bodies, so you do not need to add % or _ wildcards or wrap a phrase in quotes. Returns at most 10 results per product and at most 20 results in total across the organization; there is no paging, so make the query more specific to surface different items. Returns {results: [{id, title, url}]}; pass a result id to fetch for the full text.',
+    'Search content items across every product of the active organization by free text (ChatGPT connector contract). The server matches your query as-is against titles and bodies, so you do not need to add % or _ wildcards or wrap a phrase in quotes. Returns at most 10 results per product and, by default, at most 20 results in total across the organization (raise it with limit, up to 100); there is no paging, so make the query more specific to surface different items. Returns {results: [{id, title, url}]}; pass a result id to fetch for the full text.',
   inputSchema: {
     query: z.string().describe('Free-text query matched against titles and bodies'),
+    limit: z
+      .number()
+      .int()
+      .min(1)
+      .max(100)
+      .optional()
+      .describe('Maximum number of results to return (default 20)'),
   },
   annotations: readOnly,
   handler: async (args, session) => {
     const query = stringArg(args, 'query');
     if (!query) return { structuredContent: { results: [] } };
+    const limit = numberArg(args, 'limit') ?? MAX_RESULTS;
     const results: SearchResult[] = [];
     for (const product of await fetchProducts(session)) {
       const body = await session.client.get(`/api/v2/products/${product.id}/content-items`, {
@@ -120,7 +129,7 @@ const search = defineTool({
         });
       }
     }
-    return { structuredContent: { results: results.slice(0, MAX_RESULTS) } };
+    return { structuredContent: { results: results.slice(0, limit) } };
   },
 });
 

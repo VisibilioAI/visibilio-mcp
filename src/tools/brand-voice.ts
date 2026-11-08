@@ -119,13 +119,13 @@ const getBrandVoiceAnalysis = defineTool({
   title: 'Get brand voice analysis',
   description:
     'Poll a brand voice analysis. When completed it returns the proposed document; save it with update_brand_voice.',
-  inputSchema: { execution_id: z.string(), product_id: z.number().int().optional() },
+  inputSchema: { execution_id: z.string().min(1), product_id: z.number().int().optional() },
   annotations: readOnly,
   handler: async (args, session) => {
     const productId = resolveProductId(args, session);
     const executionId = requireStringArg(args, 'execution_id');
     const result = (await session.client.get(
-      `/api/v2/brand-voice/${productId}/generate/${executionId}`
+      `/api/v2/brand-voice/${productId}/generate/${encodeURIComponent(executionId)}`
     )) as Row;
     const head = fields([
       ['execution_id', executionId],

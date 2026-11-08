@@ -41,6 +41,8 @@ function signalLine(signal: Row): string {
   ]);
 }
 
+const SOURCE_TYPES = ['rss', 'website', 'youtube', 'x', 'reddit'] as const;
+
 const listSignals = defineTool({
   name: 'list_signals',
   title: 'List signals',
@@ -50,7 +52,7 @@ const listSignals = defineTool({
     product_id: z.number().int().optional().describe('Defaults to the active product'),
     min_score: z.number().min(0).max(100).optional(),
     unused_only: z.boolean().optional().describe('Only signals not yet turned into content'),
-    source_type: z.string().optional(),
+    source_type: z.enum(SOURCE_TYPES).optional(),
     topic: z.string().optional(),
     since: isoDate('since').optional().describe('ISO date'),
     sort: z.enum(['relevance', 'newest', 'oldest']).optional(),
@@ -208,7 +210,7 @@ const listSources = defineTool({
   title: 'List sources',
   description:
     'List the content sources (RSS feeds, websites, social feeds) the organization scans for signals.',
-  inputSchema: { type: z.string().optional(), is_active: z.boolean().optional() },
+  inputSchema: { type: z.enum(SOURCE_TYPES).optional(), is_active: z.boolean().optional() },
   annotations: readOnly,
   handler: async (args, session) => {
     const sources = asArray<Row>(
@@ -244,10 +246,10 @@ const listSources = defineTool({
 const createSource = defineTool({
   name: 'create_source',
   title: 'Create source',
-  description: 'Add a source to scan for signals (rss, website, youtube, x, linkedin, reddit).',
+  description: 'Add a source to scan for signals (rss, website, youtube, x, reddit).',
   inputSchema: {
     name: z.string().min(1),
-    type: z.enum(['rss', 'website', 'youtube', 'x', 'linkedin', 'reddit']),
+    type: z.enum(SOURCE_TYPES),
     url: z.string().url(),
     scan_frequency_minutes: z.number().int().min(15).optional(),
     priority: z.number().int().min(1).max(10).optional(),

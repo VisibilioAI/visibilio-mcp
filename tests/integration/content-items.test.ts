@@ -138,7 +138,7 @@ describe('content items — writing', () => {
         platform: 'blog',
         language: 'en',
         tags: ['mcp'],
-        audience_ids: ['9'],
+        audience_ids: [9],
         source_execution_id: 'exec-1',
       },
       session
@@ -151,7 +151,7 @@ describe('content items — writing', () => {
       platform: 'blog',
       language: 'en',
       tags: ['mcp'],
-      audience_ids: ['9'],
+      audience_ids: [9],
       source_execution_id: 'exec-1',
     });
     expect(text).toContain('content_item_id: 777');

@@ -266,8 +266,15 @@ const markNotificationsRead = defineTool({
   title: 'Mark notifications read',
   description: 'Mark one notification (notification_id) or all notifications (all=true) as read.',
   inputSchema: {
-    notification_id: z.number().int().optional(),
-    all: z.boolean().optional(),
+    notification_id: z
+      .number()
+      .int()
+      .optional()
+      .describe('The single notification to mark read; omit and pass all: true to mark every one'),
+    all: z
+      .literal(true)
+      .optional()
+      .describe('Pass all: true to mark every notification read; otherwise pass notification_id'),
     product_id: z.number().int().optional(),
   },
   annotations: mutating,
