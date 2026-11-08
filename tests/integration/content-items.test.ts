@@ -306,6 +306,99 @@ describe('content items — writing', () => {
     expect(text).not.toContain('Updated: status');
   });
 
+  it('update_content_item writes summary bullets and FAQ as aeo_assets, never sources', async () => {
+    const { session, calls } = buildSession([
+      { match: pathMatcher('GET', '/api/v2/content-items/501'), body: { data: ITEM } },
+      {
+        match: pathMatcher('PUT', '/api/v2/content-items/501'),
+        body: { data: ITEM, changed_fields: ['aeo_assets'] },
+      },
+    ]);
+
+    const summary_bullets = ['Plug-in hybrid', '83 km electric range'];
+    const faqs = [{ question: 'What does it cost?', answer: 'From 29 990 EUR.' }];
+    const text = await (
+      await findTool('update_content_item')
+    ).handler({ content_item_id: 501, summary_bullets, faqs }, session);
+
+    const putCall = calls.find((c) => (c.init?.method ?? 'GET') === 'PUT');
+    const sent = jsonBodyOf(putCall);
+    expect(sent.aeo_assets).toEqual({ summary_bullets, faqs });
+    expect((sent.aeo_assets as Record<string, unknown>).sources).toBeUndefined();
+    expect(text).toContain('aeo_assets');
+  });
+
+  it('update_content_item with only summary bullets preserves the stored FAQ', async () => {
+    const storedFaqs = [{ question: 'Range?', answer: '83 km.' }];
+    const stored = {
+      ...ITEM,
+      aeo_assets: {
+        summary_bullets: ['old bullet'],
+        faqs: storedFaqs,
+        sources: [{ title: 'S', url: 'https://s.example' }],
+      },
+    };
+    const { session, calls } = buildSession([
+      { match: pathMatcher('GET', '/api/v2/content-items/501'), body: { data: stored } },
+      {
+        match: pathMatcher('PUT', '/api/v2/content-items/501'),
+        body: { data: stored, changed_fields: ['aeo_assets'] },
+      },
+    ]);
+
+    const summary_bullets = ['new bullet'];
+    await (
+      await findTool('update_content_item')
+    ).handler({ content_item_id: 501, summary_bullets }, session);
+
+    const putCall = calls.find((c) => (c.init?.method ?? 'GET') === 'PUT');
+    expect(jsonBodyOf(putCall).aeo_assets).toEqual({ summary_bullets, faqs: storedFaqs });
+  });
+
+  it('update_content_item with only FAQ preserves the stored summary bullets', async () => {
+    const storedBullets = ['keep me'];
+    const stored = {
+      ...ITEM,
+      aeo_assets: {
+        summary_bullets: storedBullets,
+        faqs: [{ question: 'old', answer: 'x' }],
+        sources: [],
+      },
+    };
+    const { session, calls } = buildSession([
+      { match: pathMatcher('GET', '/api/v2/content-items/501'), body: { data: stored } },
+      {
+        match: pathMatcher('PUT', '/api/v2/content-items/501'),
+        body: { data: stored, changed_fields: ['aeo_assets'] },
+      },
+    ]);
+
+    const faqs = [{ question: 'New?', answer: 'Yes.' }];
+    await (
+      await findTool('update_content_item')
+    ).handler({ content_item_id: 501, faqs }, session);
+
+    const putCall = calls.find((c) => (c.init?.method ?? 'GET') === 'PUT');
+    expect(jsonBodyOf(putCall).aeo_assets).toEqual({ summary_bullets: storedBullets, faqs });
+  });
+
+  it('update_content_item sends no aeo_assets when neither bullets nor FAQ are provided', async () => {
+    const { session, calls } = buildSession([
+      { match: pathMatcher('GET', '/api/v2/content-items/501'), body: { data: ITEM } },
+      {
+        match: pathMatcher('PUT', '/api/v2/content-items/501'),
+        body: { data: { ...ITEM, title: 'New title' }, changed_fields: ['title'] },
+      },
+    ]);
+
+    await (
+      await findTool('update_content_item')
+    ).handler({ content_item_id: 501, title: 'New title' }, session);
+
+    const putCall = calls.find((c) => (c.init?.method ?? 'GET') === 'PUT');
+    expect(jsonBodyOf(putCall)).not.toHaveProperty('aeo_assets');
+  });
+
   it('update_content_item prints the gateway updated_fields verbatim when the response supplies them', async () => {
     // The gateway is authoritative about what changed, including non-versioned keys
     // the client did not single out (platform here is unchanged and unrequested, so
