@@ -172,6 +172,55 @@ describe('knowledge', () => {
     expect(calls[0]!.url).toContain('/api/v2/knowledge/proposals/8/accept');
     expect(text).toContain('accepted');
   });
+
+  it('list_knowledge_proposals lists each pending proposal with its id', async () => {
+    const { session, calls } = buildSession([
+      {
+        match: pathMatcher('GET', '/api/v2/knowledge/proposals'),
+        body: {
+          data: [
+            {
+              id: 8,
+              domain: 'market_intelligence',
+              source: 'scan',
+              proposed_at: '2026-10-20T09:00:00Z',
+            },
+          ],
+        },
+      },
+    ]);
+
+    const text = await (await findTool('list_knowledge_proposals')).handler({}, session);
+
+    expect(calls[0]!.url).toContain('/api/v2/knowledge/proposals');
+    expect(text).toContain('Pending knowledge proposals (1):');
+    expect(text).toContain('market_intelligence from scan');
+    expect(text).toContain('proposal_id: 8');
+  });
+
+  it('list_knowledge_proposals reports the empty state plainly', async () => {
+    const { session } = buildSession([
+      { match: pathMatcher('GET', '/api/v2/knowledge/proposals'), body: { data: [] } },
+    ]);
+
+    const text = await (await findTool('list_knowledge_proposals')).handler({}, session);
+
+    expect(text).toContain('No pending proposals.');
+  });
+
+  it('dismiss_knowledge_proposal posts the dismissal and reports the status', async () => {
+    const { session, calls } = buildSession([
+      {
+        match: pathMatcher('POST', '/api/v2/knowledge/proposals/8/dismiss'),
+        body: { data: { proposal_id: 8, status: 'dismissed' } },
+      },
+    ]);
+
+    const result = await callTool('dismiss_knowledge_proposal', { proposal_id: 8 }, session);
+
+    expect(calls[0]!.url).toContain('/api/v2/knowledge/proposals/8/dismiss');
+    expect(textOf(result)).toBe('Proposal 8 dismissed.');
+  });
 });
 
 describe('brand voice', () => {

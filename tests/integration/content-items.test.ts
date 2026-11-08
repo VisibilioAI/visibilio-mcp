@@ -335,6 +335,35 @@ describe('content items — writing', () => {
 
     expect(jsonBodyOf(calls[0])).toEqual({ version_id: 42 });
   });
+
+  it('duplicate_content_item clones the item and reports the new draft id', async () => {
+    const { session, calls } = buildSession([
+      {
+        match: pathMatcher('POST', '/api/v2/content-items/501/duplicate'),
+        status: 201,
+        body: {
+          data: {
+            id: 777,
+            title: 'Why MCP matters (Copy)',
+            type: 'article',
+            status: 'draft',
+            platform: 'blog',
+            language: 'en',
+            updated_at: '2026-10-14T10:00:00Z',
+          },
+        },
+      },
+    ]);
+
+    const text = await (
+      await findTool('duplicate_content_item')
+    ).handler({ content_item_id: 501 }, session);
+
+    expect(calls[0]!.url).toContain('/api/v2/content-items/501/duplicate');
+    expect(text).toContain('Duplicated.');
+    expect(text).toContain('Why MCP matters (Copy)');
+    expect(text).toContain('content_item_id: 777');
+  });
 });
 
 describe('content items — AI helpers', () => {
@@ -410,6 +439,43 @@ describe('content items — AI helpers', () => {
 
     expect(jsonBodyOf(calls[0])).toEqual({ target_language: 'bg' });
     expect(text).toContain('content_item_id: 611');
+  });
+
+  it('quick_repurpose_content_item forwards context and lists the created draft ids', async () => {
+    const { session, calls } = buildSession([
+      {
+        match: pathMatcher('POST', '/api/v2/content-items/501/quick-repurpose'),
+        body: { data: { created_content_item_ids: [811, 812] } },
+      },
+    ]);
+
+    const text = await (
+      await findTool('quick_repurpose_content_item')
+    ).handler(
+      { content_item_id: 501, additional_context: 'make it punchy', language: 'en' },
+      session
+    );
+
+    expect(jsonBodyOf(calls[0])).toEqual({ additional_context: 'make it punchy', language: 'en' });
+    expect(text).toContain('Created 2 draft(s):');
+    expect(text).toContain('content_item_id: 811');
+    expect(text).toContain('content_item_id: 812');
+  });
+
+  it('validate_brand_voice scores the supplied content and returns the verdict', async () => {
+    const { session, calls } = buildSession([
+      {
+        match: pathMatcher('POST', '/api/v2/content-items/501/voice-validate'),
+        body: { data: { on_brand: true, tone_alignment: 0.9, issues: [] } },
+      },
+    ]);
+
+    const text = await (
+      await findTool('validate_brand_voice')
+    ).handler({ content_item_id: 501, content: 'Sample copy to score' }, session);
+
+    expect(jsonBodyOf(calls[0])).toEqual({ content: 'Sample copy to score' });
+    expect(text).toContain('"on_brand": true');
   });
 });
 

@@ -214,6 +214,30 @@ describe('signals and sources', () => {
     });
     expect(text).toContain('source_id: 6');
   });
+
+  it('get_signal_stats reads the pipeline counts and renders them as fields', async () => {
+    const { session, calls } = buildSession([
+      {
+        match: pathMatcher('GET', '/api/v2/signals/stats'),
+        body: {
+          data: {
+            active_sources: 4,
+            items_scanned_24h: 120,
+            pending_signals: 8,
+            scheduled_content: 3,
+          },
+        },
+      },
+    ]);
+
+    const text = await (await findTool('get_signal_stats')).handler({}, session);
+
+    expect(calls[0]!.url).toContain('/api/v2/signals/stats');
+    expect(text).toContain('active_sources: 4');
+    expect(text).toContain('items_scanned_24h: 120');
+    expect(text).toContain('pending_signals: 8');
+    expect(text).toContain('scheduled_content: 3');
+  });
 });
 
 describe('list_signals distinguishes unscored signals from signals scored 0', () => {
@@ -419,6 +443,106 @@ describe('overview', () => {
     expect(listed).toMatch(/unread/);
     expect(jsonBodyOf(calls[1])).toEqual({ notification_id: 300 });
     expect(marked).toMatch(/read/);
+  });
+
+  it('get_operation_overview reads the org route with the product and window and prints the data', async () => {
+    const { session, calls } = buildSession([
+      {
+        match: pathMatcher('GET', '/api/v2/organizations/7/operation-overview'),
+        body: { data: { planned: 3, in_production: 2, shipped: 5 } },
+      },
+    ]);
+    await session.setActiveProduct(147, 'Visibilio');
+
+    const text = await (
+      await findTool('get_operation_overview')
+    ).handler({ period_hours: 168 }, session);
+
+    expect(calls[0]!.url).toContain('/api/v2/organizations/7/operation-overview');
+    expect(Object.fromEntries(new URL(calls[0]!.url).searchParams)).toEqual({
+      product_id: '147',
+      period_hours: '168',
+    });
+    expect(text).toContain('"planned": 3');
+    expect(text).toContain('"shipped": 5');
+  });
+
+  it('get_activity_feed reads the org route with the limit and lists recent events', async () => {
+    const { session, calls } = buildSession([
+      {
+        match: pathMatcher('GET', '/api/v2/organizations/7/activity-feed'),
+        body: {
+          data: [
+            {
+              created_at: '2026-10-13T08:00:00Z',
+              type: 'published',
+              description: 'Shipped the launch post',
+              product_name: 'Visibilio',
+            },
+          ],
+        },
+      },
+    ]);
+
+    const text = await (await findTool('get_activity_feed')).handler({ limit: 10 }, session);
+
+    expect(new URL(calls[0]!.url).searchParams.get('limit')).toBe('10');
+    expect(text).toContain('Activity (1):');
+    expect(text).toContain('published');
+    expect(text).toContain('Shipped the launch post');
+    expect(text).toContain('[Visibilio]');
+  });
+
+  it('get_activity_feed reports the empty state plainly', async () => {
+    const { session } = buildSession([
+      { match: pathMatcher('GET', '/api/v2/organizations/7/activity-feed'), body: { data: [] } },
+    ]);
+
+    const text = await (await findTool('get_activity_feed')).handler({}, session);
+
+    expect(text).toContain('No recent activity.');
+  });
+
+  it('get_product_stats reads the org route and lists per-product counts', async () => {
+    const { session, calls } = buildSession([
+      {
+        match: pathMatcher('GET', '/api/v2/organizations/7/product-stats'),
+        body: {
+          data: {
+            products: [
+              {
+                product_id: 147,
+                product_name: 'Visibilio',
+                new_signals_count: 2,
+                drafts_count: 1,
+                scheduled_today_count: 0,
+                content_plan_progress: { completed: 3, total: 10 },
+              },
+            ],
+          },
+        },
+      },
+    ]);
+
+    const text = await (await findTool('get_product_stats')).handler({}, session);
+
+    expect(calls[0]!.url).toContain('/api/v2/organizations/7/product-stats');
+    expect(text).toContain('Product stats:');
+    expect(text).toContain('Visibilio');
+    expect(text).toContain('product_id: 147');
+    expect(text).toContain('new signals: 2');
+    expect(text).toContain('plan: 3/10');
+  });
+
+  it('get_notification_count returns the unread total', async () => {
+    const { session, calls } = buildSession([
+      { match: pathMatcher('GET', '/api/v2/notifications/count'), body: { count: 3 } },
+    ]);
+
+    const text = await (await findTool('get_notification_count')).handler({}, session);
+
+    expect(calls[0]!.url).toContain('/api/v2/notifications/count');
+    expect(text).toContain('Unread notifications: 3');
   });
 });
 

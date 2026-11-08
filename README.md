@@ -74,7 +74,7 @@ Hosted at `https://mcp.visibilio.ai` (Cloud Run). OAuth discovery (RFC 9728 / RF
 npm install
 npm run dev                   # stdio transport (needs VISIBILIO_API_KEY)
 npm run dev:http              # HTTP transport on :8080 (PORT to override)
-npm run test                  # vitest — every tool has a contract test against a fake gateway
+npm run test                  # vitest — every tool has a behaviour test against a fake gateway (request shape in, rendered response out)
 npm run lint && npm run typecheck && npm run build
 node scripts/live-smoke.mjs http://localhost:8080/mcp /path/to/key-file whoami list_products   # live smoke
 ```
