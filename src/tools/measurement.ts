@@ -58,10 +58,11 @@ const getMeasurementOverview = defineTool({
       const overview = unwrapData<Row>(
         await session.client.get('/api/v2/measurement/overview', {
           productId,
+          view: 'summary',
           ...(pick(args, ['from', 'to']) as Record<string, string>),
         })
       );
-      return JSON.stringify(overview, null, 2);
+      return JSON.stringify(overview);
     });
   },
 });
