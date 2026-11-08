@@ -278,6 +278,34 @@ const unpublishFromHub = defineTool({
   },
 });
 
+const syncHub = defineTool({
+  name: 'sync_hub',
+  title: 'Sync hub',
+  description:
+    'Reconcile a content hub with its website: check whether committed articles deployed and whether deployed articles are still live, updating each publication status. Returns how many were synced and any that failed.',
+  inputSchema: {
+    hub_id: z.number().int(),
+  },
+  annotations: openWorld,
+  handler: async (args, session) => {
+    const hubId = requireNumberArg(args, 'hub_id');
+    const result = unwrapData<Row>(
+      await session.client.post(`/api/v2/content-hubs/${hubId}/sync`, {})
+    );
+    const summary = fields([
+      ['synced', result.synced],
+      ['total_checked', result.total_checked],
+      ['message', result.message],
+    ]);
+    const failed = asArray<Row>(result.failed_items);
+    if (failed.length === 0) return summary;
+    const failedLines = failed.map(
+      (f) => `- ${String(f.file_path ?? 'unknown')}: ${String(f.error ?? 'unknown error')}`
+    );
+    return [summary, `Failed items (${failed.length}):`, ...failedLines].join('\n');
+  },
+});
+
 const listSchedules = defineTool({
   name: 'list_schedules',
   title: 'List schedules',
@@ -417,6 +445,7 @@ export const publishingTools: readonly ToolDefinition[] = [
   listHubPublications,
   updateHubPublication,
   unpublishFromHub,
+  syncHub,
   listSchedules,
   scheduleContentItem,
   cancelSchedule,

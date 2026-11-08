@@ -68,6 +68,7 @@ const EXPECTED_TOOLS = [
   'list_hub_publications',
   'update_hub_publication',
   'unpublish_from_hub',
+  'sync_hub',
   'list_schedules',
   'schedule_content_item',
   'cancel_schedule',
