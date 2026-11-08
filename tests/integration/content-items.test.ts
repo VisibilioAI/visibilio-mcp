@@ -178,6 +178,29 @@ describe('content items — listing and reading', () => {
     expect(text).toContain('source: ai_generated');
   });
 
+  it('get_content_item caps the printed sources at the first 10 and shows the total count', async () => {
+    const sources = Array.from({ length: 12 }, (_, i) => ({
+      title: `Source ${i + 1}`,
+      url: `https://example.com/s${i + 1}`,
+      publisher: 'example.com',
+    }));
+    const { session } = buildSession([
+      {
+        match: pathMatcher('GET', '/api/v2/content-items/501'),
+        body: { data: { ...ITEM, aeo_assets: { summary_bullets: [], faqs: [], sources } } },
+      },
+    ]);
+
+    const text = await (
+      await findTool('get_content_item')
+    ).handler({ content_item_id: 501 }, session);
+
+    expect(text).toContain('Sources (12):');
+    expect(text).toContain('Source 10');
+    expect(text).not.toContain('Source 11');
+    expect(text).not.toContain('Source 12');
+  });
+
   it('a gateway 404 is reported to the model as a failed result with the gateway message, not thrown', async () => {
     const { session } = buildSession([
       {
