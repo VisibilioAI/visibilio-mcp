@@ -75,7 +75,7 @@ const listContentPlans = defineTool({
   inputSchema: {
     product_id: z.number().int().optional().describe('Defaults to the active product'),
     status: z
-      .enum(['pending', 'processing', 'completed', 'failed', 'regenerating', 'proposed'])
+      .enum(['pending', 'processing', 'completed', 'failed', 'regenerating', 'proposed', 'expired'])
       .optional(),
     limit: z.number().int().min(1).max(100).optional(),
     offset: z.number().int().min(0).optional(),
