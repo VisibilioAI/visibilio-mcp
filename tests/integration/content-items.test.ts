@@ -374,9 +374,7 @@ describe('content items — writing', () => {
     ]);
 
     const faqs = [{ question: 'New?', answer: 'Yes.' }];
-    await (
-      await findTool('update_content_item')
-    ).handler({ content_item_id: 501, faqs }, session);
+    await (await findTool('update_content_item')).handler({ content_item_id: 501, faqs }, session);
 
     const putCall = calls.find((c) => (c.init?.method ?? 'GET') === 'PUT');
     expect(jsonBodyOf(putCall).aeo_assets).toEqual({ summary_bullets: storedBullets, faqs });

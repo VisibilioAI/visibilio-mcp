@@ -306,11 +306,23 @@ const createContentItem = defineTool({
   },
 });
 
+function buildAeoAssetsUpdate(args: Row, before: Row): Row | undefined {
+  const bulletsGiven = args.summary_bullets !== undefined;
+  const faqsGiven = args.faqs !== undefined;
+  if (!bulletsGiven && !faqsGiven) return undefined;
+  const existing =
+    before.aeo_assets && typeof before.aeo_assets === 'object' ? (before.aeo_assets as Row) : {};
+  return {
+    summary_bullets: bulletsGiven ? args.summary_bullets : (existing.summary_bullets ?? []),
+    faqs: faqsGiven ? args.faqs : (existing.faqs ?? []),
+  };
+}
+
 const updateContentItem = defineTool({
   name: 'update_content_item',
   title: 'Update content item',
   description:
-    'Edit a content item: text, status, platform, tags, SEO meta, audiences. Only the fields you pass change. An editorial change creates a version; a status change may not. Status moves published→draft and archived→published are rejected.',
+    'Edit a content item: text, status, platform, tags, SEO meta, audiences, summary bullets and FAQ. Only the fields you pass change. An editorial change creates a version; a status change may not. Status moves published→draft and archived→published are rejected. Sources are research-owned and read-only — read them with get_content_item.',
   inputSchema: {
     content_item_id: z.number().int(),
     title: z.string().optional(),
@@ -333,6 +345,14 @@ const updateContentItem = defineTool({
     audience_ids: z.array(z.number().int()).optional().describe('Replaces the audience set'),
     featured_image_url: z.string().optional(),
     author_name: z.string().optional().describe('Articles only'),
+    summary_bullets: z
+      .array(z.string())
+      .optional()
+      .describe('AEO summary bullets shown on the article; replaces the set'),
+    faqs: z
+      .array(z.object({ question: z.string(), answer: z.string() }))
+      .optional()
+      .describe('AEO FAQ entries shown on the article; replaces the set'),
     edit_prompt: z
       .string()
       .optional()
@@ -342,8 +362,13 @@ const updateContentItem = defineTool({
   handler: async (args, session) => {
     const itemId = requireNumberArg(args, 'content_item_id');
     const requested = pick(args, EDITORIAL_FIELDS);
-    const payload = { ...requested, created_by: 'agent' };
     const before = await fetchItem(session, itemId);
+    const aeoAssets = buildAeoAssetsUpdate(args, before);
+    const payload = {
+      ...requested,
+      ...(aeoAssets !== undefined && { aeo_assets: aeoAssets }),
+      created_by: 'agent',
+    };
     const body = (await session.client.put(`/api/v2/content-items/${itemId}`, payload)) as {
       data?: Row;
       changed_fields?: string[];
