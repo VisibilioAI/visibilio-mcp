@@ -350,6 +350,24 @@ describe('content plans', () => {
     expect(parsed.success).toBe(true);
   });
 
+  it('list_content_plans accepts status "expired" in its input schema', async () => {
+    const list = await findTool('list_content_plans');
+    const schema = z.object(list.inputSchema);
+
+    expect(schema.safeParse({ status: 'expired' }).success).toBe(true);
+  });
+
+  it('list_content_plans rejects an unknown status with the field named', async () => {
+    const list = await findTool('list_content_plans');
+    const schema = z.object(list.inputSchema);
+
+    const parsed = schema.safeParse({ status: 'nonsense' });
+    expect(parsed.success).toBe(false);
+    if (!parsed.success) {
+      expect(parsed.error.issues[0]?.path).toContain('status');
+    }
+  });
+
   it('passes a UUID topic_id from list_planned_topics into get_planned_topic_brief', async () => {
     const topicId = '3fa85f64-5717-4562-b3fc-2c963f66afa6';
     const { session, calls } = buildSession([
