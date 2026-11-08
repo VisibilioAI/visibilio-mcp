@@ -179,7 +179,12 @@ describe('briefs', () => {
           data: [
             {
               content_item_id: 501,
-              content_item: { id: 501, title: 'Draft from brief', type: 'article', status: 'draft' },
+              content_item: {
+                id: 501,
+                title: 'Draft from brief',
+                type: 'article',
+                status: 'draft',
+              },
             },
           ],
         },
