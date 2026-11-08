@@ -69,7 +69,9 @@ const startWorkflow = defineTool({
     auto_confirm: z
       .boolean()
       .optional()
-      .describe('Default true; false stops at awaiting_confirmation so you can review the plan'),
+      .describe(
+        'Currently ignored: the workflow proceeds without pausing for confirmation (a review pause is planned).'
+      ),
     audience_ids: z
       .array(z.number().int())
       .optional()
@@ -109,7 +111,7 @@ const confirmWorkflow = defineTool({
   name: 'confirm_workflow',
   title: 'Confirm workflow',
   description:
-    'Confirm or reject a workflow plan that stopped at awaiting_confirmation (start_workflow with auto_confirm=false).',
+    'Confirm or reject a workflow plan that stopped at awaiting_confirmation. Workflows do not pause for confirmation yet, so this is reserved for when that pause is enabled.',
   inputSchema: {
     execution_id: z.string().min(1),
     confirmed: z.boolean(),

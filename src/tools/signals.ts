@@ -144,7 +144,7 @@ const addSignalToPlan = defineTool({
   name: 'add_signal_to_plan',
   title: 'Add signal to plan',
   description:
-    'Insert a signal as a planned topic into the current content plan of its product, under a content pillar.',
+    'Insert a signal as a planned topic into the current content plan of its product, under a content pillar. If the plan has no free slot, nothing is added.',
   inputSchema: { signal_id: z.number().int(), pillar: z.string().min(1) },
   annotations: mutating,
   handler: async (args, session) => {
