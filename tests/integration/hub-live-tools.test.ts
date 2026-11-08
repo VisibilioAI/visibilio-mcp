@@ -77,3 +77,52 @@ describe('unpublish_from_hub', () => {
     expect(text).toContain('draft');
   });
 });
+
+describe('sync_hub', () => {
+  it('reconciles the hub and reports the counts', async () => {
+    const { session, calls } = buildSession([
+      {
+        match: pathMatcher('POST', '/api/v2/content-hubs/5/sync'),
+        body: {
+          data: {
+            synced: 2,
+            total_checked: 3,
+            failed_items: [],
+            message: 'Synced 2 of 3 publications',
+          },
+        },
+      },
+    ]);
+
+    const text = await (await findTool('sync_hub')).handler({ hub_id: 5 }, session);
+
+    expect(jsonBodyOf(calls[0])).toEqual({});
+    expect(text).toContain('synced: 2');
+    expect(text).toContain('total_checked: 3');
+    expect(text).toContain('Synced 2 of 3 publications');
+  });
+
+  it('lists each failed publication', async () => {
+    const { session } = buildSession([
+      {
+        match: pathMatcher('POST', '/api/v2/content-hubs/5/sync'),
+        body: {
+          data: {
+            synced: 1,
+            total_checked: 2,
+            failed_items: [
+              { file_path: 'content/articles/x.md', error: 'CI/CD checks failed for this commit' },
+            ],
+            message: 'Synced 1 of 2 publications',
+          },
+        },
+      },
+    ]);
+
+    const text = await (await findTool('sync_hub')).handler({ hub_id: 5 }, session);
+
+    expect(text).toContain('Failed items (1)');
+    expect(text).toContain('content/articles/x.md');
+    expect(text).toContain('CI/CD checks failed for this commit');
+  });
+});
