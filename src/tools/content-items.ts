@@ -83,7 +83,8 @@ function aeoAssetsSection(item: Row): string {
   }
   if (sources.length) {
     sections.push(
-      `Sources:\n${sources
+      `Sources (${sources.length}):\n${sources
+        .slice(0, 10)
         .map((s) =>
           line(String(s.title ?? s.url ?? 'Source'), 'url', s.url ?? '', [
             typeof s.publisher === 'string' ? s.publisher : undefined,
