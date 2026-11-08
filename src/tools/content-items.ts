@@ -60,6 +60,38 @@ function itemLine(item: Row): string {
   ]);
 }
 
+function aeoAssetsSection(item: Row): string {
+  const aeo =
+    item.aeo_assets && typeof item.aeo_assets === 'object' ? (item.aeo_assets as Row) : null;
+  if (!aeo) return '';
+  const bullets = asArray<unknown>(aeo.summary_bullets).map((b) => String(b));
+  const faqs = asArray<Row>(aeo.faqs);
+  const sources = asArray<Row>(aeo.sources);
+  const sections: string[] = [];
+  if (bullets.length) {
+    sections.push(`Summary bullets:\n${bullets.map((b) => `- ${b}`).join('\n')}`);
+  }
+  if (faqs.length) {
+    sections.push(
+      `FAQ:\n${faqs
+        .map((f) => `- Q: ${String(f.question ?? '')}\n  A: ${String(f.answer ?? '')}`)
+        .join('\n')}`
+    );
+  }
+  if (sources.length) {
+    sections.push(
+      `Sources:\n${sources
+        .map((s) =>
+          line(String(s.title ?? s.url ?? 'Source'), 'url', s.url ?? '', [
+            typeof s.publisher === 'string' ? s.publisher : undefined,
+          ])
+        )
+        .join('\n')}`
+    );
+  }
+  return sections.length ? `\n\n${sections.join('\n\n')}` : '';
+}
+
 function describeItem(item: Row, includeBody: boolean): string {
   const audiences = asArray<Row>(item.audiences)
     .map((a) => a.name)
@@ -85,8 +117,9 @@ function describeItem(item: Row, includeBody: boolean): string {
     ['version', item.version],
     ['updated_at', item.updated_at],
   ]);
-  if (!includeBody) return head;
-  return `${head}\n\nBody:\n${String(item.body ?? '')}`;
+  const assets = aeoAssetsSection(item);
+  if (!includeBody) return `${head}${assets}`;
+  return `${head}${assets}\n\nBody:\n${String(item.body ?? '')}`;
 }
 
 export async function fetchItem(session: McpSession, itemId: number): Promise<Row> {
