@@ -314,14 +314,17 @@ const updateContentItem = defineTool({
     const body = (await session.client.put(`/api/v2/content-items/${itemId}`, payload)) as {
       data?: Row;
       changed_fields?: string[];
+      updated_fields?: string[];
     };
     const item = body.data ?? (body as Row);
-    const changedFields = reconcileChangedFields({
-      before,
-      after: item,
-      requested: Object.keys(requested),
-      versionChangedFields: body.changed_fields,
-    });
+    const changedFields = Array.isArray(body.updated_fields)
+      ? body.updated_fields
+      : reconcileChangedFields({
+          before,
+          after: item,
+          requested: Object.keys(requested),
+          versionChangedFields: body.changed_fields,
+        });
     const changed = changedFields.length ? changedFields.join(', ') : 'nothing (no differences)';
     return `Updated: ${changed}.\n${describeItem(item, false)}`;
   },
