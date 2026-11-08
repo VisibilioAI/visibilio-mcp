@@ -183,6 +183,74 @@ const publishToHub = defineTool({
   },
 });
 
+const previewHubPublication = defineTool({
+  name: 'preview_hub_publication',
+  title: 'Preview hub publication',
+  description:
+    'Dry run: show the exact payload that publishing an article to a Cloudflare Pages hub would send — title, meta title, author, dates, slug, category, tags and images — without publishing anything and with no side effects. Use this to check a publication before committing to it.',
+  inputSchema: {
+    hub_id: z.number().int(),
+    content_item_id: z.number().int(),
+    slug: z.string().optional().describe('Override the slug, as the real publish would'),
+    primary_category: z.string().optional(),
+  },
+  annotations: readOnly,
+  handler: async (args, session) => {
+    const hubId = requireNumberArg(args, 'hub_id');
+    const itemId = requireNumberArg(args, 'content_item_id');
+    const payload = unwrapData<Row>(
+      await session.client.get(
+        `/api/v2/content-hubs/${hubId}/publish/${itemId}/preview`,
+        pick(args, ['slug', 'primary_category']) as Record<string, string | number>
+      )
+    );
+
+    const seo = (payload.seo ?? {}) as Row;
+    const author = (payload.author ?? {}) as Row;
+    const categorization = (payload.categorization ?? {}) as Row;
+    const images = (payload.images ?? {}) as Row;
+    const imageLine = (name: string, image: unknown): string | undefined => {
+      if (!image || typeof image !== 'object') return undefined;
+      const img = image as Row;
+      return `${name} ${String(img.width)}x${String(img.height)} ${String(img.format)}`;
+    };
+
+    return fields([
+      ['Dry run', `nothing published to hub ${hubId}`],
+      ['title', payload.title],
+      ['slug', payload.slug],
+      ['meta_title', seo.meta_title],
+      ['meta_description', seo.meta_description],
+      [
+        'author',
+        author.name
+          ? `${String(author.name)}${author.type ? ` (${String(author.type)})` : ''}`
+          : undefined,
+      ],
+      ['primary_category', categorization.primary_category],
+      ['tags', categorization.tags],
+      ['published_at', payload.published_at],
+      ['updated_at', payload.updated_at],
+      [
+        'images',
+        [
+          imageLine('featured', images.featured),
+          imageLine('og', images.og),
+          imageLine('thumbnail', images.thumbnail),
+        ]
+          .filter((s): s is string => typeof s === 'string')
+          .join('; '),
+      ],
+      [
+        'machine_readable',
+        payload.extensions && (payload.extensions as Row).machine_readable
+          ? 'present (FAQ and sources travel in extensions.machine_readable)'
+          : 'absent',
+      ],
+    ]);
+  },
+});
+
 const listHubPublications = defineTool({
   name: 'list_hub_publications',
   title: 'List hub publications',
@@ -445,6 +513,7 @@ export const publishingTools: readonly ToolDefinition[] = [
   publishSocialPost,
   listContentHubs,
   publishToHub,
+  previewHubPublication,
   listHubPublications,
   updateHubPublication,
   unpublishFromHub,
