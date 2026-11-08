@@ -1,5 +1,11 @@
 import { describe, it, expect } from 'vitest';
-import { readOnly, mutating, destructive, openWorld } from '../src/tools/_define.js';
+import {
+  readOnly,
+  mutating,
+  destructive,
+  openWorld,
+  idempotentWrite,
+} from '../src/tools/_define.js';
 import { allTools } from '../src/tools/index.js';
 
 function annotationOf(name: string) {
@@ -73,5 +79,32 @@ describe('irreversible writes stay destructive', () => {
     'cancel_workflow',
   ])('%s remains destructive', (name) => {
     expect(annotationOf(name).destructiveHint).toBe(true);
+  });
+});
+
+describe('idempotentWrite preset', () => {
+  it('marks an idempotent additive write: not read-only, not destructive, closed-world', () => {
+    expect(idempotentWrite.readOnlyHint).toBe(false);
+    expect(idempotentWrite.destructiveHint).toBe(false);
+    expect(idempotentWrite.idempotentHint).toBe(true);
+    expect(idempotentWrite.openWorldHint).toBe(false);
+  });
+});
+
+describe('update / set-active / mark-read tools announce idempotency', () => {
+  it.each([
+    'update_brand_voice',
+    'update_brief',
+    'update_content_item',
+    'update_knowledge',
+    'update_product',
+    'set_active_organization',
+    'set_active_product',
+    'mark_notifications_read',
+  ])('%s sets idempotentHint and stays a non-destructive write', (name) => {
+    const a = annotationOf(name);
+    expect(a.idempotentHint).toBe(true);
+    expect(a.readOnlyHint).toBe(false);
+    expect(a.destructiveHint).toBe(false);
   });
 });

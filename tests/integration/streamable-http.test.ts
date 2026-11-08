@@ -144,6 +144,7 @@ describe('Streamable HTTP transport — session lifecycle', () => {
         title?: string;
         readOnlyHint?: boolean;
         destructiveHint?: boolean;
+        idempotentHint?: boolean;
         openWorldHint?: boolean;
       };
     }>;
@@ -158,7 +159,7 @@ describe('Streamable HTTP transport — session lifecycle', () => {
     expect(
       tools.find((tool) => tool.name === 'update_content_item')?.annotations,
       'update_content_item'
-    ).toMatchObject({ readOnlyHint: false, destructiveHint: false });
+    ).toMatchObject({ readOnlyHint: false, destructiveHint: false, idempotentHint: true });
     expect(
       tools.find((tool) => tool.name === 'delete_content_item')?.annotations,
       'delete_content_item'
