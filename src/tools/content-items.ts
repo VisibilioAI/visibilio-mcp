@@ -27,6 +27,7 @@ const STATUSES = [
   'published',
   'archived',
 ] as const;
+const UPDATE_STATUSES = ['draft', 'review', 'changes_requested', 'approved', 'archived'] as const;
 export const LANGUAGES = ['en', 'bg', 'de'] as const;
 const REMIX_STRATEGIES = ['adapt', 'split', 'expand', 'summarize', 'remix'] as const;
 
@@ -181,7 +182,9 @@ async function generatedFieldsOfRun(
   executionId: string,
   args: Record<string, unknown>
 ): Promise<Row> {
-  const status = (await session.client.get(`/api/v2/workflow/${executionId}/status`)) as Row;
+  const status = (await session.client.get(
+    `/api/v2/workflow/${encodeURIComponent(executionId)}/status`
+  )) as Row;
   const pieces = piecesOf(status.final_output);
   const piece = pickPiece(pieces, { title: args.title, platform: args.platform });
   if (!piece && pieces.length > 1 && args.body === undefined) {
@@ -212,7 +215,7 @@ const createContentItem = defineTool({
     language: z.enum(LANGUAGES).optional(),
     tags: z.array(z.string()).optional(),
     categories: z.array(z.string()).optional(),
-    audience_ids: z.array(z.string()).optional().describe('Audience ids from list_audiences'),
+    audience_ids: z.array(z.number().int()).optional().describe('Audience ids from list_audiences'),
     seo_meta: z
       .object({
         description: z.string().optional(),
@@ -225,6 +228,7 @@ const createContentItem = defineTool({
     body_format: z.enum(['markdown', 'html', 'plain']).optional(),
     source_execution_id: z
       .string()
+      .min(1)
       .optional()
       .describe('Workflow execution id whose output this item saves'),
     signal_id: z
@@ -279,7 +283,7 @@ const updateContentItem = defineTool({
     subtitle: z.string().optional(),
     body: z.string().optional(),
     excerpt: z.string().optional(),
-    status: z.enum(STATUSES).optional(),
+    status: z.enum(UPDATE_STATUSES).optional(),
     platform: z.string().optional(),
     tags: z.array(z.string()).optional(),
     categories: z.array(z.string()).optional(),
@@ -292,7 +296,7 @@ const updateContentItem = defineTool({
       .optional(),
     canonical_url: z.string().optional(),
     body_format: z.enum(['markdown', 'html', 'plain']).optional(),
-    audience_ids: z.array(z.string()).optional().describe('Replaces the audience set'),
+    audience_ids: z.array(z.number().int()).optional().describe('Replaces the audience set'),
     featured_image_url: z.string().optional(),
     author_name: z.string().optional(),
     edit_prompt: z
@@ -445,7 +449,7 @@ const validateBrandVoice = defineTool({
   name: 'validate_brand_voice',
   title: 'Validate brand voice',
   description:
-    'Score a text against the product brand voice: on-brand verdict, tone and vocabulary alignment, concrete issues with suggested fixes. Defaults to the stored body.',
+    'Score text against the product brand voice (on-brand verdict, tone and vocabulary alignment, concrete issues with fixes). The content item sets the product; pass content to score your own text instead of the stored body, which is the default.',
   inputSchema: { content_item_id: z.number().int(), content: z.string().optional() },
   annotations: readOnly,
   handler: async (args, session) => {
@@ -499,7 +503,7 @@ const quickRepurposeContentItem = defineTool({
   inputSchema: {
     content_item_id: z.number().int(),
     additional_context: z.string().optional(),
-    schedule_mode: z.enum(['draft', 'auto']).optional(),
+    schedule_mode: z.enum(['draft']).optional(),
     language: z.enum(LANGUAGES).optional(),
   },
   annotations: mutating,

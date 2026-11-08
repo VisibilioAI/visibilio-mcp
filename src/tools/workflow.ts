@@ -71,7 +71,7 @@ const startWorkflow = defineTool({
       .optional()
       .describe('Default true; false stops at awaiting_confirmation so you can review the plan'),
     audience_ids: z
-      .array(z.string())
+      .array(z.number().int())
       .optional()
       .describe('Audience ids from list_audiences to write for'),
     source_url: z.string().url().optional().describe('A page to base the content on'),
@@ -111,7 +111,7 @@ const confirmWorkflow = defineTool({
   description:
     'Confirm or reject a workflow plan that stopped at awaiting_confirmation (start_workflow with auto_confirm=false).',
   inputSchema: {
-    execution_id: z.string(),
+    execution_id: z.string().min(1),
     confirmed: z.boolean(),
     modifications: z
       .object({
@@ -124,7 +124,7 @@ const confirmWorkflow = defineTool({
   handler: async (args, session) => {
     const executionId = requireStringArg(args, 'execution_id');
     const result = (await session.client.post(
-      `/api/v2/workflow/${executionId}/confirm`,
+      `/api/v2/workflow/${encodeURIComponent(executionId)}/confirm`,
       pick(args, ['confirmed', 'modifications'])
     )) as Row;
     return `Workflow ${executionId} is now ${String(result.state)}.${result.message ? ` ${String(result.message)}` : ''}`;
@@ -164,11 +164,13 @@ const getWorkflowStatus = defineTool({
   title: 'Get workflow status',
   description:
     'Check a workflow execution: state, progress, cost and (when completed) the generated pieces. Returns at once; while the run is still going, call it again to keep polling (an article usually takes 4-7 minutes, a post about 2). Generated output is NOT saved automatically: persist it with create_content_item(type, source_execution_id).',
-  inputSchema: { execution_id: z.string() },
+  inputSchema: { execution_id: z.string().min(1) },
   annotations: readOnly,
   handler: async (args, session) => {
     const executionId = requireStringArg(args, 'execution_id');
-    const status = (await session.client.get(`/api/v2/workflow/${executionId}/status`)) as Row;
+    const status = (await session.client.get(
+      `/api/v2/workflow/${encodeURIComponent(executionId)}/status`
+    )) as Row;
     const head = fields([
       ['execution_id', status.execution_id ?? executionId],
       ['state', status.state],
@@ -212,11 +214,14 @@ const cancelWorkflow = defineTool({
   name: 'cancel_workflow',
   title: 'Cancel workflow',
   description: 'Cancel a running workflow execution.',
-  inputSchema: { execution_id: z.string(), reason: z.string().optional() },
+  inputSchema: { execution_id: z.string().min(1), reason: z.string().optional() },
   annotations: destructive,
   handler: async (args, session) => {
     const executionId = requireStringArg(args, 'execution_id');
-    await session.client.post(`/api/v2/workflow/${executionId}/cancel`, pick(args, ['reason']));
+    await session.client.post(
+      `/api/v2/workflow/${encodeURIComponent(executionId)}/cancel`,
+      pick(args, ['reason'])
+    );
     return `Workflow ${executionId} cancelled.`;
   },
 });
