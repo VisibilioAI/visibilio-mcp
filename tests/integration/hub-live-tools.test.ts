@@ -42,3 +42,38 @@ describe('update_hub_publication', () => {
     expect(jsonBodyOf(calls[0])).toEqual({});
   });
 });
+
+describe('unpublish_from_hub', () => {
+  it('removes the article and reports the landed status', async () => {
+    const { session, calls } = buildSession([
+      {
+        match: pathMatcher('POST', '/api/v2/content-hubs/5/unpublish/501'),
+        body: { data: { message: 'Article unpublished successfully' } },
+      },
+    ]);
+
+    const text = await (
+      await findTool('unpublish_from_hub')
+    ).handler({ hub_id: 5, content_item_id: 501, target_status: 'archived' }, session);
+
+    expect(jsonBodyOf(calls[0])).toEqual({ target_status: 'archived' });
+    expect(text).toContain('Article unpublished successfully');
+    expect(text).toContain('archived');
+  });
+
+  it('defaults the item to draft, unblocking a later delete (04 DEL-02)', async () => {
+    const { session, calls } = buildSession([
+      {
+        match: pathMatcher('POST', '/api/v2/content-hubs/5/unpublish/501'),
+        body: { data: { message: 'Article unpublished successfully' } },
+      },
+    ]);
+
+    const text = await (
+      await findTool('unpublish_from_hub')
+    ).handler({ hub_id: 5, content_item_id: 501 }, session);
+
+    expect(jsonBodyOf(calls[0])).toEqual({});
+    expect(text).toContain('draft');
+  });
+});

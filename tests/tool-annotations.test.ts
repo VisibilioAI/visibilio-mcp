@@ -107,6 +107,7 @@ describe('irreversible writes stay destructive', () => {
     'delete_audience',
     'cancel_schedule',
     'cancel_workflow',
+    'unpublish_from_hub',
   ])('%s remains destructive', (name) => {
     expect(annotationOf(name).destructiveHint).toBe(true);
   });
