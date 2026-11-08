@@ -43,6 +43,8 @@ function signalLine(signal: Row): string {
 
 const SOURCE_TYPES = ['rss', 'website', 'youtube', 'x', 'reddit'] as const;
 
+const DEFAULT_SIGNAL_LIMIT = 50;
+
 const listSignals = defineTool({
   name: 'list_signals',
   title: 'List signals',
@@ -56,15 +58,17 @@ const listSignals = defineTool({
     topic: z.string().optional(),
     since: isoDate('since').optional().describe('ISO date'),
     sort: z.enum(['relevance', 'newest', 'oldest']).optional(),
-    limit: z.number().int().min(1).max(200).optional(),
+    limit: z.number().int().min(1).max(DEFAULT_SIGNAL_LIMIT).optional(),
   },
   annotations: readOnly,
   handler: async (args, session) => {
     const productId = optionalProductId(args, session);
+    const limit = typeof args.limit === 'number' ? args.limit : DEFAULT_SIGNAL_LIMIT;
     const signals = asArray<Row>(
       unwrapData(
         await session.client.get('/api/v2/signals', {
           ...(productId !== undefined ? { product_id: productId } : {}),
+          limit,
           ...(pick(args, [
             'min_score',
             'unused_only',
@@ -72,7 +76,6 @@ const listSignals = defineTool({
             'topic',
             'since',
             'sort',
-            'limit',
           ]) as Record<string, string | number | boolean>),
         })
       )

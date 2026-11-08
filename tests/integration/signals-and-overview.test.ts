@@ -473,3 +473,46 @@ describe('add_signal_to_plan reporting', () => {
     expect(text).toContain('list_planned_topics');
   });
 });
+
+// MCP-R11 (#1080): list_signals exceeded the 25,000-char read budget with a large limit. It now
+// caps at 50 by default so a default read stays within the budget.
+describe('list_signals caps the result size to the MCP read budget', () => {
+  it('forwards limit=50 by default when no limit is given', async () => {
+    const { session, calls } = buildSession([
+      { match: pathMatcher('GET', '/api/v2/signals'), body: { data: [SIGNAL] } },
+    ]);
+    await session.setActiveProduct(147, 'Visibilio');
+
+    await (await findTool('list_signals')).handler({}, session);
+
+    expect(new URL(calls[0]!.url).searchParams.get('limit')).toBe('50');
+  });
+
+  it('keeps an explicit limit the caller supplied', async () => {
+    const { session, calls } = buildSession([
+      { match: pathMatcher('GET', '/api/v2/signals'), body: { data: [SIGNAL] } },
+    ]);
+    await session.setActiveProduct(147, 'Visibilio');
+
+    await (await findTool('list_signals')).handler({ limit: 10 }, session);
+
+    expect(new URL(calls[0]!.url).searchParams.get('limit')).toBe('10');
+  });
+
+  it('renders 50 signals within the 25,000-character read budget', async () => {
+    const fifty = Array.from({ length: 50 }, (_, i) => ({
+      ...SIGNAL,
+      id: i,
+      title: `Market signal number ${i} with a representative headline of some length`,
+      url: `https://news.test/articles/${i}`,
+    }));
+    const { session } = buildSession([
+      { match: pathMatcher('GET', '/api/v2/signals'), body: { data: fifty } },
+    ]);
+    await session.setActiveProduct(147, 'Visibilio');
+
+    const text = (await (await findTool('list_signals')).handler({}, session)) as string;
+
+    expect(text.length).toBeLessThan(25000);
+  });
+});

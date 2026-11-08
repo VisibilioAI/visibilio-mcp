@@ -29,9 +29,55 @@ describe('measurement', () => {
       productId: '147',
       from: '2026-10-06',
       to: '2026-10-12',
+      view: 'summary',
     });
     expect(text).toContain('1200');
     expect(text).toContain('2026-10-06');
+  });
+
+  // MCP-R11 (#1080): the overview read exceeds the 25,000-char protocol budget. The MCP asks the
+  // gateway for the summary view (which drops the heavy blocks) and prints compact JSON.
+  it('defaults to the summary view so the gateway drops the heavy blocks', async () => {
+    const { session, calls } = buildSession([
+      {
+        match: pathMatcher('GET', '/api/v2/measurement/overview'),
+        body: { data: { product_id: 147, published: { count: 1 } } },
+      },
+    ]);
+    await session.setActiveProduct(147, 'Visibilio');
+
+    await (await findTool('get_measurement_overview')).handler({}, session);
+
+    expect(new URL(calls[0]!.url).searchParams.get('view')).toBe('summary');
+  });
+
+  it('prints compact JSON (not indented) within the 25,000-character read budget', async () => {
+    const summaryBody = {
+      product_id: 147,
+      period: { from: '2026-10-06', to: '2026-10-12' },
+      published: { current: 8, prior: 5, delta: 3 },
+      channels: [],
+      connected_accounts: [],
+      top_publications: Array.from({ length: 50 }, (_, i) => ({
+        publication_id: i,
+        title: `Publication number ${i} with a representative headline`,
+        url: `https://example.test/articles/${i}`,
+        impressions: i * 10,
+        engagement: i,
+      })),
+    };
+    const { session } = buildSession([
+      { match: pathMatcher('GET', '/api/v2/measurement/overview'), body: { data: summaryBody } },
+    ]);
+    await session.setActiveProduct(147, 'Visibilio');
+
+    const text = (await (
+      await findTool('get_measurement_overview')
+    ).handler({}, session)) as string;
+
+    expect(text).toBe(JSON.stringify(summaryBody));
+    expect(text).not.toBe(JSON.stringify(summaryBody, null, 2));
+    expect(text.length).toBeLessThan(25000);
   });
 
   it('a feature-flag 404 is explained instead of surfacing as a bare error, as a failed result', async () => {
