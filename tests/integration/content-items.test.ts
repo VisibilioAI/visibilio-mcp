@@ -97,6 +97,30 @@ describe('content items — listing and reading', () => {
     expect(text).toContain('author_name: Neli Kostova');
   });
 
+  it('get_content_item surfaces aeo_assets: summary bullets, FAQ and sources', async () => {
+    const aeoAssets = {
+      summary_bullets: ['Plug-in hybrid', '83 km electric range'],
+      faqs: [{ question: 'What does it cost?', answer: 'From 29 990 EUR.' }],
+      sources: [{ title: 'Review', url: 'https://example.com/a', publisher: 'example.com' }],
+    };
+    const { session } = buildSession([
+      {
+        match: pathMatcher('GET', '/api/v2/content-items/501'),
+        body: { data: { ...ITEM, aeo_assets: aeoAssets } },
+      },
+    ]);
+
+    const text = await (
+      await findTool('get_content_item')
+    ).handler({ content_item_id: 501 }, session);
+
+    expect(text).toContain('83 km electric range');
+    expect(text).toContain('What does it cost?');
+    expect(text).toContain('From 29 990 EUR.');
+    expect(text).toContain('Review');
+    expect(text).toContain('https://example.com/a');
+  });
+
   it('a gateway 404 is reported to the model as a failed result with the gateway message, not thrown', async () => {
     const { session } = buildSession([
       {
