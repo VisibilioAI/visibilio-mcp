@@ -59,6 +59,18 @@ describe('outside-world tools set openWorldHint', () => {
   );
 });
 
+describe('scheduling and source creation reach outside the platform', () => {
+  it.each(['schedule_content_item', 'create_source'])(
+    '%s is an open-world write, not a plain closed-world mutation',
+    (name) => {
+      const a = annotationOf(name);
+      expect(a.openWorldHint).toBe(true);
+      expect(a.readOnlyHint).toBe(false);
+      expect(a.destructiveHint).toBe(false);
+    }
+  );
+});
+
 describe('additive writes are not announced destructive', () => {
   it.each(['create_content_item', 'update_knowledge', 'create_product', 'create_audience'])(
     '%s is a mutating write, not a destructive one',

@@ -168,6 +168,14 @@ describe('Streamable HTTP transport — session lifecycle', () => {
       tools.find((tool) => tool.name === 'publish_social_post')?.annotations,
       'publish_social_post'
     ).toMatchObject({ readOnlyHint: false, destructiveHint: false, openWorldHint: true });
+    expect(
+      tools.find((tool) => tool.name === 'schedule_content_item')?.annotations,
+      'schedule_content_item'
+    ).toMatchObject({ readOnlyHint: false, destructiveHint: false, openWorldHint: true });
+    expect(
+      tools.find((tool) => tool.name === 'create_source')?.annotations,
+      'create_source'
+    ).toMatchObject({ readOnlyHint: false, destructiveHint: false, openWorldHint: true });
     expect(tools.find((tool) => tool.name === 'get_content_item')?.annotations).toMatchObject({
       readOnlyHint: true,
       destructiveHint: false,
