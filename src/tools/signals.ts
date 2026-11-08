@@ -234,8 +234,12 @@ const listSources = defineTool({
           typeof s.last_scanned_at === 'string'
             ? `last scan: ${s.last_scanned_at.slice(0, 10)}`
             : undefined,
+          typeof s.items_count === 'number' ? `items: ${s.items_count}` : undefined,
           typeof s.last_error === 'string' && s.last_error
             ? `error: ${truncate(s.last_error, 60)}`
+            : undefined,
+          typeof s.error_category === 'string' && s.error_category
+            ? `cause: ${s.error_category}`
             : undefined,
         ])
       ),
