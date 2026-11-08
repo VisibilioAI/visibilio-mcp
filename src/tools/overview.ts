@@ -151,7 +151,8 @@ const requestContentChanges = defineTool({
         }
       )
     );
-    return `Changes requested for content item ${itemId}: revision job ${String(result.job_id)} (${String(result.status)}).`;
+    const jobId = String(result.job_id);
+    return `Changes requested for content item ${itemId}: revision job ${jobId} (${String(result.status)}). Follow it with get_revision_status(job_id: "${jobId}", content_item_id: ${itemId}) until the revision is ready for review.`;
   },
 });
 
