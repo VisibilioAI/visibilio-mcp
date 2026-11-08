@@ -899,3 +899,68 @@ describe('content items — version history formatting', () => {
     expect(text).toContain('(200 chars)');
   });
 });
+
+describe('content items — field round trip (ITEM)', () => {
+  const CTA = {
+    enabled: true,
+    title: 'Book a test drive',
+    buttonLabel: 'Book now',
+    buttonUrl: 'https://example.com/book',
+  };
+  const COVER = {
+    altText: 'A silver estate car on a mountain road',
+    caption: 'The Geely Starray EM-i',
+    credit: 'Jane Photographer',
+  };
+
+  // Integration regression guard: composes the write (B4/B5) and print (B1/B2)
+  // cycles end to end. create -> update(cta, cover) -> get proves the new fields
+  // are forwarded to the gateway PUT and read back by get_content_item. It is
+  // green once those cycles land; it guards their composition, not a single
+  // new behaviour.
+  it('create -> update(cta, cover) -> get forwards and reads back the new fields', async () => {
+    const created = { ...ITEM, id: 900, cta: null, cover: null };
+    const stored = {
+      ...ITEM,
+      id: 900,
+      cta: CTA,
+      cover: { ...COVER, url: 'https://img.example/c.png', source: 'ai_generated' },
+    };
+    const { session, calls } = buildSession([
+      {
+        match: pathMatcher('POST', '/api/v2/products/147/content-items'),
+        status: 201,
+        body: { data: created },
+      },
+      { match: pathMatcher('GET', '/api/v2/content-items/900'), body: { data: created } },
+      {
+        match: pathMatcher('PUT', '/api/v2/content-items/900'),
+        body: { data: stored, changed_fields: ['cta', 'cover'] },
+      },
+      { match: pathMatcher('GET', '/api/v2/content-items/900'), body: { data: stored } },
+    ]);
+    await session.setActiveProduct(147, 'Visibilio');
+
+    await (
+      await findTool('create_content_item')
+    ).handler({ type: 'article', title: 'Why MCP matters', body: '<p>Body text</p>' }, session);
+
+    await (
+      await findTool('update_content_item')
+    ).handler({ content_item_id: 900, cta: CTA, cover: COVER }, session);
+
+    const text = await (
+      await findTool('get_content_item')
+    ).handler({ content_item_id: 900 }, session);
+
+    const putCall = calls.find((c) => (c.init?.method ?? 'GET') === 'PUT');
+    expect(jsonBodyOf(putCall)).toEqual({ cta: CTA, cover: COVER, created_by: 'agent' });
+
+    expect(text).toContain('Call to action:');
+    expect(text).toContain('button url: https://example.com/book');
+    expect(text).toContain('Cover:');
+    expect(text).toContain('alt text: A silver estate car on a mountain road');
+    expect(text).toContain('credit: Jane Photographer');
+    expect(text).toContain('source: ai_generated');
+  });
+});
