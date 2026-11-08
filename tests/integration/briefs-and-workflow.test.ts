@@ -276,6 +276,49 @@ describe('workflow', () => {
     expect(text).toContain('source_execution_id');
   });
 
+  it('get_workflow_status labels a cancelled run reason as cancel_reason, not error', async () => {
+    const { session } = buildSession([
+      {
+        match: pathMatcher('GET', '/api/v2/workflow/exec-7/status'),
+        body: {
+          execution_id: 'exec-7',
+          state: 'cancelled',
+          is_complete: true,
+          error: 'Cancelled by user: wrong topic',
+        },
+      },
+    ]);
+
+    const text = await (
+      await findTool('get_workflow_status')
+    ).handler({ execution_id: 'exec-7' }, session);
+
+    expect(text).toContain('cancel_reason: Cancelled by user: wrong topic');
+    expect(text).not.toContain('error: Cancelled by user');
+  });
+
+  // Regression guard — passes at authorship; a genuinely failed run must keep the `error` label.
+  it('get_workflow_status keeps the error label for a failed, non-cancelled run', async () => {
+    const { session } = buildSession([
+      {
+        match: pathMatcher('GET', '/api/v2/workflow/exec-8/status'),
+        body: {
+          execution_id: 'exec-8',
+          state: 'failed',
+          is_complete: true,
+          error: 'Upstream model timeout',
+        },
+      },
+    ]);
+
+    const text = await (
+      await findTool('get_workflow_status')
+    ).handler({ execution_id: 'exec-8' }, session);
+
+    expect(text).toContain('error: Upstream model timeout');
+    expect(text).not.toContain('cancel_reason');
+  });
+
   it('confirm_workflow posts the decision', async () => {
     const { session, calls } = buildSession([
       {

@@ -14,7 +14,7 @@ import {
   unwrapData,
   type ToolDefinition,
 } from './_define.js';
-import { asArray, fields, line, listOrEmpty, nameOf, truncate, type Row } from './_format.js';
+import { asArray, fields, line, listOrEmpty, nameOf, type Row } from './_format.js';
 import { pickPiece, piecesOf } from './_run.js';
 import { publicationSyncState, reconcileChangedFields } from './publication-sync.js';
 
@@ -314,14 +314,17 @@ const updateContentItem = defineTool({
     const body = (await session.client.put(`/api/v2/content-items/${itemId}`, payload)) as {
       data?: Row;
       changed_fields?: string[];
+      updated_fields?: string[];
     };
     const item = body.data ?? (body as Row);
-    const changedFields = reconcileChangedFields({
-      before,
-      after: item,
-      requested: Object.keys(requested),
-      versionChangedFields: body.changed_fields,
-    });
+    const changedFields = Array.isArray(body.updated_fields)
+      ? body.updated_fields
+      : reconcileChangedFields({
+          before,
+          after: item,
+          requested: Object.keys(requested),
+          versionChangedFields: body.changed_fields,
+        });
     const changed = changedFields.length ? changedFields.join(', ') : 'nothing (no differences)';
     return `Updated: ${changed}.\n${describeItem(item, false)}`;
   },
@@ -356,6 +359,11 @@ const duplicateContentItem = defineTool({
   },
 });
 
+function noteWithLength(note: string, max = 160): string {
+  const text = note.replace(/\s+/g, ' ').trim();
+  return text.length <= max ? text : `${text.slice(0, max - 1)}… (${text.length} chars)`;
+}
+
 const listContentItemVersions = defineTool({
   name: 'list_content_item_versions',
   title: 'List content item versions',
@@ -386,7 +394,7 @@ const listContentItemVersions = defineTool({
             ? `changed: ${(v.changed_fields as string[]).join(', ')}`
             : undefined,
           typeof v.edit_prompt === 'string' && v.edit_prompt
-            ? `note: ${truncate(v.edit_prompt)}`
+            ? `note: ${noteWithLength(v.edit_prompt)}`
             : undefined,
         ])
       ),
