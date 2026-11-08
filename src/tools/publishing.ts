@@ -11,6 +11,7 @@ import {
   requireNumberArg,
   requireStringArg,
   resolveProductId,
+  stringArg,
   unwrapData,
   type ToolDefinition,
 } from './_define.js';
@@ -248,6 +249,35 @@ const updateHubPublication = defineTool({
   },
 });
 
+const unpublishFromHub = defineTool({
+  name: 'unpublish_from_hub',
+  title: 'Unpublish from hub',
+  description:
+    'Remove a published article from its content hub (website), delete the publication record, and set the content item back to draft (or archived). Run this to unblock deleting an item whose delete was refused because it was still published.',
+  inputSchema: {
+    hub_id: z.number().int(),
+    content_item_id: z.number().int(),
+    target_status: z
+      .enum(['draft', 'archived'])
+      .optional()
+      .describe('Where the item lands after removal; defaults to draft'),
+  },
+  annotations: destructive,
+  handler: async (args, session) => {
+    const hubId = requireNumberArg(args, 'hub_id');
+    const itemId = requireNumberArg(args, 'content_item_id');
+    const result = unwrapData<Row>(
+      await session.client.post(
+        `/api/v2/content-hubs/${hubId}/unpublish/${itemId}`,
+        pick(args, ['target_status'])
+      )
+    );
+    const landed = stringArg(args, 'target_status') ?? 'draft';
+    const message = typeof result.message === 'string' ? result.message : 'Article unpublished.';
+    return `${message}\nThe content item is now ${landed}.`;
+  },
+});
+
 const listSchedules = defineTool({
   name: 'list_schedules',
   title: 'List schedules',
@@ -386,6 +416,7 @@ export const publishingTools: readonly ToolDefinition[] = [
   publishToHub,
   listHubPublications,
   updateHubPublication,
+  unpublishFromHub,
   listSchedules,
   scheduleContentItem,
   cancelSchedule,
