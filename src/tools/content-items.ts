@@ -452,7 +452,7 @@ const validateBrandVoice = defineTool({
   description:
     'Score text against the product brand voice (on-brand verdict, tone and vocabulary alignment, concrete issues with fixes). The content item sets the product; pass content to score your own text instead of the stored body, which is the default.',
   inputSchema: { content_item_id: z.number().int(), content: z.string().optional() },
-  annotations: readOnly,
+  annotations: mutating,
   handler: async (args, session) => {
     const itemId = requireNumberArg(args, 'content_item_id');
     const content =
