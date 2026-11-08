@@ -110,6 +110,18 @@ function ctaSection(item: Row): string {
   return body ? `\n\nCall to action:\n${body}` : '';
 }
 
+function coverSection(item: Row): string {
+  const cover = item.cover && typeof item.cover === 'object' ? (item.cover as Row) : null;
+  if (!cover) return '';
+  const body = fields([
+    ['alt text', cover.altText],
+    ['caption', cover.caption],
+    ['credit', cover.credit],
+    ['source', cover.source],
+  ]);
+  return body ? `\n\nCover:\n${body}` : '';
+}
+
 function describeItem(item: Row, includeBody: boolean): string {
   const audiences = asArray<Row>(item.audiences)
     .map((a) => a.name)
@@ -136,9 +148,10 @@ function describeItem(item: Row, includeBody: boolean): string {
     ['updated_at', item.updated_at],
   ]);
   const assets = aeoAssetsSection(item);
+  const cover = coverSection(item);
   const cta = ctaSection(item);
-  if (!includeBody) return `${head}${assets}${cta}`;
-  return `${head}${assets}${cta}\n\nBody:\n${String(item.body ?? '')}`;
+  if (!includeBody) return `${head}${assets}${cover}${cta}`;
+  return `${head}${assets}${cover}${cta}\n\nBody:\n${String(item.body ?? '')}`;
 }
 
 export async function fetchItem(session: McpSession, itemId: number): Promise<Row> {
