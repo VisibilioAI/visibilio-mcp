@@ -4,7 +4,6 @@ import {
   destructive,
   hasAnyArg,
   isoDate,
-  mutating,
   openWorld,
   optionalProductId,
   pick,
@@ -269,7 +268,7 @@ const scheduleContentItem = defineTool({
       .object({ primary_category: z.string().optional(), timezone: z.string().optional() })
       .optional(),
   },
-  annotations: mutating,
+  annotations: openWorld,
   handler: async (args, session) => {
     requireNumberArg(args, 'content_item_id');
     requireNumberArg(args, 'channel_id');

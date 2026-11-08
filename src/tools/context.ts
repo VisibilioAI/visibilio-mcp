@@ -2,7 +2,7 @@ import { z } from 'zod';
 import {
   defineTool,
   describeError,
-  mutating,
+  idempotentWrite,
   readOnly,
   requireNumberArg,
   ToolError,
@@ -109,7 +109,7 @@ const setActiveOrganization = defineTool({
   inputSchema: {
     organization_id: z.number().int().describe('Numeric organization id from list_organizations'),
   },
-  annotations: mutating,
+  annotations: idempotentWrite,
   handler: async (args, session) => {
     const organizationId = requireNumberArg(args, 'organization_id');
     if (!session.organizations.some((org) => org.id === organizationId)) {
@@ -160,7 +160,7 @@ const setActiveProduct = defineTool({
   inputSchema: {
     product_id: z.number().int().describe('Numeric product id from list_products'),
   },
-  annotations: mutating,
+  annotations: idempotentWrite,
   handler: async (args, session) => {
     const productId = requireNumberArg(args, 'product_id');
     try {

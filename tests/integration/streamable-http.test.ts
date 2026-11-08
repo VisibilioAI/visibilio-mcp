@@ -144,6 +144,7 @@ describe('Streamable HTTP transport — session lifecycle', () => {
         title?: string;
         readOnlyHint?: boolean;
         destructiveHint?: boolean;
+        idempotentHint?: boolean;
         openWorldHint?: boolean;
       };
     }>;
@@ -158,7 +159,7 @@ describe('Streamable HTTP transport — session lifecycle', () => {
     expect(
       tools.find((tool) => tool.name === 'update_content_item')?.annotations,
       'update_content_item'
-    ).toMatchObject({ readOnlyHint: false, destructiveHint: false });
+    ).toMatchObject({ readOnlyHint: false, destructiveHint: false, idempotentHint: true });
     expect(
       tools.find((tool) => tool.name === 'delete_content_item')?.annotations,
       'delete_content_item'
@@ -167,11 +168,23 @@ describe('Streamable HTTP transport — session lifecycle', () => {
       tools.find((tool) => tool.name === 'publish_social_post')?.annotations,
       'publish_social_post'
     ).toMatchObject({ readOnlyHint: false, destructiveHint: false, openWorldHint: true });
+    expect(
+      tools.find((tool) => tool.name === 'schedule_content_item')?.annotations,
+      'schedule_content_item'
+    ).toMatchObject({ readOnlyHint: false, destructiveHint: false, openWorldHint: true });
+    expect(
+      tools.find((tool) => tool.name === 'create_source')?.annotations,
+      'create_source'
+    ).toMatchObject({ readOnlyHint: false, destructiveHint: false, openWorldHint: true });
     expect(tools.find((tool) => tool.name === 'get_content_item')?.annotations).toMatchObject({
       readOnlyHint: true,
       destructiveHint: false,
       openWorldHint: false,
     });
+    expect(
+      tools.find((tool) => tool.name === 'validate_brand_voice')?.annotations,
+      'validate_brand_voice'
+    ).toMatchObject({ readOnlyHint: false, destructiveHint: false });
   });
 
   it('authenticates the gateway once per session, not once per request', async () => {

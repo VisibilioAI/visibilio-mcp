@@ -2,6 +2,7 @@ import { z } from 'zod';
 import type { McpSession } from '../session.js';
 import {
   defineTool,
+  idempotentWrite,
   mutating,
   openWorld,
   optionalProductId,
@@ -109,7 +110,7 @@ const updateKnowledge = defineTool({
     change_note: z.string().optional().describe('Not stored yet'),
     product_id: z.number().int().optional(),
   },
-  annotations: mutating,
+  annotations: idempotentWrite,
   handler: async (args, session) => {
     const domain = assertDomain(args.domain);
     if (!args.content || typeof args.content !== 'object')
