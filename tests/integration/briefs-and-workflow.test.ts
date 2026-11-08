@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { z, type ZodTypeAny } from 'zod';
-import { buildSession, findTool, jsonBodyOf, pathMatcher } from './_helpers.js';
+import { buildSession, callTool, findTool, jsonBodyOf, pathMatcher, textOf } from './_helpers.js';
 
 function enumValuesOf(schema: ZodTypeAny | undefined): readonly string[] | undefined {
   const inner = schema instanceof z.ZodOptional ? schema.unwrap() : schema;
@@ -144,6 +144,68 @@ describe('briefs', () => {
     ).handler({ brief_id: 31, status: 'ready', notes: 'go' }, session);
 
     expect(jsonBodyOf(calls[0])).toEqual({ status: 'ready', notes: 'go' });
+  });
+
+  it('get_brief reads one brief in full', async () => {
+    const { session, calls } = buildSession([
+      { match: pathMatcher('GET', '/api/v2/briefs/31'), body: { data: BRIEF } },
+    ]);
+
+    const text = await (await findTool('get_brief')).handler({ brief_id: 31 }, session);
+
+    expect(calls[0]!.url).toContain('/api/v2/briefs/31');
+    expect(text).toContain('Brief: Launch post');
+    expect(text).toContain('brief_id: 31');
+    expect(text).toContain('status: draft');
+  });
+
+  it('delete_brief issues DELETE and confirms the deletion', async () => {
+    const { session, calls } = buildSession([
+      { match: pathMatcher('DELETE', '/api/v2/briefs/31'), body: { data: { id: 31 } } },
+    ]);
+
+    const result = await callTool('delete_brief', { brief_id: 31 }, session);
+
+    expect(calls[0]!.init?.method).toBe('DELETE');
+    expect(calls[0]!.url).toContain('/api/v2/briefs/31');
+    expect(textOf(result)).toBe('Brief 31 deleted.');
+  });
+
+  it('list_brief_content_items lists each linked content item with its id', async () => {
+    const { session, calls } = buildSession([
+      {
+        match: pathMatcher('GET', '/api/v2/briefs/31/content-items'),
+        body: {
+          data: [
+            {
+              content_item_id: 501,
+              content_item: { id: 501, title: 'Draft from brief', type: 'article', status: 'draft' },
+            },
+          ],
+        },
+      },
+    ]);
+
+    const text = await (
+      await findTool('list_brief_content_items')
+    ).handler({ brief_id: 31 }, session);
+
+    expect(calls[0]!.url).toContain('/api/v2/briefs/31/content-items');
+    expect(text).toContain('Content items linked to brief 31:');
+    expect(text).toContain('Draft from brief');
+    expect(text).toContain('content_item_id: 501');
+  });
+
+  it('list_brief_content_items reports an empty brief without claiming it does not exist', async () => {
+    const { session } = buildSession([
+      { match: pathMatcher('GET', '/api/v2/briefs/31/content-items'), body: { data: [] } },
+    ]);
+
+    const text = await (
+      await findTool('list_brief_content_items')
+    ).handler({ brief_id: 31 }, session);
+
+    expect(text).toContain('No content items linked to this brief yet.');
   });
 });
 
@@ -332,5 +394,21 @@ describe('workflow', () => {
     ).handler({ execution_id: 'exec-1', confirmed: true }, session);
 
     expect(jsonBodyOf(calls[0])).toEqual({ confirmed: true });
+  });
+
+  it('cancel_workflow posts the cancellation with the reason and confirms it', async () => {
+    const { session, calls } = buildSession([
+      { match: pathMatcher('POST', '/api/v2/workflow/exec-1/cancel'), body: { data: {} } },
+    ]);
+
+    const result = await callTool(
+      'cancel_workflow',
+      { execution_id: 'exec-1', reason: 'wrong topic' },
+      session
+    );
+
+    expect(calls[0]!.url).toContain('/api/v2/workflow/exec-1/cancel');
+    expect(jsonBodyOf(calls[0])).toEqual({ reason: 'wrong topic' });
+    expect(textOf(result)).toBe('Workflow exec-1 cancelled.');
   });
 });
