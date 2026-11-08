@@ -218,6 +218,36 @@ const listHubPublications = defineTool({
   },
 });
 
+const updateHubPublication = defineTool({
+  name: 'update_hub_publication',
+  title: 'Update hub publication',
+  description:
+    'Re-render the stored body of an already-published article and push the update to its content hub (website). Does not re-generate content. Returns the publication status and live URL.',
+  inputSchema: {
+    hub_id: z.number().int(),
+    content_item_id: z.number().int(),
+    slug: z.string().optional().describe('Override the slug; defaults to the one already published'),
+  },
+  annotations: openWorld,
+  handler: async (args, session) => {
+    const hubId = requireNumberArg(args, 'hub_id');
+    const itemId = requireNumberArg(args, 'content_item_id');
+    const publication = unwrapData<Row>(
+      await session.client.post(
+        `/api/v2/content-hubs/${hubId}/update/${itemId}`,
+        pick(args, ['slug'])
+      )
+    );
+    return fields([
+      ['status', publication.status],
+      ['live_url', publication.live_url],
+      ['file_path', publication.file_path],
+      ['publication_id', publication.id],
+      ['error', publication.error],
+    ]);
+  },
+});
+
 const listSchedules = defineTool({
   name: 'list_schedules',
   title: 'List schedules',
@@ -355,6 +385,7 @@ export const publishingTools: readonly ToolDefinition[] = [
   listContentHubs,
   publishToHub,
   listHubPublications,
+  updateHubPublication,
   listSchedules,
   scheduleContentItem,
   cancelSchedule,
