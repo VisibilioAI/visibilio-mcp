@@ -648,7 +648,7 @@ const getRevisionStatus = defineTool({
       }
       return `${head}\nThe revision job completed but the revised content has not landed yet; call get_revision_status again shortly.`;
     }
-    return head;
+    return `${head}\nThe revision job ended without applying the changes.`;
   },
 });
 
