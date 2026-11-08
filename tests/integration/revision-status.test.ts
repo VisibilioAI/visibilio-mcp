@@ -112,3 +112,37 @@ describe('get_revision_status — REV-08 guard: completed but not landed keeps p
     expect(text).toContain('get_revision_status');
   });
 });
+
+describe('get_revision_status — a version that moved past the baseline counts as landed', () => {
+  it('reports ready even when the item advanced past review, because the version moved', async () => {
+    const { session } = buildSession([
+      {
+        match: pathMatcher('GET', '/generation-jobs/903'),
+        body: {
+          data: {
+            job_id: 903,
+            kind: 'revision',
+            status: 'completed',
+            idempotency_key: 'org:7:item:501:revision:version:3',
+            error: null,
+          },
+        },
+      },
+      {
+        match: pathMatcher('GET', '/content-items/501'),
+        body: { data: { id: 501, status: 'approved', version: 5 } },
+      },
+    ]);
+
+    const result = await callTool(
+      'get_revision_status',
+      { job_id: 903, content_item_id: 501 },
+      session
+    );
+
+    const text = textOf(result);
+    expect(text).toMatch(/ready for review/i);
+    expect(text).not.toMatch(/not landed yet/i);
+    expect(text).toContain('5');
+  });
+});
