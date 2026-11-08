@@ -292,6 +292,82 @@ describe('publishing — hubs and schedules', () => {
     expect(text).toContain('deployed');
   });
 
+  it('preview_hub_publication reads the dry-run endpoint and summarizes the payload', async () => {
+    const { session } = buildSession([
+      {
+        match: pathMatcher('GET', '/api/v2/content-hubs/3/publish/501/preview'),
+        body: {
+          data: {
+            title: 'Why MCP',
+            slug: 'why-mcp',
+            seo: { meta_title: 'Why MCP — a short guide', meta_description: 'x'.repeat(60) },
+            author: { name: 'Jane Byline', type: 'Person' },
+            categorization: {
+              primary_category: 'insights',
+              tags: ['mcp', 'tools'],
+              content_type: 'article',
+            },
+            published_at: '2026-10-20T09:00:00Z',
+            updated_at: '2026-10-20T09:00:00Z',
+            images: {
+              featured: { format: 'png', width: 1200, height: 630, alt: 'cover' },
+              og: { format: 'png', width: 1200, height: 630, alt: 'cover' },
+              thumbnail: { format: 'png', width: 400, height: 300, alt: 'cover' },
+            },
+            extensions: { machine_readable: { '@type': 'Article' } },
+          },
+        },
+      },
+    ]);
+
+    const text = await (
+      await findTool('preview_hub_publication')
+    ).handler({ hub_id: 3, content_item_id: 501 }, session);
+
+    expect(text).toContain('Why MCP');
+    expect(text).toContain('why-mcp');
+    expect(text).toContain('Why MCP — a short guide');
+    expect(text).toContain('Jane Byline');
+    expect(text).toContain('insights');
+    expect(text).toMatch(/1200.?630/);
+    expect(text).toMatch(/machine.readable/i);
+  });
+
+  it('preview_hub_publication forwards slug and category as query params', async () => {
+    const { session, calls } = buildSession([
+      {
+        match: pathMatcher('GET', '/api/v2/content-hubs/3/publish/501/preview'),
+        body: {
+          data: {
+            title: 'Why MCP',
+            slug: 'custom',
+            seo: { meta_title: 'Why MCP' },
+            author: { name: 'Org', type: 'Organization' },
+            categorization: { primary_category: 'insights', tags: [], content_type: 'article' },
+            published_at: '2026-10-20T09:00:00Z',
+            updated_at: '2026-10-20T09:00:00Z',
+            images: {
+              featured: { format: 'png', width: 1, height: 1, alt: '' },
+              og: { format: 'png', width: 1, height: 1, alt: '' },
+              thumbnail: { format: 'png', width: 1, height: 1, alt: '' },
+            },
+          },
+        },
+      },
+    ]);
+
+    await (
+      await findTool('preview_hub_publication')
+    ).handler(
+      { hub_id: 3, content_item_id: 501, slug: 'custom', primary_category: 'Product' },
+      session
+    );
+
+    const url = calls[0]?.url ?? '';
+    expect(url).toContain('slug=custom');
+    expect(url).toContain('primary_category=Product');
+  });
+
   it('schedule_content_item posts item, channel and publish time', async () => {
     const { session, calls } = buildSession([
       {
