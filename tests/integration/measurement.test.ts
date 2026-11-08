@@ -225,7 +225,9 @@ function overviewResponse(body: Json = makeOverview()) {
 async function runOverview(args: Json, body: Json = makeOverview()) {
   const { session, calls } = buildSession([overviewResponse(body)]);
   await session.setActiveProduct(147, 'Visibilio');
-  const text = (await (await findTool('get_measurement_overview')).handler(args, session)) as string;
+  const text = (await (
+    await findTool('get_measurement_overview')
+  ).handler(args, session)) as string;
   return { text, parsed: JSON.parse(text) as Json, calls };
 }
 
