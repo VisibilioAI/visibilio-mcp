@@ -14,7 +14,7 @@ import {
   unwrapData,
   type ToolDefinition,
 } from './_define.js';
-import { asArray, fields, line, listOrEmpty, nameOf, truncate, type Row } from './_format.js';
+import { asArray, fields, line, listOrEmpty, nameOf, type Row } from './_format.js';
 import { pickPiece, piecesOf } from './_run.js';
 import { publicationSyncState, reconcileChangedFields } from './publication-sync.js';
 
@@ -356,6 +356,11 @@ const duplicateContentItem = defineTool({
   },
 });
 
+function noteWithLength(note: string, max = 160): string {
+  const text = note.replace(/\s+/g, ' ').trim();
+  return text.length <= max ? text : `${text.slice(0, max - 1)}… (${text.length} chars)`;
+}
+
 const listContentItemVersions = defineTool({
   name: 'list_content_item_versions',
   title: 'List content item versions',
@@ -386,7 +391,7 @@ const listContentItemVersions = defineTool({
             ? `changed: ${(v.changed_fields as string[]).join(', ')}`
             : undefined,
           typeof v.edit_prompt === 'string' && v.edit_prompt
-            ? `note: ${truncate(v.edit_prompt)}`
+            ? `note: ${noteWithLength(v.edit_prompt)}`
             : undefined,
         ])
       ),
