@@ -121,6 +121,33 @@ describe('content items — listing and reading', () => {
     expect(text).toContain('https://example.com/a');
   });
 
+  it('get_content_item prints the call to action', async () => {
+    const { session } = buildSession([
+      {
+        match: pathMatcher('GET', '/api/v2/content-items/501'),
+        body: {
+          data: {
+            ...ITEM,
+            cta: {
+              enabled: true,
+              title: 'Book a test drive',
+              buttonLabel: 'Book now',
+              buttonUrl: 'https://example.com/book',
+            },
+          },
+        },
+      },
+    ]);
+
+    const text = await (
+      await findTool('get_content_item')
+    ).handler({ content_item_id: 501 }, session);
+
+    expect(text).toContain('Call to action:');
+    expect(text).toContain('Book a test drive');
+    expect(text).toContain('button url: https://example.com/book');
+  });
+
   it('a gateway 404 is reported to the model as a failed result with the gateway message, not thrown', async () => {
     const { session } = buildSession([
       {
