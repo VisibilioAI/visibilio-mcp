@@ -48,6 +48,7 @@ const EDITORIAL_FIELDS = [
   'audience_ids',
   'featured_image_url',
   'author_name',
+  'cta',
   'edit_prompt',
 ] as const;
 
@@ -323,7 +324,7 @@ const updateContentItem = defineTool({
   name: 'update_content_item',
   title: 'Update content item',
   description:
-    'Edit a content item: text, status, platform, tags, SEO meta, audiences, summary bullets and FAQ. Only the fields you pass change. An editorial change creates a version; a status change may not. Status moves published→draft and archived→published are rejected. Sources are research-owned and read-only — read them with get_content_item.',
+    'Edit a content item: text, status, platform, tags, SEO meta, audiences, summary bullets, FAQ and call to action. Only the fields you pass change. An editorial change creates a version; a status change may not. Status moves published→draft and archived→published are rejected. Sources are research-owned and read-only — read them with get_content_item.',
   inputSchema: {
     content_item_id: z.number().int(),
     title: z.string().optional(),
@@ -346,6 +347,18 @@ const updateContentItem = defineTool({
     audience_ids: z.array(z.number().int()).optional().describe('Replaces the audience set'),
     featured_image_url: z.string().optional(),
     author_name: z.string().optional().describe('Articles only'),
+    cta: z
+      .object({
+        enabled: z.boolean(),
+        eyebrow: z.string().optional(),
+        title: z.string().optional(),
+        supportingText: z.string().optional(),
+        buttonLabel: z.string().optional(),
+        buttonUrl: z.string().optional(),
+        style: z.string().optional(),
+      })
+      .optional()
+      .describe('Structured call to action; enabled:false keeps an authored CTA switched off'),
     summary_bullets: z
       .array(z.string())
       .optional()
