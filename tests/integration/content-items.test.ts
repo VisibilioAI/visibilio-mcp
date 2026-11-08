@@ -444,6 +444,35 @@ describe('content items — writing', () => {
     expect(jsonBodyOf(putCall)).toEqual({ cta: CTA, created_by: 'agent' });
   });
 
+  it('update_content_item accepts cover metadata and forwards it to the gateway PUT', async () => {
+    const COVER = {
+      altText: 'A silver estate car on a mountain road',
+      caption: 'The Geely Starray EM-i',
+      credit: 'Jane Photographer',
+    };
+    const tool = await findTool('update_content_item');
+    expect(tool.inputSchema.cover, 'cover must be a declared input').toBeDefined();
+
+    const { session, calls } = buildSession([
+      { match: pathMatcher('GET', '/api/v2/content-items/501'), body: { data: ITEM } },
+      {
+        match: pathMatcher('PUT', '/api/v2/content-items/501'),
+        body: {
+          data: {
+            ...ITEM,
+            cover: { ...COVER, url: 'https://img.example/c.png', source: 'ai_generated' },
+          },
+          changed_fields: ['cover'],
+        },
+      },
+    ]);
+
+    await tool.handler({ content_item_id: 501, cover: COVER }, session);
+
+    const putCall = calls.find((c) => (c.init?.method ?? 'GET') === 'PUT');
+    expect(jsonBodyOf(putCall)).toEqual({ cover: COVER, created_by: 'agent' });
+  });
+
   it('delete_content_item issues DELETE and reports a published-elsewhere conflict verbatim as a failed result', async () => {
     const { session } = buildSession([
       {
