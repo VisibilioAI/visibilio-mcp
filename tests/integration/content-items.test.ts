@@ -420,6 +420,30 @@ describe('content items — writing', () => {
     expect(text).toContain('Updated: status, platform');
   });
 
+  it('update_content_item accepts a cta and forwards it to the gateway PUT', async () => {
+    const CTA = {
+      enabled: true,
+      title: 'Book a test drive',
+      buttonLabel: 'Book now',
+      buttonUrl: 'https://example.com/book',
+    };
+    const tool = await findTool('update_content_item');
+    expect(tool.inputSchema.cta, 'cta must be a declared input').toBeDefined();
+
+    const { session, calls } = buildSession([
+      { match: pathMatcher('GET', '/api/v2/content-items/501'), body: { data: ITEM } },
+      {
+        match: pathMatcher('PUT', '/api/v2/content-items/501'),
+        body: { data: { ...ITEM, cta: CTA }, changed_fields: ['cta'] },
+      },
+    ]);
+
+    await tool.handler({ content_item_id: 501, cta: CTA }, session);
+
+    const putCall = calls.find((c) => (c.init?.method ?? 'GET') === 'PUT');
+    expect(jsonBodyOf(putCall)).toEqual({ cta: CTA, created_by: 'agent' });
+  });
+
   it('delete_content_item issues DELETE and reports a published-elsewhere conflict verbatim as a failed result', async () => {
     const { session } = buildSession([
       {
