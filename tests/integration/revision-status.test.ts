@@ -41,3 +41,74 @@ describe('get_revision_status — a running job keeps the caller polling', () =>
     expect(text).toContain('get_revision_status');
   });
 });
+
+describe('get_revision_status — a landed revision is ready for review', () => {
+  it('reports ready for review once the job completed and the item moved to review', async () => {
+    const { session, calls } = buildSession([
+      {
+        match: pathMatcher('GET', '/generation-jobs/901'),
+        body: {
+          data: {
+            job_id: 901,
+            kind: 'revision',
+            status: 'completed',
+            idempotency_key: 'org:7:item:501:revision:version:3',
+            error: null,
+          },
+        },
+      },
+      {
+        match: pathMatcher('GET', '/content-items/501'),
+        body: { data: { id: 501, status: 'review', version: 4 } },
+      },
+    ]);
+
+    const result = await callTool(
+      'get_revision_status',
+      { job_id: 901, content_item_id: 501 },
+      session
+    );
+
+    expect(calls).toHaveLength(2);
+    expect(String(calls[1]?.url)).toContain('/api/v2/content-items/501');
+    const text = textOf(result);
+    expect(text).toMatch(/ready for review/i);
+    expect(text).toContain('review');
+    expect(text).toContain('4');
+  });
+});
+
+describe('get_revision_status — REV-08 guard: completed but not landed keeps polling', () => {
+  it('does not claim ready when the job says completed but the item has not moved yet', async () => {
+    const { session, calls } = buildSession([
+      {
+        match: pathMatcher('GET', '/generation-jobs/902'),
+        body: {
+          data: {
+            job_id: 902,
+            kind: 'revision',
+            status: 'completed',
+            idempotency_key: 'org:7:item:501:revision:version:3',
+            error: null,
+          },
+        },
+      },
+      {
+        match: pathMatcher('GET', '/content-items/501'),
+        body: { data: { id: 501, status: 'changes_requested', version: 3 } },
+      },
+    ]);
+
+    const result = await callTool(
+      'get_revision_status',
+      { job_id: 902, content_item_id: 501 },
+      session
+    );
+
+    expect(calls).toHaveLength(2);
+    const text = textOf(result);
+    expect(text).not.toMatch(/ready for review/i);
+    expect(text).toMatch(/not landed yet/i);
+    expect(text).toContain('get_revision_status');
+  });
+});
