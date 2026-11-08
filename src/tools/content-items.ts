@@ -641,7 +641,8 @@ const getRevisionStatus = defineTool({
       const itemStatus = String(item.status ?? '');
       const baseline = revisionBaselineVersion(job.idempotency_key);
       const currentVersion = typeof item.version === 'number' ? item.version : null;
-      const versionMoved = baseline !== null && currentVersion !== null && currentVersion > baseline;
+      const versionMoved =
+        baseline !== null && currentVersion !== null && currentVersion > baseline;
       const landed = itemStatus === 'review' || versionMoved;
       if (landed) {
         return `${head}\nThe revision is ready for review (content item ${itemId}: status ${itemStatus}, version ${String(item.version ?? '')}).`;
