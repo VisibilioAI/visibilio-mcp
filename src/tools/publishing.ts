@@ -227,7 +227,10 @@ const updateHubPublication = defineTool({
   inputSchema: {
     hub_id: z.number().int(),
     content_item_id: z.number().int(),
-    slug: z.string().optional().describe('Override the slug; defaults to the one already published'),
+    slug: z
+      .string()
+      .optional()
+      .describe('Override the slug; defaults to the one already published'),
   },
   annotations: openWorld,
   handler: async (args, session) => {
