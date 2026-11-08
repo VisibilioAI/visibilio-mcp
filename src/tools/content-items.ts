@@ -48,6 +48,8 @@ const EDITORIAL_FIELDS = [
   'audience_ids',
   'featured_image_url',
   'author_name',
+  'cta',
+  'cover',
   'edit_prompt',
 ] as const;
 
@@ -81,7 +83,8 @@ function aeoAssetsSection(item: Row): string {
   }
   if (sources.length) {
     sections.push(
-      `Sources:\n${sources
+      `Sources (${sources.length}):\n${sources
+        .slice(0, 10)
         .map((s) =>
           line(String(s.title ?? s.url ?? 'Source'), 'url', s.url ?? '', [
             typeof s.publisher === 'string' ? s.publisher : undefined,
@@ -91,6 +94,33 @@ function aeoAssetsSection(item: Row): string {
     );
   }
   return sections.length ? `\n\n${sections.join('\n\n')}` : '';
+}
+
+function ctaSection(item: Row): string {
+  const cta = item.cta && typeof item.cta === 'object' ? (item.cta as Row) : null;
+  if (!cta) return '';
+  const body = fields([
+    ['enabled', cta.enabled],
+    ['eyebrow', cta.eyebrow],
+    ['title', cta.title],
+    ['supporting text', cta.supportingText],
+    ['button label', cta.buttonLabel],
+    ['button url', cta.buttonUrl],
+    ['style', cta.style],
+  ]);
+  return body ? `\n\nCall to action:\n${body}` : '';
+}
+
+function coverSection(item: Row): string {
+  const cover = item.cover && typeof item.cover === 'object' ? (item.cover as Row) : null;
+  if (!cover) return '';
+  const body = fields([
+    ['alt text', cover.altText],
+    ['caption', cover.caption],
+    ['credit', cover.credit],
+    ['source', cover.source],
+  ]);
+  return body ? `\n\nCover:\n${body}` : '';
 }
 
 function describeItem(item: Row, includeBody: boolean): string {
@@ -119,8 +149,10 @@ function describeItem(item: Row, includeBody: boolean): string {
     ['updated_at', item.updated_at],
   ]);
   const assets = aeoAssetsSection(item);
-  if (!includeBody) return `${head}${assets}`;
-  return `${head}${assets}\n\nBody:\n${String(item.body ?? '')}`;
+  const cover = coverSection(item);
+  const cta = ctaSection(item);
+  if (!includeBody) return `${head}${assets}${cover}${cta}`;
+  return `${head}${assets}${cover}${cta}\n\nBody:\n${String(item.body ?? '')}`;
 }
 
 export async function fetchItem(session: McpSession, itemId: number): Promise<Row> {
@@ -323,7 +355,7 @@ const updateContentItem = defineTool({
   name: 'update_content_item',
   title: 'Update content item',
   description:
-    'Edit a content item: text, status, platform, tags, SEO meta, audiences, summary bullets and FAQ. Only the fields you pass change. An editorial change creates a version; a status change may not. Status moves published→draft and archived→published are rejected. Sources are research-owned and read-only — read them with get_content_item.',
+    'Edit a content item: text, status, platform, tags, SEO meta, audiences, summary bullets, FAQ, call to action and cover metadata. Only the fields you pass change. An editorial change creates a version; a status change may not. Status moves published→draft and archived→published are rejected. Sources are research-owned and read-only — read them with get_content_item.',
   inputSchema: {
     content_item_id: z.number().int(),
     title: z.string().optional(),
@@ -346,6 +378,28 @@ const updateContentItem = defineTool({
     audience_ids: z.array(z.number().int()).optional().describe('Replaces the audience set'),
     featured_image_url: z.string().optional(),
     author_name: z.string().optional().describe('Articles only'),
+    cta: z
+      .object({
+        enabled: z.boolean(),
+        eyebrow: z.string().optional(),
+        title: z.string().optional(),
+        supportingText: z.string().optional(),
+        buttonLabel: z.string().optional(),
+        buttonUrl: z.string().optional(),
+        style: z.string().optional(),
+      })
+      .optional()
+      .describe('Structured call to action; enabled:false keeps an authored CTA switched off'),
+    cover: z
+      .object({
+        altText: z.string().optional(),
+        caption: z.string().optional(),
+        credit: z.string().optional(),
+      })
+      .optional()
+      .describe(
+        'Cover presentation metadata; the image url is set by generate_cover_image, not here'
+      ),
     summary_bullets: z
       .array(z.string())
       .optional()
