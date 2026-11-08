@@ -183,6 +183,13 @@ async function publicationDriftLine(session: McpSession, item: Row): Promise<str
   }
 }
 
+function livePublicationWarning(body: unknown): string | null {
+  const live = (body as { live_publications?: unknown } | null)?.live_publications;
+  if (!Array.isArray(live) || live.length === 0) return null;
+  const where = live.map((destination) => String(destination)).join(', ');
+  return `\nWarning: the site still shows the published version — this change is not live yet. Re-publish with publish_to_hub to push it to the live page (${where}).`;
+}
+
 const listContentItems = defineTool({
   name: 'list_content_items',
   title: 'List content items',
@@ -439,7 +446,8 @@ const updateContentItem = defineTool({
           versionChangedFields: body.changed_fields,
         });
     const changed = changedFields.length ? changedFields.join(', ') : 'nothing (no differences)';
-    return `Updated: ${changed}.\n${describeItem(item, false)}`;
+    const warning = livePublicationWarning(body);
+    return `Updated: ${changed}.\n${describeItem(item, false)}${warning ?? ''}`;
   },
 });
 
@@ -526,12 +534,12 @@ const restoreContentItemVersion = defineTool({
   handler: async (args, session) => {
     const itemId = requireNumberArg(args, 'content_item_id');
     const versionId = requireNumberArg(args, 'version_id');
-    const item = unwrapData<Row>(
-      await session.client.post(`/api/v2/content-items/${itemId}/restore`, {
-        version_id: versionId,
-      })
-    );
-    return `Restored version ${versionId}.\n${describeItem(item, false)}`;
+    const response = await session.client.post(`/api/v2/content-items/${itemId}/restore`, {
+      version_id: versionId,
+    });
+    const item = unwrapData<Row>(response);
+    const warning = livePublicationWarning(response);
+    return `Restored version ${versionId}.\n${describeItem(item, false)}${warning ?? ''}`;
   },
 });
 
