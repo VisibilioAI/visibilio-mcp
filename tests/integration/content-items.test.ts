@@ -964,3 +964,72 @@ describe('content items — field round trip (ITEM)', () => {
     expect(text).toContain('source: ai_generated');
   });
 });
+
+describe('content items — live-publication divergence warning (edit & restore)', () => {
+  const LIVE_DESTS = ['https://visibilio.ai/content-hub/live-piece'];
+
+  it('update_content_item warns that the site still shows the published version when an edit leaves a live page behind', async () => {
+    const { session } = buildSession([
+      { match: pathMatcher('GET', '/api/v2/content-items/501'), body: { data: ITEM } },
+      {
+        match: pathMatcher('PUT', '/api/v2/content-items/501'),
+        body: {
+          data: { ...ITEM, title: 'Edited' },
+          changed_fields: ['title'],
+          live_publications: LIVE_DESTS,
+        },
+      },
+    ]);
+
+    const text = await (
+      await findTool('update_content_item')
+    ).handler({ content_item_id: 501, title: 'Edited' }, session);
+
+    expect(text).toContain('the site still shows the published version');
+    expect(text).toContain('publish_to_hub');
+  });
+
+  it('update_content_item adds no divergence warning when the item is not live on any hub', async () => {
+    const { session } = buildSession([
+      { match: pathMatcher('GET', '/api/v2/content-items/501'), body: { data: ITEM } },
+      {
+        match: pathMatcher('PUT', '/api/v2/content-items/501'),
+        body: { data: { ...ITEM, title: 'Edited' }, changed_fields: ['title'] },
+      },
+    ]);
+
+    const text = await (
+      await findTool('update_content_item')
+    ).handler({ content_item_id: 501, title: 'Edited' }, session);
+
+    expect(text).not.toContain('the site still shows the published version');
+  });
+
+  it('restore_content_item_version warns that the site still shows the published version when a restore leaves a live page behind', async () => {
+    const { session } = buildSession([
+      {
+        match: pathMatcher('POST', '/api/v2/content-items/501/restore'),
+        body: { data: ITEM, live_publications: LIVE_DESTS },
+      },
+    ]);
+
+    const text = await (
+      await findTool('restore_content_item_version')
+    ).handler({ content_item_id: 501, version_id: 42 }, session);
+
+    expect(text).toContain('the site still shows the published version');
+    expect(text).toContain('publish_to_hub');
+  });
+
+  it('restore_content_item_version adds no divergence warning when the item is not live on any hub', async () => {
+    const { session } = buildSession([
+      { match: pathMatcher('POST', '/api/v2/content-items/501/restore'), body: { data: ITEM } },
+    ]);
+
+    const text = await (
+      await findTool('restore_content_item_version')
+    ).handler({ content_item_id: 501, version_id: 42 }, session);
+
+    expect(text).not.toContain('the site still shows the published version');
+  });
+});
