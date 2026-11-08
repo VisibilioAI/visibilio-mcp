@@ -12,7 +12,7 @@ function paramDescription(name: string, param: string): string | undefined {
   const schema = tool(name).inputSchema as Record<string, ZodTypeAny>;
   const field = schema[param];
   expect(field, `${name}.${param} exists`).toBeDefined();
-  return field.description;
+  return field?.description;
 }
 
 describe('tool descriptions describe what the server actually does', () => {

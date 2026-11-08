@@ -276,7 +276,7 @@ const updateContentItem = defineTool({
   name: 'update_content_item',
   title: 'Update content item',
   description:
-    'Edit a content item: text, status, platform, tags, SEO meta, audiences. Only the fields you pass change; every change is versioned. Status moves published→draft and archived→published are rejected.',
+    'Edit a content item: text, status, platform, tags, SEO meta, audiences. Only the fields you pass change. An editorial change creates a version; a status change may not. Status moves published→draft and archived→published are rejected.',
   inputSchema: {
     content_item_id: z.number().int(),
     title: z.string().optional(),
@@ -298,7 +298,7 @@ const updateContentItem = defineTool({
     body_format: z.enum(['markdown', 'html', 'plain']).optional(),
     audience_ids: z.array(z.number().int()).optional().describe('Replaces the audience set'),
     featured_image_url: z.string().optional(),
-    author_name: z.string().optional(),
+    author_name: z.string().optional().describe('Articles only'),
     edit_prompt: z
       .string()
       .optional()
@@ -524,7 +524,7 @@ const translateContentItem = defineTool({
   name: 'translate_content_item',
   title: 'Translate content item',
   description:
-    'Translate a content item into another supported language as a linked draft variant (requires multi-language to be enabled for the product).',
+    'Translate a content item into another supported language as a linked draft variant (requires multi-language to be enabled for the product). It runs synchronously and can outlast the client timeout; if the call times out the server may still finish, so check list_content_items before retrying.',
   inputSchema: { content_item_id: z.number().int(), target_language: z.enum(LANGUAGES) },
   annotations: mutating,
   handler: async (args, session) => {

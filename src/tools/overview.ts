@@ -78,7 +78,7 @@ const getReviewQueue = defineTool({
   name: 'get_review_queue',
   title: 'Get review queue',
   description:
-    'Content items waiting for review or with requested changes, with their quality risk score. Approve with approve_content_item or send back with request_content_changes.',
+    'Content items waiting for review or with requested changes. Approve with approve_content_item or send back with request_content_changes.',
   inputSchema: { product_id: z.number().int().optional(), sort: z.enum(['risk']).optional() },
   annotations: readOnly,
   handler: async (args, session) => {
@@ -113,7 +113,7 @@ const approveContentItem = defineTool({
   name: 'approve_content_item',
   title: 'Approve content item',
   description:
-    'Approve a content item that is in review; optionally place it into the publishing schedule right away.',
+    'Approve a content item from any status except the forbidden transitions. With schedule: true, it is scheduled on the topic channel, or the active hub channel, at the next free slot.',
   inputSchema: { content_item_id: z.number().int(), schedule: z.boolean().optional() },
   annotations: mutating,
   handler: async (args, session) => {

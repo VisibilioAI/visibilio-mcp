@@ -216,7 +216,7 @@ const listPlannedTopics = defineTool({
   name: 'list_planned_topics',
   title: 'List planned topics',
   description:
-    'List the planned topics (calendar entries) of a product in a date window, with their status and generated content items.',
+    'List the planned topics (calendar entries) of a product in a date window, with their status and generated content items. Only topics of finalised plans are returned.',
   inputSchema: {
     product_id: z.number().int().optional(),
     from: isoDate('from').optional().describe('ISO date, inclusive'),

@@ -102,11 +102,11 @@ const updateKnowledge = defineTool({
   name: 'update_knowledge',
   title: 'Update knowledge',
   description:
-    'Replace the content of a knowledge domain (full replace; read it first with get_knowledge, merge your edits, then write). Creates a new version.',
+    'Replace the content of a knowledge domain (read it first with get_knowledge, merge your edits, then write). Protected keys are kept when you omit them. company_profile is organization-wide, not per-product. Creates a new version.',
   inputSchema: {
     domain: z.enum(KNOWLEDGE_DOMAINS),
     content: z.record(z.unknown()).describe('The complete new content object'),
-    change_note: z.string().optional(),
+    change_note: z.string().optional().describe('Not stored yet'),
     product_id: z.number().int().optional(),
   },
   annotations: mutating,

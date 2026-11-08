@@ -151,7 +151,7 @@ const publishToHub = defineTool({
   name: 'publish_to_hub',
   title: 'Publish to hub',
   description:
-    'Publish an article to a content hub (website) immediately. Returns the live URL once deployed.',
+    'Publish an article to a content hub (website) immediately; it does not check that the item is approved first. Returns the status and the live URL once deployed.',
   inputSchema: {
     hub_id: z.number().int(),
     content_item_id: z.number().int(),
@@ -160,7 +160,7 @@ const publishToHub = defineTool({
     cross_post_channels: z
       .array(z.number().int())
       .optional()
-      .describe('Social channel ids to announce the post on'),
+      .describe('Social channel ids to schedule an announcement post on'),
     source_article_link: z.boolean().optional(),
   },
   annotations: openWorld,
