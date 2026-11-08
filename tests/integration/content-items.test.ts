@@ -282,6 +282,29 @@ describe('content items — writing', () => {
     expect(text).not.toContain('Updated: status');
   });
 
+  it('update_content_item prints the gateway updated_fields verbatim when the response supplies them', async () => {
+    // The gateway is authoritative about what changed, including non-versioned keys
+    // the client did not single out (platform here is unchanged and unrequested, so
+    // client-side reconciliation could never derive it). The tool reports its list.
+    const { session } = buildSession([
+      { match: pathMatcher('GET', '/api/v2/content-items/501'), body: { data: ITEM } },
+      {
+        match: pathMatcher('PUT', '/api/v2/content-items/501'),
+        body: {
+          data: { ...ITEM, status: 'review' },
+          changed_fields: [],
+          updated_fields: ['status', 'platform'],
+        },
+      },
+    ]);
+
+    const text = await (
+      await findTool('update_content_item')
+    ).handler({ content_item_id: 501, status: 'review' }, session);
+
+    expect(text).toContain('Updated: status, platform');
+  });
+
   it('delete_content_item issues DELETE and reports a published-elsewhere conflict verbatim as a failed result', async () => {
     const { session } = buildSession([
       {
