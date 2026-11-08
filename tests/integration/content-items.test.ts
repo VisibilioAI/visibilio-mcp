@@ -148,6 +148,36 @@ describe('content items — listing and reading', () => {
     expect(text).toContain('button url: https://example.com/book');
   });
 
+  it('get_content_item prints the cover metadata', async () => {
+    const { session } = buildSession([
+      {
+        match: pathMatcher('GET', '/api/v2/content-items/501'),
+        body: {
+          data: {
+            ...ITEM,
+            cover: {
+              url: 'https://img.example/c.png',
+              source: 'ai_generated',
+              altText: 'A silver estate car on a mountain road',
+              caption: 'The Geely Starray EM-i',
+              credit: 'Jane Photographer',
+            },
+          },
+        },
+      },
+    ]);
+
+    const text = await (
+      await findTool('get_content_item')
+    ).handler({ content_item_id: 501 }, session);
+
+    expect(text).toContain('Cover:');
+    expect(text).toContain('alt text: A silver estate car on a mountain road');
+    expect(text).toContain('caption: The Geely Starray EM-i');
+    expect(text).toContain('credit: Jane Photographer');
+    expect(text).toContain('source: ai_generated');
+  });
+
   it('a gateway 404 is reported to the model as a failed result with the gateway message, not thrown', async () => {
     const { session } = buildSession([
       {
