@@ -139,7 +139,7 @@ const generateFromSignal = defineTool({
         pick(args, ['output_types', 'additional_context', 'language'])
       )
     );
-    return `Generation started from signal ${signalId}: execution_id ${String(result.execution_id)} (${String(result.state)}). Call get_workflow_status(execution_id) to follow it; it returns at once, so call it again while it reports the run is still going.`;
+    return `Generation started from signal ${signalId}: execution_id ${String(result.execution_id)} (${String(result.state)}). Call get_workflow_status(execution_id) to follow it; it returns at once, so call it again while it reports the run is still going. When it is done, save the result with create_content_item(type, source_execution_id, signal_id: ${signalId}) so signal ${signalId} is marked used and is not suggested again.`;
   },
 });
 
