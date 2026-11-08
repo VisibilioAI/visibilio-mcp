@@ -146,3 +146,35 @@ describe('get_revision_status — a version that moved past the baseline counts 
     expect(text).toContain('5');
   });
 });
+
+describe('get_revision_status — a failed job stops the caller polling', () => {
+  it('reports the job ended and surfaces the error without reading the item', async () => {
+    const { session, calls } = buildSession([
+      {
+        match: pathMatcher('GET', '/generation-jobs/905'),
+        body: {
+          data: {
+            job_id: 905,
+            kind: 'revision',
+            status: 'failed',
+            idempotency_key: 'org:7:item:501:revision:version:3',
+            error: 'Edit model unavailable',
+          },
+        },
+      },
+    ]);
+
+    const result = await callTool(
+      'get_revision_status',
+      { job_id: 905, content_item_id: 501 },
+      session
+    );
+
+    expect(calls).toHaveLength(1);
+    const text = textOf(result);
+    expect(text).toMatch(/ended/i);
+    expect(text).toContain('Edit model unavailable');
+    expect(text).not.toMatch(/ready for review/i);
+    expect(text).not.toMatch(/still running/i);
+  });
+});
