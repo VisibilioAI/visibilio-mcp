@@ -65,6 +65,7 @@ const EXPECTED_TOOLS = [
   'publish_social_post',
   'list_content_hubs',
   'publish_to_hub',
+  'preview_hub_publication',
   'list_hub_publications',
   'update_hub_publication',
   'unpublish_from_hub',
@@ -157,7 +158,7 @@ describe('tool catalogue — one tool per gateway capability', () => {
   it('pure reads are read-only and non-destructive; writes are not read-only', () => {
     for (const tool of allTools) {
       const isRead =
-        /^(list_|get_|whoami$|search$|fetch$)/.test(tool.name) &&
+        /^(list_|get_|preview_|whoami$|search$|fetch$)/.test(tool.name) &&
         !['get_content_plan_status', 'get_planned_topic_brief'].includes(tool.name);
       if (isRead) {
         expect(tool.annotations.readOnlyHint, tool.name).toBe(true);
