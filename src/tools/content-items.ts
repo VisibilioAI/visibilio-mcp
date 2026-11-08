@@ -572,6 +572,12 @@ const generateCoverImage = defineTool({
 
 const GENERATION_JOB_TERMINAL_STATUSES = ['completed', 'partial_failed', 'failed'] as const;
 
+function revisionBaselineVersion(idempotencyKey: unknown): number | null {
+  if (typeof idempotencyKey !== 'string') return null;
+  const match = idempotencyKey.match(/version:(\d+)$/);
+  return match ? Number(match[1]) : null;
+}
+
 const getGenerationJobStatus = defineTool({
   name: 'get_generation_job_status',
   title: 'Get generation job status',
@@ -633,7 +639,10 @@ const getRevisionStatus = defineTool({
     if (status === 'completed') {
       const item = await fetchItem(session, itemId);
       const itemStatus = String(item.status ?? '');
-      const landed = itemStatus === 'review';
+      const baseline = revisionBaselineVersion(job.idempotency_key);
+      const currentVersion = typeof item.version === 'number' ? item.version : null;
+      const versionMoved = baseline !== null && currentVersion !== null && currentVersion > baseline;
+      const landed = itemStatus === 'review' || versionMoved;
       if (landed) {
         return `${head}\nThe revision is ready for review (content item ${itemId}: status ${itemStatus}, version ${String(item.version ?? '')}).`;
       }
