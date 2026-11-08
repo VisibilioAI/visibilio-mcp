@@ -424,22 +424,7 @@ describe('content items — AI helpers', () => {
     expect(text).toContain('get_generation_job_status');
   });
 
-  it('translate_content_item sends the target language', async () => {
-    const { session, calls } = buildSession([
-      {
-        match: pathMatcher('POST', '/api/v2/content-items/501/translate'),
-        status: 201,
-        body: { data: { ...ITEM, id: 611, language: 'bg' } },
-      },
-    ]);
-
-    const text = await (
-      await findTool('translate_content_item')
-    ).handler({ content_item_id: 501, target_language: 'bg' }, session);
-
-    expect(jsonBodyOf(calls[0])).toEqual({ target_language: 'bg' });
-    expect(text).toContain('content_item_id: 611');
-  });
+  // translate_content_item is async (meta #1070) — covered by translate-async.test.ts.
 
   it('quick_repurpose_content_item forwards context and lists the created draft ids', async () => {
     const { session, calls } = buildSession([

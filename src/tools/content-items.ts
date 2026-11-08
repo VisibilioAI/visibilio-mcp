@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { HttpError } from '../client.js';
 import type { McpSession } from '../session.js';
 import {
   defineTool,
@@ -533,18 +534,28 @@ const translateContentItem = defineTool({
   name: 'translate_content_item',
   title: 'Translate content item',
   description:
-    'Translate a content item into another supported language as a linked draft variant (requires multi-language to be enabled for the product). It runs synchronously and can outlast the client timeout; if the call times out the server may still finish, so check list_content_items before retrying.',
+    'Translate a content item into another supported language as a linked draft variant (requires multi-language to be enabled for the product). Returns a job id at once; follow it with get_generation_job_status until it completes, then the translated variant is saved as a linked draft. Retrying the same request never creates a second variant.',
   inputSchema: { content_item_id: z.number().int(), target_language: z.enum(LANGUAGES) },
   annotations: mutating,
   handler: async (args, session) => {
     const itemId = requireNumberArg(args, 'content_item_id');
-    const item = unwrapData<Row>(
-      await session.client.post(
-        `/api/v2/content-items/${itemId}/translate`,
-        pick(args, ['target_language'])
-      )
-    );
-    return `Translation created.\n${itemLine(item)}`;
+    const payload = pick(args, ['target_language']);
+    try {
+      const started = (await session.client.post(
+        `/api/v2/content-items/${itemId}/translate-async`,
+        payload
+      )) as { job_id?: number | string; status?: string };
+      const jobId = String(started.job_id ?? '');
+      return `Translation started: job ${jobId} (${String(started.status ?? 'running')}). Call get_generation_job_status(job_id: "${jobId}") until it completes; the translated variant is saved as a linked draft automatically.`;
+    } catch (error) {
+      if (error instanceof HttpError && (error.status === 404 || error.status === 405)) {
+        const item = unwrapData<Row>(
+          await session.client.post(`/api/v2/content-items/${itemId}/translate`, payload)
+        );
+        return `Translation created.\n${itemLine(item)}`;
+      }
+      throw error;
+    }
   },
 });
 

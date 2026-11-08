@@ -47,7 +47,15 @@ describe('translate_content_item — async job with sync fallback (meta #1070)',
       {
         match: pathMatcher('POST', '/content-items/501/translate'),
         status: 201,
-        body: { data: { id: 611, title: 'Здравей свят', type: 'article', status: 'draft', language: 'bg' } },
+        body: {
+          data: {
+            id: 611,
+            title: 'Здравей свят',
+            type: 'article',
+            status: 'draft',
+            language: 'bg',
+          },
+        },
       },
     ]);
 
