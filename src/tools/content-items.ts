@@ -603,8 +603,40 @@ const getGenerationJobStatus = defineTool({
   },
 });
 
+const getRevisionStatus = defineTool({
+  name: 'get_revision_status',
+  title: 'Get revision status',
+  description:
+    'Follow a revision job started by request_content_changes. Pass the job_id it returned and the content_item_id you sent. Reports the revision ready for review only once the job has completed and the item has actually moved (status review, or its version advanced), so a completed job whose revised content has not landed yet keeps you polling. A status read is idempotent, so a retry never duplicates work.',
+  inputSchema: {
+    job_id: z
+      .union([z.number().int(), z.string()])
+      .describe('The revision job id returned by request_content_changes'),
+    content_item_id: z.number().int().describe('The content item the revision applies to'),
+  },
+  annotations: readOnly,
+  handler: async (args, session) => {
+    const jobId = String(args.job_id ?? '');
+    const itemId = requireNumberArg(args, 'content_item_id');
+    const job = unwrapData<Row>(await session.client.get(`/api/v2/generation-jobs/${jobId}`));
+    const status = String(job.status ?? '');
+    const head = fields([
+      ['job_id', job.job_id ?? jobId],
+      ['content_item_id', itemId],
+      ['kind', job.kind],
+      ['status', job.status],
+      ['error', job.error],
+    ]);
+    if (!(GENERATION_JOB_TERMINAL_STATUSES as readonly string[]).includes(status)) {
+      return `${head}\nThe revision job is still running; call get_revision_status again shortly.`;
+    }
+    return head;
+  },
+});
+
 export const contentItemTools: readonly ToolDefinition[] = [
   getGenerationJobStatus,
+  getRevisionStatus,
   listContentItems,
   getContentItem,
   createContentItem,
