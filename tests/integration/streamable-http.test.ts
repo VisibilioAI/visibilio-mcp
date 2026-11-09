@@ -317,6 +317,34 @@ describe('Streamable HTTP transport — a new session resumes where the same cre
   });
 });
 
+describe('Streamable HTTP transport — two clients of one user hold independent contexts', () => {
+  function gatewayNoMemory(): typeof fetch {
+    return vi.fn(async (url: string) => {
+      const path = new URL(url).pathname;
+      if (path === '/api/v2/auth/me') return respond(200, ME_TWO_ORGS);
+      if (path === '/api/v2/products/284')
+        return respond(200, { data: { id: 284, name: 'dobrakola.bg' } });
+      return respond(404, { error: 'not_found' });
+    }) as unknown as typeof fetch;
+  }
+
+  it("a second client does not inherit the first client's active organization or product", async () => {
+    const { app } = buildHttpApp({ baseSettings, fetch: gatewayNoMemory() });
+
+    const clientA = await initializeAs(app, 'vat_client_a');
+    await callTool(app, clientA, 'vat_client_a', 'set_active_organization', {
+      organization_id: 206,
+    });
+    await callTool(app, clientA, 'vat_client_a', 'set_active_product', { product_id: 284 });
+
+    const clientB = await initializeAs(app, 'vat_client_b');
+    const whoami = await callTool(app, clientB, 'vat_client_b', 'whoami', {});
+
+    expect(whoami).toContain('organization_id: 158');
+    expect(whoami).not.toContain('product_id: 284');
+  });
+});
+
 const OTHER_USER = {
   user: { id: 99, email: 'other@example.com', name: 'Other User' },
   organizations: [{ id: 158, name: 'Visibilio', role: 'member' }],
