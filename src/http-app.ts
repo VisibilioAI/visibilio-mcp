@@ -61,19 +61,31 @@ export function buildHttpApp(options: HttpAppOptions): HttpApp {
   // session per turn, re-authentication after a token refresh) resumes where it left off
   // instead of silently falling back to the home organization. The gateway keeps them
   // too, so a fresh server after a restart resumes there as well (meta#785).
-  const contexts = new Map<number, SessionContext>();
-  const serverOptions = {
+  // Keyed by (user, credential): two clients of one user each hold their own credential,
+  // so they keep independent contexts. A refreshed token of one grant resumes via the
+  // gateway, whose context is keyed by the same credential.
+  const contexts = new Map<string, SessionContext>();
+  const contextKey = (userId: number, credentialHash: string): string =>
+    `${userId}:${credentialHash}`;
+  const moveContext = (userId: number, fromHash: string, toHash: string): void => {
+    if (fromHash === toHash) return;
+    const cached = contexts.get(contextKey(userId, fromHash));
+    if (cached === undefined) return;
+    contexts.set(contextKey(userId, toHash), cached);
+    contexts.delete(contextKey(userId, fromHash));
+  };
+  const makeContextOptions = (keyRef: { hash: string }) => ({
     contextFor: async (auth: AuthContext, client: VisibilioClient) =>
-      contexts.get(auth.userId) ?? (await loadRememberedContext(client)),
+      contexts.get(contextKey(auth.userId, keyRef.hash)) ?? (await loadRememberedContext(client)),
     onContextChange: async (
       auth: AuthContext,
       client: VisibilioClient,
       context: SessionContext
     ) => {
-      contexts.set(auth.userId, context);
+      contexts.set(contextKey(auth.userId, keyRef.hash), context);
       await rememberContext(client, context);
     },
-  };
+  });
   const resolveUserId = async (settings: Settings): Promise<number> => {
     const auth = new McpAuth({
       credential: settings.credential,
@@ -287,8 +299,9 @@ export function buildHttpApp(options: HttpAppOptions): HttpApp {
     }
 
     let built;
+    const keyRef = { hash: credentialHash };
     try {
-      built = await buildServer({ settings, fetch: fetchImpl, ...serverOptions });
+      built = await buildServer({ settings, fetch: fetchImpl, ...makeContextOptions(keyRef) });
     } catch (err) {
       if (err instanceof AuthenticationError) {
         rejectAuthenticationFailure(req, res, err);
@@ -312,6 +325,8 @@ export function buildHttpApp(options: HttpAppOptions): HttpApp {
           credentialHash,
           rebind(credential, hash) {
             built.session.client.setCredential(credential);
+            moveContext(built.session.userId, keyRef.hash, hash);
+            keyRef.hash = hash;
             live.credentialHash = hash;
           },
           close: () => transport.close(),
@@ -350,16 +365,23 @@ export function buildHttpApp(options: HttpAppOptions): HttpApp {
     let transport: SSEServerTransport | undefined;
     try {
       transport = new SSEServerTransport('/messages', res);
-      const built = await buildServer({ settings, fetch: fetchImpl, ...serverOptions });
+      const keyRef = { hash: hashCredential(settings.credential) };
+      const built = await buildServer({
+        settings,
+        fetch: fetchImpl,
+        ...makeContextOptions(keyRef),
+      });
       const id = transport.sessionId;
       const t = transport;
       sseTransports.set(id, t);
       const live: LiveSession = {
         kind: 'sse',
         userId: built.session.userId,
-        credentialHash: hashCredential(settings.credential),
+        credentialHash: keyRef.hash,
         rebind(credential, hash) {
           built.session.client.setCredential(credential);
+          moveContext(built.session.userId, keyRef.hash, hash);
+          keyRef.hash = hash;
           live.credentialHash = hash;
         },
         close: () => t.close(),
