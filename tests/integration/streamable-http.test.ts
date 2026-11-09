@@ -292,11 +292,14 @@ describe('Streamable HTTP transport — a new session resumes where the same cre
     expect(whoami).toContain('product_id: 284');
   });
 
-  it('a renewed token of the same user resumes there too (the context belongs to the user, not the token)', async () => {
-    const fetchImpl = gatewayFetch({ '/api/v2/auth/me': { body: ME_TWO_ORGS } });
+  it('a renewed token of the same grant resumes via the gateway, which remembers it per credential', async () => {
+    // A refreshed access token keeps the grant, so the gateway (keyed by the credential)
+    // returns the same remembered organization. The server does not carry a context across
+    // distinct raw tokens in memory — that isolation is the point of the per-credential key.
+    const { fetchImpl } = contextGateway({
+      data: { organization_id: 206, product_id: null, product_name: null },
+    });
     const { app } = buildHttpApp({ baseSettings, fetch: fetchImpl });
-    const first = await initializeAs(app, 'vat_old');
-    await callTool(app, first, 'vat_old', 'set_active_organization', { organization_id: 206 });
 
     const renewed = await initializeAs(app, 'vat_new');
     const whoami = await callTool(app, renewed, 'vat_new', 'whoami', {});
@@ -314,6 +317,52 @@ describe('Streamable HTTP transport — a new session resumes where the same cre
     const whoami = await callTool(app, other, 'vsk_other', 'whoami', {});
 
     expect(whoami).toContain('organization_id: 158');
+  });
+});
+
+describe('Streamable HTTP transport — two clients of one user hold independent contexts', () => {
+  function gatewayNoMemory(): typeof fetch {
+    return vi.fn(async (url: string) => {
+      const path = new URL(url).pathname;
+      if (path === '/api/v2/auth/me') return respond(200, ME_TWO_ORGS);
+      if (path === '/api/v2/products/284')
+        return respond(200, { data: { id: 284, name: 'dobrakola.bg' } });
+      return respond(404, { error: 'not_found' });
+    }) as unknown as typeof fetch;
+  }
+
+  it("a second client does not inherit the first client's active organization or product", async () => {
+    const { app } = buildHttpApp({ baseSettings, fetch: gatewayNoMemory() });
+
+    const clientA = await initializeAs(app, 'vat_client_a');
+    await callTool(app, clientA, 'vat_client_a', 'set_active_organization', {
+      organization_id: 206,
+    });
+    await callTool(app, clientA, 'vat_client_a', 'set_active_product', { product_id: 284 });
+
+    const clientB = await initializeAs(app, 'vat_client_b');
+    const whoami = await callTool(app, clientB, 'vat_client_b', 'whoami', {});
+
+    expect(whoami).toContain('organization_id: 158');
+    expect(whoami).not.toContain('product_id: 284');
+  });
+
+  it('a token refresh on a live session moves the cached context to the new credential, so a later session with the refreshed token resumes from memory', async () => {
+    // Gateway remembers nothing, so a resume can only come from the in-memory cache. The
+    // first token sets organization 206; a refreshed token on the SAME session rebinds it;
+    // a fresh session with the refreshed token must still resume 206 — the cache key moved,
+    // it did not orphan.
+    const fetchImpl = gatewayFetchByUser({ vat_tok_1: ME_TWO_ORGS, vat_tok_2: ME_TWO_ORGS });
+    const { app } = buildHttpApp({ baseSettings, fetch: fetchImpl });
+
+    const session = await initializeAs(app, 'vat_tok_1');
+    await callTool(app, session, 'vat_tok_1', 'set_active_organization', { organization_id: 206 });
+    await callTool(app, session, 'vat_tok_2', 'whoami', {});
+
+    const resumed = await initializeAs(app, 'vat_tok_2');
+    const whoami = await callTool(app, resumed, 'vat_tok_2', 'whoami', {});
+
+    expect(whoami).toContain('organization_id: 206');
   });
 });
 
