@@ -16,7 +16,10 @@ jobs:
       - name: Install gitleaks
         run: |
           VER=8.30.1
-          curl -sSfL "https://github.com/gitleaks/gitleaks/releases/download/v${VER}/gitleaks_${VER}_linux_x64.tar.gz" | tar -xz gitleaks
+          curl --retry 5 --retry-all-errors --retry-delay 3 --connect-timeout 10 -sSfL \
+            -o gitleaks.tgz \
+            "https://github.com/gitleaks/gitleaks/releases/download/v${VER}/gitleaks_${VER}_linux_x64.tar.gz"
+          tar -xzf gitleaks.tgz gitleaks
           sudo mv gitleaks /usr/local/bin/
           gitleaks version
       - name: Determine commit range
